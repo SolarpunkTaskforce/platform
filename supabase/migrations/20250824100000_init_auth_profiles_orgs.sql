@@ -54,7 +54,7 @@ for each row execute function public.handle_new_user();
 
 -- RLS Policies
 
--- Profiles: public readable basic info; user can update own row
+-- Profiles: public readable; user updates self
 drop policy if exists "profiles_public_read" on public.profiles;
 create policy "profiles_public_read" on public.profiles
 for select using (true);
@@ -63,7 +63,7 @@ drop policy if exists "profiles_user_update_self" on public.profiles;
 create policy "profiles_user_update_self" on public.profiles
 for update using (auth.uid() = id) with check (auth.uid() = id);
 
--- Organisations: public read; insert by authenticated; updates by members (admin/owner)
+-- Organisations: public read; insert any authed; updates by admins
 drop policy if exists "orgs_public_read" on public.organisations;
 create policy "orgs_public_read" on public.organisations
 for select using (true);
@@ -83,7 +83,7 @@ for update using (
   )
 );
 
--- Organisation members: members can read; owners/admins manage
+-- Organisation members: members read; admins manage
 drop policy if exists "org_members_read" on public.organisation_members;
 create policy "org_members_read" on public.organisation_members
 for select using (
@@ -92,13 +92,11 @@ for select using (
     where m2.organisation_id = organisation_members.organisation_id
       and m2.user_id = auth.uid()
   )
-) with check (true);
+);
 
 drop policy if exists "org_members_insert_self_owner" on public.organisation_members;
 create policy "org_members_insert_self_owner" on public.organisation_members
-for insert to authenticated with check (
-  auth.uid() = user_id
-);
+for insert to authenticated with check (auth.uid() = user_id);
 
 drop policy if exists "org_members_update_admins" on public.organisation_members;
 create policy "org_members_update_admins" on public.organisation_members

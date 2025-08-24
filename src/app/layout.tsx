@@ -1,48 +1,27 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { ReactNode } from "react";
+import AuthButton from "@/components/AuthButton";
 import Link from "next/link";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Solarpunk Taskforce",
-  description: "A global platform for humanitarian and environmental impact",
+  description: "Coordination platform for humanitarian and environmental projects",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <header className="fixed top-0 inset-x-0 z-50 h-14 bg-white/90 backdrop-blur border-b border-gray-200">
-          <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6">
-            <Link href="/" className="font-bold text-lg">
-              Solarpunk Taskforce
-            </Link>
-            <nav className="flex items-center gap-6 text-sm font-medium">
-              <Link href="/">Home</Link>
-              <Link href="/about">About</Link>
-              <Link href="/projects">Find Projects</Link>
-              <Link href="/organisations">Find Organisations</Link>
-              <Link href="/feed">Feed</Link>
-              <a
-                href="https://note-empathy.org"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Note Empathy
-              </a>
-              <Link href="/services">Services</Link>
-            </nav>
+      <body className="min-h-screen">
+        <header className="flex items-center justify-between px-6 py-3">
+          <Link href="/" className="text-lg font-semibold">Solarpunk Taskforce</Link>
+          <div className="flex items-center gap-4">
+            {/* existing nav here */}
+            <AuthButton />
           </div>
         </header>
-        <main className="pt-14 min-h-screen">{children}</main>
+        {children}
       </body>
     </html>
   );
 }
-
