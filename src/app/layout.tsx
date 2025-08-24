@@ -29,7 +29,13 @@ export default function RootLayout({
               <Link href="/projects">Find Projects</Link>
               <Link href="/organisations">Find Organisations</Link>
               <Link href="/feed">Feed</Link>
-              <Link href="/note-empathy">Note Empathy</Link>
+              <a
+                href="https://note-empathy.org"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Note Empathy
+              </a>
               <Link href="/services">Services</Link>
             </nav>
           </div>
