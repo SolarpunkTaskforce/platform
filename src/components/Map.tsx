@@ -19,5 +19,5 @@ export default function Map() {
     return () => mapRef.current?.remove();
   }, []);
 
-  return <div ref={ref} className="h-[70vh] w-full rounded-2xl" />;
+  return <div ref={ref} className="h-full w-full" />;
 }
