@@ -22,6 +22,8 @@ function initials(p: Profile | null) {
 export default function TopNav() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSessionUserId(data.user?.id ?? null));
@@ -48,22 +50,72 @@ export default function TopNav() {
     { href: "/services", label: "Services" },
   ]), []);
 
+  const menu = (
+    <div className="relative">
+      <button
+        onClick={() => setMenuOpen(o => !o)}
+        className="grid h-9 w-9 place-items-center rounded-full border"
+        aria-label="Menu"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      {menuOpen && (
+        <nav className="absolute right-0 mt-2 flex flex-col rounded border bg-white text-sm shadow">
+          {[{ href: "/", label: "Home" }, ...navLinks].map(l => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="px-4 py-2 hover:bg-gray-100"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+
   return (
     <header className="flex items-center justify-between px-6 py-3">
       <Link href="/" className="text-lg font-semibold">Solarpunk Taskforce</Link>
-      <nav className="hidden gap-5 md:flex">
-        {navLinks.map(l => (
-          <Link key={l.href} href={l.href} className="text-sm hover:underline">{l.label}</Link>
-        ))}
-      </nav>
       <div className="flex items-center gap-3">
-        {profile && <AddAction accountKind={profile.kind} />}
         {profile ? (
-          <Link href="/dashboard" className="grid h-9 w-9 place-items-center rounded-full border text-xs">
-            {initials(profile)}
-          </Link>
+          <>
+            <AddAction accountKind={profile.kind} />
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen(o => !o)}
+                className="grid h-9 w-9 place-items-center rounded-full border text-xs"
+                aria-label="Account"
+              >
+                {initials(profile)}
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 mt-2 w-40 rounded border bg-white text-sm shadow">
+                  <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+                    Profile
+                  </Link>
+                  <Link href="/settings" className="block px-4 py-2 hover:bg-gray-100">
+                    Settings
+                  </Link>
+                </div>
+              )}
+            </div>
+            {menu}
+          </>
         ) : (
-          <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">Sign in</Link>
+          <>
+            {menu}
+            <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">Sign in</Link>
+          </>
         )}
       </div>
     </header>
