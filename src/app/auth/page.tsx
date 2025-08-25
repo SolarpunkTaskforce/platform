@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function AuthPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<"signin"|"signup">("signin");
   const [account, setAccount] = useState<"individual"|"organisation">("individual");
   const [email, setEmail] = useState("");
@@ -21,7 +23,7 @@ export default function AuthPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        setMsg("Signed in.");
+        router.replace("/"); router.refresh();
         return;
       }
 
@@ -35,31 +37,36 @@ export default function AuthPage() {
       });
       if (error) throw error;
 
-      if (account === "organisation" && orgName) {
-        const userId = data.user?.id;
-        if (userId) {
-          const { data: org, error: orgErr } = await supabase
-            .from("organisations")
-            .insert({ name: orgName, created_by: userId })
-            .select("id")
-            .single();
-          if (orgErr) throw orgErr;
+      // If org, provision org + membership + profile flag
+      if (account === "organisation" && orgName && data.user?.id) {
+        const userId = data.user.id;
+        const { data: org, error: orgErr } = await supabase
+          .from("organisations")
+          .insert({ name: orgName, created_by: userId })
+          .select("id")
+          .single();
+        if (orgErr) throw orgErr;
 
-          await supabase.from("organisation_members").insert({
-            organisation_id: org.id,
-            user_id: userId,
-            role: "owner",
-          });
+        await supabase.from("organisation_members").insert({
+          organisation_id: org.id,
+          user_id: userId,
+          role: "owner",
+        });
 
-          await supabase.from("profiles").update({
-            kind: "organisation",
-            organisation_name: orgName,
-            organisation_id: org.id,
-          }).eq("id", userId);
-        }
+        await supabase.from("profiles").update({
+          kind: "organisation",
+          organisation_name: orgName,
+          organisation_id: org.id,
+        }).eq("id", userId);
       }
 
-      setMsg("Check your email to confirm the account if required.");
+      // If email confirmation is OFF or session is present, redirect now
+      const { data: sess } = await supabase.auth.getSession();
+      if (sess.session) {
+        router.replace("/"); router.refresh();
+      } else {
+        setMsg("Check your email to confirm the account, then sign in.");
+      }
     } catch (err: unknown) {
       setMsg(err instanceof Error ? err.message : "Error");
     } finally {
@@ -72,24 +79,69 @@ export default function AuthPage() {
       <h1 className="mb-4 text-2xl font-semibold">{mode === "signin" ? "Sign in" : "Create account"}</h1>
 
       <div className="mb-4 flex gap-2">
-        <button onClick={() => setMode("signin")} className={`rounded-xl border px-3 py-1 text-sm ${mode==="signin" ? "font-semibold" : ""}`}>Sign in</button>
-        <button onClick={() => setMode("signup")} className={`rounded-xl border px-3 py-1 text-sm ${mode==="signup" ? "font-semibold" : ""}`}>Sign up</button>
+        <button
+          className={`rounded-xl border px-3 py-1 text-sm ${mode==="signin" ? "font-semibold" : ""}`}
+          onClick={() => setMode("signin")}
+        >
+          Sign in
+        </button>
+        <button
+          className={`rounded-xl border px-3 py-1 text-sm ${mode==="signup" ? "font-semibold" : ""}`}
+          onClick={() => setMode("signup")}
+        >
+          Sign up
+        </button>
       </div>
 
       {mode === "signup" && (
         <div className="mb-4 flex gap-2">
-          <button onClick={() => setAccount("individual")} className={`rounded-xl border px-3 py-1 text-sm ${account==="individual" ? "font-semibold" : ""}`}>Individual</button>
-          <button onClick={() => setAccount("organisation")} className={`rounded-xl border px-3 py-1 text-sm ${account==="organisation" ? "font-semibold" : ""}`}>Organisation</button>
+          <button
+            className={`rounded-xl border px-3 py-1 text-sm ${account==="individual" ? "font-semibold" : ""}`}
+            onClick={() => setAccount("individual")}
+          >
+            Individual
+          </button>
+          <button
+            className={`rounded-xl border px-3 py-1 text-sm ${account==="organisation" ? "font-semibold" : ""}`}
+            onClick={() => setAccount("organisation")}
+          >
+            Organisation
+          </button>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input type="email" placeholder="Email" className="w-full rounded-xl border px-3 py-2" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" className="w-full rounded-xl border px-3 py-2" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full rounded-xl border px-3 py-2"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full rounded-xl border px-3 py-2"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         {mode === "signup" && account === "organisation" && (
-          <input type="text" placeholder="Organisation name" className="w-full rounded-xl border px-3 py-2" value={orgName} onChange={(e) => setOrgName(e.target.value)} required />
+          <input
+            type="text"
+            placeholder="Organisation name"
+            className="w-full rounded-xl border px-3 py-2"
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            required
+          />
         )}
-        <button type="submit" disabled={loading} className="w-full rounded-xl border px-3 py-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl border px-3 py-2"
+        >
           {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>
@@ -98,3 +150,4 @@ export default function AuthPage() {
     </div>
   );
 }
+

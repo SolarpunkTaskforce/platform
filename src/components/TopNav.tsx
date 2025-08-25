@@ -26,9 +26,12 @@ export default function TopNav() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setSessionUserId(data.user?.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSessionUserId(s?.user?.id ?? null));
-    return () => sub.subscription.unsubscribe();
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => { if (active) setSessionUserId(data.user?.id ?? null); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSessionUserId(s?.user?.id ?? null);
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
