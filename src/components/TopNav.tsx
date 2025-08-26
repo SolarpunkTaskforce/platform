@@ -45,6 +45,7 @@ export default function TopNav() {
   }, [sessionUserId]);
 
   const navLinks = useMemo(() => ([
+    { href: "/", label: "Home" },
     { href: "/about", label: "About" },
     { href: "/find-projects", label: "Find Projects" },
     { href: "/find-organisations", label: "Find Organisations" },
@@ -71,12 +72,13 @@ export default function TopNav() {
         </svg>
       </button>
       {menuOpen && (
-        <nav className="absolute right-0 mt-2 flex flex-col rounded border bg-white text-sm shadow">
-          {[{ href: "/", label: "Home" }, ...navLinks].map(l => (
+        <nav className="absolute right-0 mt-2 flex flex-col rounded border bg-white text-sm shadow z-50">
+          {navLinks.map(l => (
             <Link
               key={l.href}
               href={l.href}
               className="px-4 py-2 hover:bg-gray-100"
+              onClick={() => setMenuOpen(false)}
             >
               {l.label}
             </Link>
@@ -87,7 +89,7 @@ export default function TopNav() {
   );
 
   return (
-    <header className="flex items-center justify-between px-6 py-3">
+    <header className="relative z-10 flex items-center justify-between px-6 py-3">
       <Link href="/" className="text-lg font-semibold">Solarpunk Taskforce</Link>
       <div className="flex items-center gap-3">
         {profile ? (
