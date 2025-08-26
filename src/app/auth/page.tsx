@@ -12,18 +12,26 @@ export default function AuthPage() {
   const [orgName, setOrgName] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMsg(null);
+    setErrorMsg(null);
 
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.replace("/"); router.refresh();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setErrorMsg(error.message);
+          return;
+        }
+        if (data.session) {
+          router.replace("/");
+          router.refresh();
+        }
         return;
       }
 
@@ -68,7 +76,7 @@ export default function AuthPage() {
         setMsg("Check your email to confirm the account, then sign in.");
       }
     } catch (err: unknown) {
-      setMsg(err instanceof Error ? err.message : "Error");
+      setErrorMsg(err instanceof Error ? err.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -146,6 +154,7 @@ export default function AuthPage() {
         </button>
       </form>
 
+      {errorMsg && <p className="mt-3 text-sm font-semibold text-red-600">{errorMsg}</p>}
       {msg && <p className="mt-3 text-sm">{msg}</p>}
     </div>
   );
