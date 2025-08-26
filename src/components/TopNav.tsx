@@ -22,6 +22,7 @@ function initials(p: Profile | null) {
 export default function TopNav() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -35,13 +36,21 @@ export default function TopNav() {
   }, []);
 
   useEffect(() => {
-    if (!sessionUserId) { setProfile(null); return; }
+    if (!sessionUserId) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+    setProfileLoading(true);
     supabase
       .from("profiles")
       .select("id, kind, full_name, surname, organisation_name")
       .eq("id", sessionUserId)
       .single()
-      .then(({ data }) => setProfile(data as Profile));
+      .then(({ data }) => {
+        setProfile((data ?? null) as Profile | null);
+        setProfileLoading(false);
+      });
   }, [sessionUserId]);
 
   const navLinks = useMemo(() => ([
@@ -88,41 +97,46 @@ export default function TopNav() {
     </div>
   );
 
+  const controls = profile ? (
+    <>
+      <AddAction accountKind={profile.kind} />
+      <div className="relative">
+        <button
+          onClick={() => setProfileOpen(o => !o)}
+          className="grid h-9 w-9 place-items-center rounded-full border text-xs"
+          aria-label="Account"
+        >
+          {initials(profile)}
+        </button>
+        {profileOpen && (
+          <div className="absolute right-0 mt-2 w-40 rounded border bg-white text-sm shadow">
+            <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+              Profile
+            </Link>
+            <Link href="/settings" className="block px-4 py-2 hover:bg-gray-100">
+              Settings
+            </Link>
+          </div>
+        )}
+      </div>
+      {menu}
+    </>
+  ) : sessionUserId && !profileLoading ? (
+    <>
+      {menu}
+      <Link href="/dashboard" className="rounded-xl border px-3 py-1 text-sm">Complete profile</Link>
+    </>
+  ) : (
+    <>
+      {menu}
+      <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">Sign in</Link>
+    </>
+  );
+
   return (
     <header className="relative z-10 flex items-center justify-between px-6 py-3">
       <Link href="/" className="text-lg font-semibold">Solarpunk Taskforce</Link>
-      <div className="flex items-center gap-3">
-        {profile ? (
-          <>
-            <AddAction accountKind={profile.kind} />
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen(o => !o)}
-                className="grid h-9 w-9 place-items-center rounded-full border text-xs"
-                aria-label="Account"
-              >
-                {initials(profile)}
-              </button>
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-40 rounded border bg-white text-sm shadow">
-                  <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
-                    Profile
-                  </Link>
-                  <Link href="/settings" className="block px-4 py-2 hover:bg-gray-100">
-                    Settings
-                  </Link>
-                </div>
-              )}
-            </div>
-            {menu}
-          </>
-        ) : (
-          <>
-            {menu}
-            <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">Sign in</Link>
-          </>
-        )}
-      </div>
+      <div className="flex items-center gap-3">{controls}</div>
     </header>
   );
 }
