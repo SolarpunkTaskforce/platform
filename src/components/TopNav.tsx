@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AddAction from "@/components/add/AddAction";
+import { User } from "lucide-react";
 
 type Profile = {
   id: string;
@@ -23,7 +24,6 @@ function initials(p: Profile | null) {
 export default function TopNav() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const router = useRouter();
@@ -40,10 +40,8 @@ export default function TopNav() {
   useEffect(() => {
     if (!sessionUserId) {
       setProfile(null);
-      setProfileLoading(false);
       return;
     }
-    setProfileLoading(true);
     supabase
       .from("profiles")
       .select("id, kind, full_name, surname, organisation_name")
@@ -51,7 +49,6 @@ export default function TopNav() {
       .single()
       .then(({ data }) => {
         setProfile((data ?? null) as Profile | null);
-        setProfileLoading(false);
       });
   }, [sessionUserId]);
 
@@ -83,12 +80,12 @@ export default function TopNav() {
         </svg>
       </button>
       {menuOpen && (
-        <nav className="absolute right-0 mt-2 flex flex-col rounded border bg-white text-sm shadow z-50">
+        <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
           {navLinks.map(l => (
             <Link
               key={l.href}
               href={l.href}
-              className="px-4 py-2 hover:bg-gray-100"
+              className="px-4 py-2 hover:bg-white/10"
               onClick={() => setMenuOpen(false)}
             >
               {l.label}
@@ -99,16 +96,16 @@ export default function TopNav() {
     </div>
   );
 
-  const controls = profile ? (
+  const controls = sessionUserId ? (
     <>
-      <AddAction accountKind={profile.kind} />
+      {profile && <AddAction accountKind={profile.kind} />}
       <div className="relative">
         <button
           onClick={() => setProfileOpen(o => !o)}
-          className="grid h-9 w-9 place-items-center rounded-full border text-xs"
+          className="grid h-9 w-9 place-items-center rounded-full border"
           aria-label="Account"
         >
-          {initials(profile)}
+          {profile ? initials(profile) : <User className="h-4 w-4" />}
         </button>
         {profileOpen && (
           <div className="absolute right-0 mt-2 w-40 rounded border bg-white text-sm shadow">
@@ -118,15 +115,19 @@ export default function TopNav() {
             <Link href="/settings" className="block px-4 py-2 hover:bg-gray-100">
               Settings
             </Link>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.refresh();
+              }}
+              className="block w-full px-4 py-2 text-left hover:bg-gray-100"
+            >
+              Sign out
+            </button>
           </div>
         )}
       </div>
       {menu}
-    </>
-  ) : sessionUserId && !profileLoading ? (
-    <>
-      {menu}
-      <Link href="/dashboard" className="rounded-xl border px-3 py-1 text-sm">Complete profile</Link>
     </>
   ) : (
     <>
@@ -136,7 +137,7 @@ export default function TopNav() {
   );
 
   return (
-    <header className="relative z-10 flex items-center justify-between px-6 py-3">
+    <header className="relative z-10 flex h-14 items-center justify-between px-6">
       <button
         type="button"
         onClick={() => { setMenuOpen(false); router.push("/"); }}
