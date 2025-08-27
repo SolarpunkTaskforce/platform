@@ -137,7 +137,7 @@ export default function TopNav() {
   );
 
   return (
-    <header className="relative z-10 flex items-center justify-between px-6 py-3">
+    <header className="relative z-10 flex h-14 items-center justify-between px-6">
       <button
         type="button"
         onClick={() => { setMenuOpen(false); router.push("/"); }}
