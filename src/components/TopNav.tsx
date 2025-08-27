@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import AddAction from "@/components/add/AddAction";
 
@@ -25,6 +26,7 @@ export default function TopNav() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     let active = true;
@@ -135,7 +137,13 @@ export default function TopNav() {
 
   return (
     <header className="relative z-10 flex items-center justify-between px-6 py-3">
-      <Link href="/" className="text-lg font-semibold">Solarpunk Taskforce</Link>
+      <button
+        type="button"
+        onClick={() => { setMenuOpen(false); router.push("/"); }}
+        className="text-lg font-semibold"
+      >
+        Solarpunk Taskforce
+      </button>
       <div className="flex items-center gap-3">{controls}</div>
     </header>
   );
