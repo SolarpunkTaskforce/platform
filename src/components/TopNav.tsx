@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import AddAction from "@/components/add/AddAction";
 import { User } from "lucide-react";
 
 type Profile = {
@@ -65,7 +64,7 @@ export default function TopNav() {
   const menu = (
     <div className="relative">
       <button
-        onClick={() => setMenuOpen(o => !o)}
+        onClick={() => { setMenuOpen(o => !o); setProfileOpen(false); }}
         className="grid h-9 w-9 place-items-center rounded-full border"
         aria-label="Menu"
       >
@@ -80,57 +79,75 @@ export default function TopNav() {
         </svg>
       </button>
       {menuOpen && (
-        <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
-          {navLinks.map(l => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="px-4 py-2 hover:bg-white/10"
-              onClick={() => setMenuOpen(false)}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+          <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+            {navLinks.map(l => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="px-4 py-2 hover:bg-white/10"
+                onClick={() => setMenuOpen(false)}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </>
       )}
     </div>
   );
 
+  const addButton = (
+    <Link
+      href="/add/project"
+      className="grid h-9 w-9 place-items-center rounded-full border"
+      aria-label="Add Project"
+    >
+      +
+    </Link>
+  );
+
   const controls = sessionUserId ? (
     <>
-      {profile && <AddAction accountKind={profile.kind} />}
       <div className="relative">
         <button
-          onClick={() => setProfileOpen(o => !o)}
+          onClick={() => { setProfileOpen(o => !o); setMenuOpen(false); }}
           className="grid h-9 w-9 place-items-center rounded-full border"
           aria-label="Account"
         >
           {profile ? initials(profile) : <User className="h-4 w-4" />}
         </button>
         {profileOpen && (
-          <div className="absolute right-0 mt-2 w-40 rounded border bg-white text-sm shadow">
-            <Link href="/dashboard" className="block px-4 py-2 hover:bg-gray-100">
-              Profile
-            </Link>
-            <Link href="/settings" className="block px-4 py-2 hover:bg-gray-100">
-              Settings
-            </Link>
-            <button
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.refresh();
-              }}
-              className="block w-full px-4 py-2 text-left hover:bg-gray-100"
-            >
-              Sign out
-            </button>
-          </div>
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+            <div className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+              <Link href="/dashboard" className="px-4 py-2 hover:bg-white/10" onClick={() => setProfileOpen(false)}>
+                Profile
+              </Link>
+              <Link href="/settings" className="px-4 py-2 hover:bg-white/10" onClick={() => setProfileOpen(false)}>
+                Settings
+              </Link>
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.refresh();
+                  setProfileOpen(false);
+                }}
+                className="px-4 py-2 text-left hover:bg-white/10"
+              >
+                Sign out
+              </button>
+            </div>
+          </>
         )}
       </div>
+      {addButton}
       {menu}
     </>
   ) : (
     <>
+      {addButton}
       {menu}
       <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">Sign in</Link>
     </>

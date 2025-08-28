@@ -53,6 +53,6 @@ export default function Map({ markers = [] as Marker[] }) {
     });
   }, [markers]);
 
-  return <div ref={containerRef} className="h-[70vh] w-full rounded-2xl" />;
+  return <div ref={containerRef} className="h-full w-full" />;
 }
 
