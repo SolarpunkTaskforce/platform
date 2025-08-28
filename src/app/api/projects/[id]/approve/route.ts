@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { cookies } from "next/headers";
 
-export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function POST(_: NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
 
   // make supabase client bound to cookies so RLS sees auth
   const cookieStore = cookies();
