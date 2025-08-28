@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 type Profile = {
   id: string;
@@ -12,6 +12,8 @@ type Profile = {
   organisation_name: string | null;
   organisation_id: string | null;
 };
+
+const supabase = supabaseClient();
 
 export default function DashboardPage() {
   const router = useRouter();

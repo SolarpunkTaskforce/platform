@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { supabaseClient } from "@/lib/supabaseClient";
+
+const supabase = supabaseClient();
 
 export default function AuthButton() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
