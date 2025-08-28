@@ -1,16 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+// FILE: src/app/api/projects/[id]/approve/route.ts
+import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = await supabaseServer();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+export async function POST(_req: Request, ctx: { params: { id: string } }) {
+  const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const { error: updErr } = await supabase
+  const { error } = await supabase
     .from("projects")
     .update({ status: "approved", approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", params.id);
+    .eq("id", ctx.params.id);
 
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }
