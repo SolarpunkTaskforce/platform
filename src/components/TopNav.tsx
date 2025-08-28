@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabaseClient } from "@/lib/supabaseClient";
 import { User } from "lucide-react";
 
 type Profile = {
@@ -19,6 +19,8 @@ function initials(p: Profile | null) {
   const name = [p.full_name, p.surname].filter(Boolean).join(" ");
   return name ? name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() : "U";
 }
+
+const supabase = supabaseClient();
 
 export default function TopNav() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);

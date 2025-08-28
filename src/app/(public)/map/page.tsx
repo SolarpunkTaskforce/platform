@@ -1,7 +1,8 @@
 import Map from "@/components/Map";
-import { supabase } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabaseServer";
 
 export default async function MapPage() {
+  const supabase = await supabaseServer();
   const { data, error } = await supabase
     .from("projects")
     .select("id, title, lat, lng")
