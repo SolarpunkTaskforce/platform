@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { getServerSupabase } from "@/lib/supabaseServer";
 
 export async function POST(req: NextRequest) {
-  const supabase = await supabaseServer();
+  const supabase = getServerSupabase();
   const body = await req.json();
   const { title, description, lat, lng, org_name } = body ?? {};
 
@@ -12,9 +12,9 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase.from("projects").insert({
     title, description, lat, lng, org_name,
     created_by: user.id,
-    status: "pending"
+    approval_status: "pending"
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, status: "pending" });
+  return NextResponse.json({ ok: true, approval_status: "pending" });
 }
