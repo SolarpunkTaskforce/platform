@@ -1,0 +1,46 @@
+name: supabase-db-diff
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      # Use pnpm dlx so we don’t alter your package.json
+      - name: Supabase login
+        run: pnpm dlx supabase@latest login --token "$SUPABASE_ACCESS_TOKEN"
+
+      - name: Build DB URL
+        id: db
+        run: echo "url=postgres://postgres:${SUPABASE_DB_PASSWORD}@db.${SUPABASE_PROJECT_REF}.supabase.co:5432/postgres" >> "$GITHUB_OUTPUT"
+
+      - name: Create migration diff
+        run: |
+          STAMP=$(date -u +%Y%m%d%H%M%S)
+          pnpm dlx supabase@latest db diff \
+            --db-url "${{ steps.db.outputs.url }}" \
+            --schema public \
+            -f "supabase/migrations/${STAMP}_auto.sql" || true
+
+      - name: Create PR if changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(db): auto diff"
+          title: "chore(db): auto diff"
+          branch: chore/db-diff
+          add-paths: |
+            supabase/migrations/**
