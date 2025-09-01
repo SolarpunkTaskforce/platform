@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const { pathname } = new URL(req.url);
   const parts = pathname.split("/");
   const id = parts[parts.length - 2];
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const { error } = await supabase

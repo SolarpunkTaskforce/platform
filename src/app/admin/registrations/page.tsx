@@ -1,7 +1,7 @@
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 export default async function Page() {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return new Response(null, { status: 404 }) as never;
 
