@@ -1,11 +1,18 @@
--- Ensure the is_admin() function exists before altering or using it
+-- supabase/migrations/20250827_fix_security_warnings.sql
+
+-- 1) Ensure profiles.role exists
+alter table public.profiles
+  add column if not exists role text not null default 'user';
+
+-- Optional: backfill real admins here
+-- update public.profiles set role = 'admin' where <your condition>;
+
+-- 2) Define is_admin() using profiles.role
 create or replace function public.is_admin()
 returns boolean
 language sql
 stable
 as $$
-  -- TODO: Replace with real logic.
-  -- Example: check if the current authenticated user has role = 'admin'
   select exists (
     select 1
     from public.profiles p
@@ -14,11 +21,6 @@ as $$
   );
 $$;
 
--- Lock down search_path on security-relevant functions.
--- Limit to trusted schemas only. Exclude pg_temp and pg_catalog overrides.
+-- 3) Lock down search_path for security-relevant functions
 alter function public.is_admin()
   set search_path = public, auth;
-
--- Example: if you have any SECURITY DEFINER functions, set their search_path explicitly.
--- Replace <schema>.<fn>(<sig>) as needed and duplicate the ALTER line per function.
--- alter function <schema>.<fn>(<signature>) set search_path = <schema>, auth;
