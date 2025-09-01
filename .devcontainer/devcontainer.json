@@ -1,0 +1,16 @@
+{
+  "name": "Solarpunk Taskforce Dev",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "containerEnv": {
+    "PNPM_ALLOW_SCRIPTS": "supabase"
+  },
+  "postCreateCommand": "pnpm install && pnpm exec supabase login --token $SUPABASE_ACCESS_TOKEN && mkdir -p src/lib && pnpm exec supabase gen types typescript --project-ref $SUPABASE_PROJECT_REF > src/lib/database.types.ts",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}
