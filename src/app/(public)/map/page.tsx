@@ -1,12 +1,12 @@
 import Map from "@/components/Map";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { getServerSupabase } from "@/lib/supabaseServer";
 
 export default async function MapPage() {
-  const supabase = await supabaseServer();
+  const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("projects")
     .select("id, title, lat, lng")
-    .eq("status", "approved");
+    .eq("approval_status", "approved");
 
   if (error) {
     // Fail closed: empty markers
