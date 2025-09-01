@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { isAdmin as rpcIsAdmin, isSuperadmin as rpcIsSuper } from "@/lib/admin";
+import UserMenu from "@/components/UserMenu";
 
 type Profile = {
   id: string;
@@ -24,8 +24,6 @@ function initials(p: Profile | null) {
 export default function Header() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuper, setIsSuper] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const router = useRouter();
@@ -47,8 +45,6 @@ export default function Header() {
   useEffect(() => {
     if (!sessionUserId) {
       setProfile(null);
-      setIsAdmin(false);
-      setIsSuper(false);
       return;
     }
     supabase
@@ -59,10 +55,6 @@ export default function Header() {
       .then(({ data }) => {
         setProfile((data ?? null) as Profile | null);
       });
-    Promise.all([rpcIsAdmin(supabase), rpcIsSuper(supabase)]).then(([a, s]) => {
-      setIsAdmin(a);
-      setIsSuper(s);
-    });
   }, [sessionUserId]);
 
   const navLinks = useMemo(
@@ -143,49 +135,8 @@ export default function Header() {
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <div className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
-            <Link
-              href="/profile"
-              className="px-4 py-2 hover:bg-white/10"
-              onClick={() => setProfileOpen(false)}
-            >
-              Profile
-            </Link>
-            <Link
-              href="/settings"
-              className="px-4 py-2 hover:bg-white/10"
-              onClick={() => setProfileOpen(false)}
-            >
-              Settings
-            </Link>
-            {isAdmin && (
-              <Link
-                href="/admin/registrations"
-                className="px-4 py-2 hover:bg-white/10"
-                onClick={() => setProfileOpen(false)}
-              >
-                Project Registrations
-              </Link>
-            )}
-            {isSuper && (
-              <Link
-                href="/admin/manage"
-                className="px-4 py-2 hover:bg-white/10"
-                onClick={() => setProfileOpen(false)}
-              >
-                Manage Admins
-              </Link>
-            )}
-            <button
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.refresh();
-                setProfileOpen(false);
-              }}
-              className="px-4 py-2 text-left hover:bg-white/10"
-            >
-              Sign out
-            </button>
+          <div className="absolute right-0 z-50 mt-2">
+            <UserMenu />
           </div>
         </>
       )}
