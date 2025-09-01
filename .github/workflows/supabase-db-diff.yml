@@ -16,14 +16,11 @@ jobs:
         with:
           version: 10
 
-      # Build pooled DB URL (no 'link', no API login needed)
       - name: Build pooled DB URL
         id: db
         run: |
-          # Supabase pooled host + port 6543, user=postgres.<ref>
-          echo "url=postgres://postgres.${SUPABASE_PROJECT_REF}:${SUPABASE_DB_PASSWORD}@aws-1-eu-central-1.pooler.supabase.com:6543/postgres" >> "$GITHUB_OUTPUT"
+          echo "url=postgres://postgres:${SUPABASE_DB_PASSWORD}@aws-1-eu-central-1.pooler.supabase.com:6543/postgres" >> "$GITHUB_OUTPUT"
 
-      # Create migration diff (Docker is available on GitHub runner)
       - name: Create migration diff
         run: |
           STAMP=$(date -u +%Y%m%d%H%M%S)
@@ -32,7 +29,6 @@ jobs:
             --schema public \
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
-      # Generate TypeScript DB types using the same DB URL
       - name: Generate TypeScript DB types
         run: |
           mkdir -p src/lib
@@ -40,7 +36,6 @@ jobs:
             --db-url "${{ steps.db.outputs.url }}" \
             -s public -s auth -s storage > src/lib/database.types.ts
 
-      # Open PR only if files changed
       - name: Create PR if changed
         uses: peter-evans/create-pull-request@v6
         with:
