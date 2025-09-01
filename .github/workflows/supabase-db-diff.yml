@@ -19,7 +19,7 @@ jobs:
       - name: Build pooled DB URL
         id: db
         run: |
-          echo "url=postgres://postgres:${SUPABASE_DB_PASSWORD}@aws-1-eu-central-1.pooler.supabase.com:6543/postgres" >> "$GITHUB_OUTPUT"
+          echo "url=postgres://postgres:${SUPABASE_DB_PASSWORD}@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?options=project%3D${SUPABASE_PROJECT_REF}&sslmode=require" >> "$GITHUB_OUTPUT"
 
       - name: Create migration diff
         run: |
