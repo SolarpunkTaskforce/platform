@@ -11,14 +11,9 @@ export default function UserMenu() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session || !mounted) return;
-      const [a, s] = await Promise.all([
-        rpcIsAdmin(supabase),
-        rpcIsSuper(supabase),
-      ]);
+      const [a, s] = await Promise.all([rpcIsAdmin(supabase), rpcIsSuper(supabase)]);
       if (!mounted) return;
       setIsAdmin(a);
       setIsSuper(s);
@@ -30,31 +25,15 @@ export default function UserMenu() {
 
   return (
     <div className="rounded-xl border bg-white p-2 shadow">
-      <Link
-        href="/profile"
-        className="block rounded px-3 py-2 hover:bg-gray-100"
-      >
-        Profile
-      </Link>
-      <Link
-        href="/settings"
-        className="block rounded px-3 py-2 hover:bg-gray-100"
-      >
-        Settings
-      </Link>
+      <Link href="/profile" className="block rounded px-3 py-2 hover:bg-gray-100">Profile</Link>
+      <Link href="/settings" className="block rounded px-3 py-2 hover:bg-gray-100">Settings</Link>
       {isAdmin && (
-        <Link
-          href="/admin/registrations"
-          className="block rounded px-3 py-2 hover:bg-gray-100"
-        >
+        <Link href="/admin/registrations" className="block rounded px-3 py-2 hover:bg-gray-100">
           Project Registrations
         </Link>
       )}
       {isSuper && (
-        <Link
-          href="/admin/manage"
-          className="block rounded px-3 py-2 hover:bg-gray-100"
-        >
+        <Link href="/admin/manage" className="block rounded px-3 py-2 hover:bg-gray-100">
           Manage Admins
         </Link>
       )}
@@ -67,3 +46,4 @@ export default function UserMenu() {
     </div>
   );
 }
+

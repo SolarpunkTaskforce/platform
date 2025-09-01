@@ -130,7 +130,7 @@ export default function Header() {
         className="grid h-9 w-9 place-items-center rounded-full border"
         aria-label="Account"
       >
-        {profile ? initials(profile) : <User className="h-4 w-4" />}
+        {profile ? <span className="text-xs font-semibold">{initials(profile)}</span> : <User className="h-4 w-4" />}
       </button>
       {profileOpen && (
         <>
@@ -152,6 +152,7 @@ export default function Header() {
           router.push("/");
         }}
         className="text-lg font-semibold"
+        aria-label="Home"
       >
         Solarpunk Taskforce
       </button>
