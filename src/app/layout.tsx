@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
-import TopNav from "@/components/TopNav";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Solarpunk Taskforce",
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <TopNav />
+        <Header />
         {children}
       </body>
     </html>
