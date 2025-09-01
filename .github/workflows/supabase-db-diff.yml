@@ -4,6 +4,7 @@ permissions:
   contents: write
   pull-requests: write
 env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} # needed for --project-id typegen
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
   SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
@@ -12,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
 
@@ -29,9 +29,13 @@ jobs:
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
       - name: Generate TypeScript DB types
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           mkdir -p src/lib
-          pnpm dlx supabase@latest gen types typescript --project-ref "$SUPABASE_PROJECT_REF" > src/lib/database.types.ts
+          pnpm dlx supabase@latest gen types typescript \
+            --project-id "$SUPABASE_PROJECT_REF" \
+            -s public -s auth -s storage > src/lib/database.types.ts
 
       - name: Create PR if changed
         uses: peter-evans/create-pull-request@v6
