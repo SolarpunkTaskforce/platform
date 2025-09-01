@@ -2,7 +2,7 @@ import { getServerSupabase } from "@/lib/supabaseServer";
 import { notFound } from "next/navigation";
 
 async function fetchAllProjects() {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return { forbidden: true } as const;
 

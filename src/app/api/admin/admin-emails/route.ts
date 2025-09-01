@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 export async function POST(req: Request) {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: isSuper } = await supabase.rpc("is_superadmin");
   if (!isSuper) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 

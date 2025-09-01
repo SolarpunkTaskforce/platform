@@ -2,7 +2,7 @@ import { getServerSupabase } from "@/lib/supabaseServer";
 import { notFound } from "next/navigation";
 
 async function loadData() {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: isSuper } = await supabase.rpc("is_superadmin");
   if (!isSuper) return { forbidden: true } as const;
 

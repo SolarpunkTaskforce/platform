@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const parts = pathname.split("/"); // /api/projects/:id/approve
   const id = parts[parts.length - 2]; // ":id"
 
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 

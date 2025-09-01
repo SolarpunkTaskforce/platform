@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 export async function POST(req: NextRequest) {
-  const supabase = getServerSupabase();
+  const supabase = await getServerSupabase();
   const body = await req.json();
   const { title, description, lat, lng, org_name } = body ?? {};
 
