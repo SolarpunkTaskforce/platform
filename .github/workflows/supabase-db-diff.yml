@@ -4,39 +4,43 @@ permissions:
   contents: write
   pull-requests: write
 env:
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
 jobs:
   diff:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
+        with:
+          version: 10
 
-      - name: Supabase login
-        run: pnpm dlx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
+      # Build pooled DB URL (no 'link', no API login needed)
+      - name: Build pooled DB URL
+        id: db
+        run: |
+          # Supabase pooled host + port 6543, user=postgres.<ref>
+          echo "url=postgres://postgres.${SUPABASE_PROJECT_REF}:${SUPABASE_DB_PASSWORD}@aws-1-eu-central-1.pooler.supabase.com:6543/postgres" >> "$GITHUB_OUTPUT"
 
-      - name: Link project
-        run: pnpm dlx supabase@latest link --project-ref "${SUPABASE_PROJECT_REF}"
-
+      # Create migration diff (Docker is available on GitHub runner)
       - name: Create migration diff
         run: |
           STAMP=$(date -u +%Y%m%d%H%M%S)
           pnpm dlx supabase@latest db diff \
-            --linked \
+            --db-url "${{ steps.db.outputs.url }}" \
             --schema public \
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
+      # Generate TypeScript DB types using the same DB URL
       - name: Generate TypeScript DB types
         run: |
           mkdir -p src/lib
           pnpm dlx supabase@latest gen types typescript \
-            --project-id "${SUPABASE_PROJECT_REF}" \
+            --db-url "${{ steps.db.outputs.url }}" \
             -s public -s auth -s storage > src/lib/database.types.ts
 
+      # Open PR only if files changed
       - name: Create PR if changed
         uses: peter-evans/create-pull-request@v6
         with:
