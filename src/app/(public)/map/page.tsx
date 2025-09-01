@@ -7,12 +7,9 @@ export default async function MapPage() {
     .from("projects")
     .select("id, title, lat, lng")
     .eq("approval_status", "approved");
-
   if (error) {
-    // Fail closed: empty markers
     return <Map markers={[]} />;
   }
-
   const markers = (data ?? []).map(p => ({ id: p.id, title: p.title, lat: p.lat, lng: p.lng }));
   return <Map markers={markers} />;
 }
