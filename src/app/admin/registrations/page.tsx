@@ -5,9 +5,10 @@ export default async function Page() {
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return new Response(null, { status: 404 }) as never;
 
+  // TODO: surface full metadata in /admin/projects/[id]
   const { data: projects, error } = await supabase
     .from("projects")
-    .select("id,title,description,lat,lng,approval_status,created_at,approved_at,approved_by,rejected_at,rejected_by,rejection_reason")
+    .select("id,name,description,lat,lng,status,created_at,approved_at,approved_by,rejected_at,rejected_by,rejection_reason")
     .order("created_at", { ascending: false });
   if (error) throw error;
 
@@ -18,25 +19,25 @@ export default async function Page() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              {["Title","Status","Created","Approved By","Rejected By","Reason","Actions"].map(h => <th key={h} className="px-4 py-2 text-left">{h}</th>)}
+              {["Name","Status","Created","Approved By","Rejected By","Reason","Actions"].map(h => <th key={h} className="px-4 py-2 text-left">{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {projects?.map(p => (
               <tr key={p.id} className="border-t">
-                <td className="px-4 py-2">{p.title}</td>
-                <td className="px-4 py-2 capitalize">{p.approval_status}</td>
+                <td className="px-4 py-2">{p.name}</td>
+                <td className="px-4 py-2 capitalize">{p.status}</td>
                 <td className="px-4 py-2">{new Date(p.created_at).toLocaleString()}</td>
                 <td className="px-4 py-2">{p.approved_by ?? ""}</td>
                 <td className="px-4 py-2">{p.rejected_by ?? ""}</td>
                 <td className="px-4 py-2">{p.rejection_reason ?? ""}</td>
                 <td className="px-4 py-2">
                   <form action={`/api/admin/projects/${p.id}/approve`} method="post" className="inline">
-                    <button className="rounded border px-3 py-1 hover:bg-gray-50" disabled={p.approval_status==="approved"}>Approve</button>
+                    <button className="rounded border px-3 py-1 hover:bg-gray-50" disabled={p.status==="approved"}>Approve</button>
                   </form>
                   <form action={`/api/admin/projects/${p.id}/reject`} method="post" className="ml-2 inline">
                     <input name="reason" placeholder="Reason" className="mr-2 rounded border px-2 py-1" />
-                    <button className="rounded border px-3 py-1 hover:bg-gray-50" disabled={p.approval_status==="rejected"}>Reject</button>
+                    <button className="rounded border px-3 py-1 hover:bg-gray-50" disabled={p.status==="rejected"}>Reject</button>
                   </form>
                 </td>
               </tr>

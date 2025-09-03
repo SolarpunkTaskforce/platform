@@ -13,7 +13,7 @@ export async function POST(
 
   const { data, error } = await supabase
     .from("projects")
-    .update({ approval_status: "approved" })
+    .update({ status: "approved" })
     .eq("id", id)
     .select()
     .single();

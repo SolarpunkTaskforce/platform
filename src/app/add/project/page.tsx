@@ -8,7 +8,7 @@ const supabase = supabaseClient();
 export default function AddProjectPage() {
   const router = useRouter();
   const [me, setMe] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [leadOrgId, setLeadOrgId] = useState<string | null>(null);
   const [country, setCountry] = useState("");
@@ -27,25 +27,25 @@ export default function AddProjectPage() {
     e.preventDefault();
     if (!me) return;
     const { error } = await supabase.from("projects").insert({
-      title,
+      name,
       description,
       lead_org_id: leadOrgId,
       country,
       thematic_area: thematicArea,
       funding_needed: fundingNeeded,
-      review_status: "pending",
+      status: "pending",
       created_by: me,
     });
     if (error) { setStatusMsg(error.message); return; }
     setStatusMsg("Submitted for review. An admin will approve it.");
-    setTitle(""); setDescription(""); setLeadOrgId(null); setCountry(""); setThematicArea(""); setFundingNeeded(undefined);
+    setName(""); setDescription(""); setLeadOrgId(null); setCountry(""); setThematicArea(""); setFundingNeeded(undefined);
   }
 
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-4 text-2xl font-semibold">Add Project</h1>
       <form onSubmit={submit} className="space-y-3">
-        <input className="w-full rounded-xl border px-3 py-2" placeholder="Project title" value={title} onChange={e=>setTitle(e.target.value)} required />
+        <input className="w-full rounded-xl border px-3 py-2" placeholder="Project name" value={name} onChange={e=>setName(e.target.value)} required />
         <textarea className="w-full rounded-xl border px-3 py-2" placeholder="Description" value={description} onChange={e=>setDescription(e.target.value)} />
         <input className="w-full rounded-xl border px-3 py-2" placeholder="Lead organisation ID (optional)" value={leadOrgId ?? ""} onChange={e=>setLeadOrgId(e.target.value || null)} />
         <div className="flex gap-3">
