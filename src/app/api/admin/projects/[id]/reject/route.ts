@@ -15,7 +15,7 @@ export async function POST(
 
   const { data, error } = await supabase
     .from("projects")
-    .update({ approval_status: "rejected", rejection_reason: reason })
+    .update({ status: "rejected", rejection_reason: reason })
     .eq("id", id)
     .select()
     .single();

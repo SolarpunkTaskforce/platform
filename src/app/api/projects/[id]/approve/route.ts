@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const { error } = await supabase
     .from("projects")
-    .update({ approval_status: "approved", approved_by: user.id, approved_at: new Date().toISOString() })
+    .update({ status: "approved", approved_by: user.id, approved_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });

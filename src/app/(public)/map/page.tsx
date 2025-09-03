@@ -5,11 +5,11 @@ export default async function MapPage() {
   const supabase = await getServerSupabase();
   const { data, error } = await supabase
     .from("projects")
-    .select("id, title, lat, lng")
-    .eq("approval_status", "approved");
+    .select("id, name, lat, lng")
+    .eq("status", "approved");
   if (error) {
     return <Map markers={[]} />;
   }
-  const markers = (data ?? []).map(p => ({ id: p.id, title: p.title, lat: p.lat, lng: p.lng }));
+  const markers = (data ?? []).map(p => ({ id: p.id, title: p.name, lat: p.lat, lng: p.lng }));
   return <Map markers={markers} />;
 }
