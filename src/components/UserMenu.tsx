@@ -4,16 +4,21 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { isAdmin as rpcIsAdmin, isSuperadmin as rpcIsSuper } from "@/lib/admin";
 
-export default function UserMenu() {
+export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuper, setIsSuper] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session || !mounted) return;
-      const [a, s] = await Promise.all([rpcIsAdmin(supabase), rpcIsSuper(supabase)]);
+      const [a, s] = await Promise.all([
+        rpcIsAdmin(supabase),
+        rpcIsSuper(supabase),
+      ]);
       if (!mounted) return;
       setIsAdmin(a);
       setIsSuper(s);
@@ -24,25 +29,48 @@ export default function UserMenu() {
   }, []);
 
   return (
-    <div className="rounded-xl border bg-white p-2 shadow">
-      <Link href="/profile" className="block rounded px-3 py-2 hover:bg-gray-100">Profile</Link>
-      <Link href="/settings" className="block rounded px-3 py-2 hover:bg-gray-100">Settings</Link>
+    <>
+      <Link
+        href="/profile"
+        className="px-4 py-2 hover:bg-white/10"
+        onClick={onNavigate}
+      >
+        Profile
+      </Link>
+      <Link
+        href="/settings"
+        className="px-4 py-2 hover:bg-white/10"
+        onClick={onNavigate}
+      >
+        Settings
+      </Link>
       {isAdmin && (
-        <Link href="/admin/registrations" className="block rounded px-3 py-2 hover:bg-gray-100">
+        <Link
+          href="/admin/registrations"
+          className="px-4 py-2 hover:bg-white/10"
+          onClick={onNavigate}
+        >
           Project Registrations
         </Link>
       )}
       {isSuper && (
-        <Link href="/admin/manage" className="block rounded px-3 py-2 hover:bg-gray-100">
+        <Link
+          href="/admin/manage"
+          className="px-4 py-2 hover:bg-white/10"
+          onClick={onNavigate}
+        >
           Manage Admins
         </Link>
       )}
       <button
-        onClick={() => supabase.auth.signOut()}
-        className="block w-full rounded px-3 py-2 text-left hover:bg-gray-100"
+        onClick={() => {
+          supabase.auth.signOut();
+          onNavigate?.();
+        }}
+        className="px-4 py-2 text-left hover:bg-white/10"
       >
         Sign out
       </button>
-    </div>
+    </>
   );
 }

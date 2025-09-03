@@ -135,9 +135,9 @@ export default function Header() {
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2">
-            <UserMenu />
-          </div>
+          <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+            <UserMenu onNavigate={() => setProfileOpen(false)} />
+          </nav>
         </>
       )}
     </div>
