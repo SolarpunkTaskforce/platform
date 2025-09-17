@@ -1,5 +1,5 @@
 -- Add profiles.role if missing
-do 27756
+do 1994
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -7,10 +7,10 @@ begin
   ) then
     alter table public.profiles add column role text;
   end if;
-end 27756;
+end 1994;
 
 -- Create is_admin(uid) if missing
-do 27756
+do 1994
 begin
   if not exists (
     select 1
@@ -20,11 +20,11 @@ begin
     create function public.is_admin(uid uuid default auth.uid())
     returns boolean
     language sql stable
-    as 27756
+    as 1994
       select exists (
         select 1 from public.profiles pr
         where pr.id = uid and pr.role in (admin,superadmin)
       );
-    27756;
+    1994;
   end if;
-end 27756;
+end 1994;
