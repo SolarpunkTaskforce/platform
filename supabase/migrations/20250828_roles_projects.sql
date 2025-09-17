@@ -1,5 +1,5 @@
 -- Ensure profiles.role exists
-do 22942
+do $$
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -10,7 +10,7 @@ begin
 end22942;
 
 -- Ensure is_admin(uid) exists
-do 22942
+do $$
 begin
   if not exists (
     select 1
@@ -30,7 +30,7 @@ begin
 end22942;
 
 -- Recreate policy using is_admin(); drop only if it exists
-do 22942
+do $$
 begin
   if exists (
     select 1 from pg_policies
