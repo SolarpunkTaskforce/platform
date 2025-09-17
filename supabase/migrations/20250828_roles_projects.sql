@@ -1,4 +1,50 @@
 -- Ensure profiles.role exists
+do 24323
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = public and table_name = profiles and column_name = role
+  ) then
+    alter table public.profiles add column role text;
+  end if;
+end 24323;
+
+-- Ensure is_admin(uid) exists
+do 24323
+begin
+  if not exists (
+    select 1
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = public and p.proname = is_admin
+  ) then
+    create function public.is_admin(uid uuid default auth.uid())
+    returns boolean
+    language sql stable
+    as 24323
+      select exists (
+        select 1 from public.profiles pr
+        where pr.id = uid and pr.role in (admin,superadmin)
+      );
+    24323;
+  end if;
+end 24323;
+
+-- Recreate policy using is_admin(); drop only if it exists
+do 24323
+begin
+  if exists (
+    select 1 from pg_policies
+    where schemaname = public and tablename = profiles and policyname = profiles_public_read_admin_only
+  ) then
+    drop policy "profiles_public_read_admin_only" on public.profiles;
+  end if;
+
+  create policy "profiles_public_read_admin_only"
+  on public.profiles
+  for select
+  using (public.is_admin(auth.uid()));
+end 24323;
+-- Ensure profiles.role exists
 do $$
 begin
   if not exists (
