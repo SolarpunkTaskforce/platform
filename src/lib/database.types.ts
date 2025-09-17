@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
-  }
   auth: {
     Tables: {
       audit_log_entries: {
@@ -869,6 +864,7 @@ export type Database = {
           nationality: string | null
           organisation_id: string | null
           organisation_name: string | null
+          role: string
           surname: string | null
         }
         Insert: {
@@ -880,6 +876,7 @@ export type Database = {
           nationality?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
+          role?: string
           surname?: string | null
         }
         Update: {
@@ -891,6 +888,7 @@ export type Database = {
           nationality?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
+          role?: string
           surname?: string | null
         }
         Relationships: [
@@ -1671,3 +1669,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
