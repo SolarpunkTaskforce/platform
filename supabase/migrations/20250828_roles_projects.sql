@@ -1,5 +1,5 @@
 -- Ensure profiles.role exists
-do 27528
+do 354
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -7,10 +7,10 @@ begin
   ) then
     alter table public.profiles add column role text;
   end if;
-end 27528;
+end 354;
 
 -- Ensure is_admin(uid) exists
-do 27528
+do 354
 begin
   if not exists (
     select 1
@@ -27,10 +27,10 @@ begin
       );
     24323;
   end if;
-end 27528;
+end 354;
 
 -- Recreate policy using is_admin(); drop only if it exists
-do 27528
+do 354
 begin
   if exists (
     select 1 from pg_policies
@@ -43,7 +43,7 @@ begin
   on public.profiles
   for select
   using (public.is_admin(auth.uid()));
-end 27528;
+end 354;
 -- Ensure profiles.role exists
 do $$
 begin
@@ -53,7 +53,7 @@ begin
   ) then
     alter table public.profiles add column role text;
   end if;
-end 27528;
+end 354;
 
 -- Ensure is_admin(uid) exists
 do $$
@@ -73,7 +73,7 @@ begin
       );
     22942;
   end if;
-end 27528;
+end 354;
 
 -- Recreate policy using is_admin(); drop only if it exists
 do $$
@@ -89,7 +89,7 @@ begin
   on public.profiles
   for select
   using (public.is_admin(auth.uid()));
-end 27528;
+end 354;
 -- enums
 create type user_role as enum ('admin','member');
 create type project_status as enum ('pending','approved','rejected');

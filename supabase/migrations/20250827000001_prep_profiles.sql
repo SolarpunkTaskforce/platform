@@ -1,5 +1,5 @@
 -- Add profiles.role if missing
-do 1994
+do 354
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -7,10 +7,10 @@ begin
   ) then
     alter table public.profiles add column role text;
   end if;
-end 1994;
+end 354;
 
 -- Create is_admin(uid) if missing
-do 1994
+do 354
 begin
   if not exists (
     select 1
@@ -27,4 +27,4 @@ begin
       );
     1994;
   end if;
-end 1994;
+end 354;
