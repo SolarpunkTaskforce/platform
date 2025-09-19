@@ -17,14 +17,17 @@ begin
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname = 'is_admin'
   ) then
-    create function public.is_admin(uid uuid default auth.uid())
-    returns boolean
-    language sql stable
-    as $$
-      select exists (
-        select 1 from public.profiles pr
-        where pr.id = uid and pr.role in ('admin','superadmin')
-      );
-    $$;
+    execute $f$
+      create function public.is_admin(uid uuid default auth.uid())
+      returns boolean
+      stable
+      language sql
+      as $$
+        select exists (
+          select 1 from public.profiles pr
+          where pr.id = uid and pr.role in ('admin','superadmin')
+        );
+      $$;
+    $f$;
   end if;
 end $$;
