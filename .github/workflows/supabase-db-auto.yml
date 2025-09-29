@@ -34,6 +34,9 @@ jobs:
           test -n "${SUPABASE_DB_URL}" || { echo "ERR: SUPABASE_DB_URL missing"; exit 1; }
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "ERR: SUPABASE_ACCESS_TOKEN missing"; exit 1; }
 
+      - name: Supabase CLI warmup (optional)
+        run: pnpm dlx supabase@latest --version
+
       - name: Supabase CLI login
         run: pnpm dlx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
 
@@ -48,7 +51,9 @@ jobs:
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
       - name: Apply migrations (db push)
-        run: pnpm dlx supabase@latest db push --db-url "${SUPABASE_DB_URL}" --yes
+        run: |
+          set -euo pipefail
+          pnpm dlx supabase@latest db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
 
       - name: Regenerate TypeScript DB types (via DB URL)
         run: |
