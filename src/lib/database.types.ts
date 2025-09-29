@@ -795,6 +795,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ifrc_challenges: {
+        Row: {
+          code: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          code?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          code?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
       organisation_members: {
         Row: {
           created_at: string | null
@@ -901,80 +919,6 @@ export type Database = {
           },
         ]
       }
-      projects: {
-        Row: {
-          amount_needed: number | null
-          created_at: string | null
-          created_by: string | null
-          currency: string | null
-          description: string | null
-          donations_received: number | null
-          end_date: string | null
-          id: string
-          lat: number | null
-          lead_org_id: string | null
-          lives_improved: number | null
-          lng: number | null
-          name: string
-          place_name: string | null
-          start_date: string | null
-          status: string
-          target_demographic: string | null
-          thematic_area: string[] | null
-          type_of_intervention: string[] | null
-        }
-        Insert: {
-          amount_needed?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          currency?: string | null
-          description?: string | null
-          donations_received?: number | null
-          end_date?: string | null
-          id?: string
-          lat?: number | null
-          lead_org_id?: string | null
-          lives_improved?: number | null
-          lng?: number | null
-          name: string
-          place_name?: string | null
-          start_date?: string | null
-          status?: string
-          target_demographic?: string | null
-          thematic_area?: string[] | null
-          type_of_intervention?: string[] | null
-        }
-        Update: {
-          amount_needed?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          currency?: string | null
-          description?: string | null
-          donations_received?: number | null
-          end_date?: string | null
-          id?: string
-          lat?: number | null
-          lead_org_id?: string | null
-          lives_improved?: number | null
-          lng?: number | null
-          name?: string
-          place_name?: string | null
-          start_date?: string | null
-          status?: string
-          target_demographic?: string | null
-          thematic_area?: string[] | null
-          type_of_intervention?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "projects_lead_org_id_fkey"
-            columns: ["lead_org_id"]
-            isOneToOne: false
-            referencedRelation: "organisations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_ifrc_challenges: {
         Row: {
           challenge_id: number
@@ -1003,6 +947,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_ifrc_challenges_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_links: {
@@ -1010,21 +961,21 @@ export type Database = {
           created_at: string | null
           id: string
           label: string | null
-          project_id: string
+          project_id: string | null
           url: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           label?: string | null
-          project_id: string
+          project_id?: string | null
           url: string
         }
         Update: {
           created_at?: string | null
           id?: string
           label?: string | null
-          project_id?: string
+          project_id?: string | null
           url?: string
         }
         Relationships: [
@@ -1033,6 +984,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1045,7 +1003,7 @@ export type Database = {
           id: string
           mime_type: string | null
           path: string
-          project_id: string
+          project_id: string | null
         }
         Insert: {
           caption?: string | null
@@ -1054,7 +1012,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           path: string
-          project_id: string
+          project_id?: string | null
         }
         Update: {
           caption?: string | null
@@ -1063,7 +1021,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           path?: string
-          project_id?: string
+          project_id?: string | null
         }
         Relationships: [
           {
@@ -1071,6 +1029,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_media_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1103,6 +1068,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_partners_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_posts: {
@@ -1111,7 +1083,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
-          project_id: string
+          project_id: string | null
           title: string | null
         }
         Insert: {
@@ -1119,7 +1091,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
-          project_id: string
+          project_id?: string | null
           title?: string | null
         }
         Update: {
@@ -1127,7 +1099,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
-          project_id?: string
+          project_id?: string | null
           title?: string | null
         }
         Relationships: [
@@ -1136,6 +1108,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_posts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1162,10 +1141,136 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_sdgs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_sdgs_sdg_id_fkey"
             columns: ["sdg_id"]
             isOneToOne: false
             referencedRelation: "sdgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          amount_needed: number | null
+          approved_at: string | null
+          approved_by: string | null
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          description: string | null
+          donations_received: number | null
+          end_date: string | null
+          id: string
+          ifrc_global_challenges: string[] | null
+          intervention_type: string | null
+          lat: number | null
+          lead_org_id: string | null
+          lifecycle_status: string
+          links: Json | null
+          lives_improved: number | null
+          lng: number | null
+          name: string
+          partner_org_ids: string[] | null
+          place_name: string | null
+          region: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          review_status: string
+          sdgs: string[] | null
+          start_date: string | null
+          status: string
+          target_demographic: string | null
+          target_demographics: string[] | null
+          thematic_area: string[] | null
+          type_of_intervention: string[] | null
+        }
+        Insert: {
+          amount_needed?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          donations_received?: number | null
+          end_date?: string | null
+          id?: string
+          ifrc_global_challenges?: string[] | null
+          intervention_type?: string | null
+          lat?: number | null
+          lead_org_id?: string | null
+          lifecycle_status?: string
+          links?: Json | null
+          lives_improved?: number | null
+          lng?: number | null
+          name: string
+          partner_org_ids?: string[] | null
+          place_name?: string | null
+          region?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          review_status?: string
+          sdgs?: string[] | null
+          start_date?: string | null
+          status?: string
+          target_demographic?: string | null
+          target_demographics?: string[] | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
+        }
+        Update: {
+          amount_needed?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          donations_received?: number | null
+          end_date?: string | null
+          id?: string
+          ifrc_global_challenges?: string[] | null
+          intervention_type?: string | null
+          lat?: number | null
+          lead_org_id?: string | null
+          lifecycle_status?: string
+          links?: Json | null
+          lives_improved?: number | null
+          lng?: number | null
+          name?: string
+          partner_org_ids?: string[] | null
+          place_name?: string | null
+          region?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          review_status?: string
+          sdgs?: string[] | null
+          start_date?: string | null
+          status?: string
+          target_demographic?: string | null
+          target_demographics?: string[] | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_lead_org_id_fkey"
+            columns: ["lead_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
         ]
@@ -1180,24 +1285,6 @@ export type Database = {
           name: string
         }
         Update: {
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      ifrc_challenges: {
-        Row: {
-          code: string | null
-          id: number
-          name: string
-        }
-        Insert: {
-          code?: string | null
-          id?: number
-          name: string
-        }
-        Update: {
-          code?: string | null
           id?: number
           name?: string
         }
@@ -1261,27 +1348,28 @@ export type Database = {
     Views: {
       rejected_projects: {
         Row: {
-          approval_status:
-            | Database["public"]["Enums"]["project_approval_status"]
-            | null
+          amount_needed: number | null
           approved_at: string | null
           approved_by: string | null
           country: string | null
           created_at: string | null
           created_by: string | null
+          currency: string | null
           description: string | null
           donations_received: number | null
           end_date: string | null
-          funding_needed: number | null
           id: string | null
           ifrc_global_challenges: string[] | null
           intervention_type: string | null
           lat: number | null
           lead_org_id: string | null
+          lifecycle_status: string | null
           links: Json | null
           lives_improved: number | null
           lng: number | null
+          name: string | null
           partner_org_ids: string[] | null
+          place_name: string | null
           region: string | null
           rejected_at: string | null
           rejected_by: string | null
@@ -1290,32 +1378,34 @@ export type Database = {
           sdgs: string[] | null
           start_date: string | null
           status: string | null
+          target_demographic: string | null
           target_demographics: string[] | null
-          thematic_area: string | null
-          title: string | null
+          thematic_area: string[] | null
+          type_of_intervention: string[] | null
         }
         Insert: {
-          approval_status?:
-            | Database["public"]["Enums"]["project_approval_status"]
-            | null
+          amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           donations_received?: number | null
           end_date?: string | null
-          funding_needed?: number | null
           id?: string | null
           ifrc_global_challenges?: string[] | null
           intervention_type?: string | null
           lat?: number | null
           lead_org_id?: string | null
+          lifecycle_status?: string | null
           links?: Json | null
           lives_improved?: number | null
           lng?: number | null
+          name?: string | null
           partner_org_ids?: string[] | null
+          place_name?: string | null
           region?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
@@ -1324,32 +1414,34 @@ export type Database = {
           sdgs?: string[] | null
           start_date?: string | null
           status?: string | null
+          target_demographic?: string | null
           target_demographics?: string[] | null
-          thematic_area?: string | null
-          title?: string | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
         }
         Update: {
-          approval_status?:
-            | Database["public"]["Enums"]["project_approval_status"]
-            | null
+          amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
           country?: string | null
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           donations_received?: number | null
           end_date?: string | null
-          funding_needed?: number | null
           id?: string | null
           ifrc_global_challenges?: string[] | null
           intervention_type?: string | null
           lat?: number | null
           lead_org_id?: string | null
+          lifecycle_status?: string | null
           links?: Json | null
           lives_improved?: number | null
           lng?: number | null
+          name?: string | null
           partner_org_ids?: string[] | null
+          place_name?: string | null
           region?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
@@ -1358,9 +1450,10 @@ export type Database = {
           sdgs?: string[] | null
           start_date?: string | null
           status?: string | null
+          target_demographic?: string | null
           target_demographics?: string[] | null
-          thematic_area?: string | null
-          title?: string | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
         }
         Relationships: [
           {
@@ -1374,6 +1467,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_admin_projects: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       citext: {
         Args: { "": boolean } | { "": string } | { "": unknown }
         Returns: string
@@ -1397,6 +1494,33 @@ export type Database = {
       citextsend: {
         Args: { "": string }
         Returns: string
+      }
+      create_project_submission: {
+        Args: {
+          p_amount_needed: number
+          p_currency: string
+          p_description: string
+          p_donations_received: number
+          p_end_date: string
+          p_ifrc_ids: number[]
+          p_lat: number
+          p_lead_org_id: string
+          p_links: Json
+          p_lives_improved: number
+          p_lng: number
+          p_name: string
+          p_partner_org_ids: string[]
+          p_place_name: string
+          p_sdg_ids: number[]
+          p_start_date: string
+          p_target_demographic: string
+          p_thematic_area: string[]
+          p_type_of_intervention: string[]
+        }
+        Returns: {
+          id: string
+          status: string
+        }[]
       }
       is_admin: {
         Args: Record<PropertyKey, never> | { uid: string }
