@@ -7,7 +7,7 @@ create table if not exists public.organisations (
   name text not null
 );
 
--- Projects table and columns (base definition; status as text with check)
+-- Base projects table (text status with check)
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -30,108 +30,107 @@ create table if not exists public.projects (
   created_at timestamptz default now()
 );
 
--- IMPORTANT: Drop any existing projects policies BEFORE altering columns that reference "status"
--- These may or may not exist; IF EXISTS keeps it safe.
+-- Drop policies that may reference status before any status changes
 drop policy if exists "projects_public_read_approved"    on public.projects;
 drop policy if exists "projects_read_admin_all"          on public.projects;
 drop policy if exists "projects_read_own_pending"        on public.projects;
 drop policy if exists "projects_update_admin_moderation" on public.projects;
 drop policy if exists "projects_update_own_pending"      on public.projects;
 drop policy if exists "projects_insert_auth"             on public.projects;
+drop policy if exists "projects_select"                  on public.projects;
+drop policy if exists "projects_insert"                  on public.projects;
+drop policy if exists "projects_update_owner"            on public.projects;
+drop policy if exists "projects_update_admin"            on public.projects;
+drop policy if exists "projects_delete_owner"            on public.projects;
+drop policy if exists "projects_delete_admin"            on public.projects;
 
--- Rename / add columns for existing projects table
+-- Drop dependent views/rules that reference projects.status
+drop view if exists public.rejected_projects;
+
+-- Column renames/additions/normalisation
 do $$
 begin
-  -- rename title -> name
+  -- title -> name
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='title')
      and not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='name') then
     alter table public.projects rename column title to name;
   end if;
 
-  -- ensure name column exists
+  -- ensure name exists and is NOT NULL
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='name') then
     alter table public.projects add column name text;
   end if;
-
-  -- enforce non-null name
   update public.projects set name = coalesce(name, 'Untitled project') where name is null;
   alter table public.projects alter column name set not null;
 
-  -- If both old columns exist, move/normalize to a single "status" text with check/default
-  -- rename old status to lifecycle_status if approval_status also exists
+  -- handle status/approval_status consolidation (keep status as text with check)
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='status')
      and exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='approval_status') then
     alter table public.projects rename column status to lifecycle_status;
   end if;
 
-  -- rename approval_status -> status and normalize
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='approval_status') then
     alter table public.projects rename column approval_status to status;
-    -- keep as text; normalize default and check
     alter table public.projects alter column status type text using status::text;
-    alter table public.projects alter column status set default 'pending';
-    -- drop any prior constraint with same name if present to avoid duplicates
-    begin
-      alter table public.projects drop constraint projects_status_check;
-    exception when undefined_object then
-      -- no-op
-    end;
-    alter table public.projects add constraint projects_status_check check (status in ('pending','approved','rejected'));
   end if;
 
-  -- rename funding_needed -> amount_needed
+  -- ensure default/check on status (safe now that views/policies are dropped)
+  begin
+    alter table public.projects drop constraint projects_status_check;
+  exception when undefined_object then
+    -- no-op
+  end;
+  alter table public.projects alter column status set default 'pending';
+  alter table public.projects add constraint projects_status_check check (status in ('pending','approved','rejected'));
+
+  -- funding_needed -> amount_needed
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='funding_needed')
      and not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='amount_needed') then
     alter table public.projects rename column funding_needed to amount_needed;
   end if;
 
-  -- add description
+  -- ensure additional columns
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='description') then
     alter table public.projects add column description text;
   end if;
 
-  -- add lead_org_id
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='lead_org_id') then
     alter table public.projects add column lead_org_id uuid references public.organisations(id);
   end if;
 
-  -- add lat/lng
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='lat') then
     alter table public.projects add column lat double precision;
   end if;
+
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='lng') then
     alter table public.projects add column lng double precision;
   end if;
 
-  -- add place_name
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='place_name') then
     alter table public.projects add column place_name text;
   end if;
 
-  -- add type_of_intervention
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='type_of_intervention') then
     alter table public.projects add column type_of_intervention text[];
   end if;
 
-  -- add target_demographic
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='target_demographic') then
     alter table public.projects add column target_demographic text;
   end if;
 
-  -- add lives_improved
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='lives_improved') then
     alter table public.projects add column lives_improved integer;
   end if;
 
-  -- add start/end dates
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='start_date') then
     alter table public.projects add column start_date date;
   end if;
+
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='end_date') then
     alter table public.projects add column end_date date;
   end if;
 
-  -- ensure thematic_area is text[]
+  -- thematic_area ensure text[]
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='thematic_area') then
     if (select data_type from information_schema.columns where table_schema='public' and table_name='projects' and column_name='thematic_area') <> 'ARRAY' then
       alter table public.projects alter column thematic_area type text[] using array[thematic_area];
@@ -140,35 +139,30 @@ begin
     alter table public.projects add column thematic_area text[];
   end if;
 
-  -- donations_received
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='donations_received') then
     alter table public.projects add column donations_received numeric;
   end if;
 
-  -- amount_needed
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='amount_needed') then
     alter table public.projects add column amount_needed numeric;
   end if;
 
-  -- currency
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='currency') then
     alter table public.projects add column currency text default 'USD';
   end if;
 
-  -- created_by default
   if exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='created_by') then
     alter table public.projects alter column created_by set default auth.uid();
   else
     alter table public.projects add column created_by uuid default auth.uid();
   end if;
 
-  -- created_at
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='projects' and column_name='created_at') then
     alter table public.projects add column created_at timestamptz default now();
   end if;
 end$$;
 
--- New tables
+-- Child/lookup tables
 create table if not exists public.project_links (
   id uuid primary key default gen_random_uuid(),
   project_id uuid references public.projects(id) on delete cascade,
@@ -262,7 +256,7 @@ alter table public.project_media enable row level security;
 alter table public.project_posts enable row level security;
 alter table public.projects enable row level security;
 
--- helper to safely check for admin privileges across different function signatures
+-- Admin helper
 create or replace function public.can_admin_projects()
 returns boolean
 language plpgsql
@@ -282,7 +276,7 @@ begin
 end;
 $fn$;
 
--- lookup table access
+-- Lookup policies
 drop policy if exists "sdgs_public_select" on public.sdgs;
 create policy "sdgs_public_select" on public.sdgs
   for select using (true);
@@ -291,7 +285,13 @@ drop policy if exists "ifrc_challenges_public_select" on public.ifrc_challenges;
 create policy "ifrc_challenges_public_select" on public.ifrc_challenges
   for select using (true);
 
--- Recreate projects policies (now that status changes are done)
+-- Recreate dependent view(s)
+create view public.rejected_projects as
+select *
+from public.projects
+where status = 'rejected';
+
+-- Recreate projects policies
 create policy "projects_select" on public.projects
   for select using (
     status = 'approved'
@@ -316,12 +316,12 @@ create policy "projects_delete_owner" on public.projects
 create policy "projects_delete_admin" on public.projects
   for delete using (public.can_admin_projects());
 
--- project_links policies
-drop policy if exists "project_links_select"      on public.project_links;
-drop policy if exists "project_links_owner_mod"   on public.project_links;
-drop policy if exists "project_links_owner_update" on public.project_links;
-drop policy if exists "project_links_owner_delete" on public.project_links;
-drop policy if exists "project_links_admin_all"   on public.project_links;
+-- Child table policies (drop old if exist, then create)
+drop policy if exists "project_links_select"        on public.project_links;
+drop policy if exists "project_links_owner_mod"     on public.project_links;
+drop policy if exists "project_links_owner_update"  on public.project_links;
+drop policy if exists "project_links_owner_delete"  on public.project_links;
+drop policy if exists "project_links_admin_all"     on public.project_links;
 
 create policy "project_links_select" on public.project_links
   for select using (
@@ -366,7 +366,6 @@ create policy "project_links_admin_all" on public.project_links
   for all using (public.can_admin_projects())
   with check (true);
 
--- project_partners policies
 drop policy if exists "project_partners_select"       on public.project_partners;
 drop policy if exists "project_partners_owner_mod"    on public.project_partners;
 drop policy if exists "project_partners_owner_update" on public.project_partners;
@@ -416,11 +415,10 @@ create policy "project_partners_admin_all" on public.project_partners
   for all using (public.can_admin_projects())
   with check (true);
 
--- project_sdgs policies
-drop policy if exists "project_sdgs_select"     on public.project_sdgs;
-drop policy if exists "project_sdgs_owner_mod"  on public.project_sdgs;
-drop policy if exists "project_sdgs_owner_delete" on public.project_sdgs;
-drop policy if exists "project_sdgs_admin_all"  on public.project_sdgs;
+drop policy if exists "project_sdgs_select"        on public.project_sdgs;
+drop policy if exists "project_sdgs_owner_mod"     on public.project_sdgs;
+drop policy if exists "project_sdgs_owner_delete"  on public.project_sdgs;
+drop policy if exists "project_sdgs_admin_all"     on public.project_sdgs;
 
 create policy "project_sdgs_select" on public.project_sdgs
   for select using (
@@ -451,7 +449,6 @@ create policy "project_sdgs_admin_all" on public.project_sdgs
   for all using (public.can_admin_projects())
   with check (true);
 
--- project_ifrc_challenges policies
 drop policy if exists "project_ifrc_select"       on public.project_ifrc_challenges;
 drop policy if exists "project_ifrc_owner_mod"    on public.project_ifrc_challenges;
 drop policy if exists "project_ifrc_owner_delete" on public.project_ifrc_challenges;
@@ -486,7 +483,6 @@ create policy "project_ifrc_admin_all" on public.project_ifrc_challenges
   for all using (public.can_admin_projects())
   with check (true);
 
--- project_media policies
 drop policy if exists "project_media_select"       on public.project_media;
 drop policy if exists "project_media_owner_mod"    on public.project_media;
 drop policy if exists "project_media_owner_update" on public.project_media;
@@ -536,7 +532,6 @@ create policy "project_media_admin_all" on public.project_media
   for all using (public.can_admin_projects())
   with check (true);
 
--- project_posts policies
 drop policy if exists "project_posts_select"       on public.project_posts;
 drop policy if exists "project_posts_owner_mod"    on public.project_posts;
 drop policy if exists "project_posts_owner_update" on public.project_posts;
@@ -586,7 +581,7 @@ create policy "project_posts_admin_all" on public.project_posts
   for all using (public.can_admin_projects())
   with check (true);
 
--- transactional helper for API submission flow
+-- API helper
 create or replace function public.create_project_submission(
   p_name text,
   p_description text,
