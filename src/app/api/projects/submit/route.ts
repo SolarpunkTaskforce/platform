@@ -1,92 +1,107 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+
 import { getServerSupabase } from "@/lib/supabaseServer";
 
-const linkSchema = z.object({ url: z.string().url(), label: z.string().optional() });
-const schema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  lead_org_id: z.string().uuid().optional(),
-  links: z.array(linkSchema).optional(),
-  partner_org_ids: z.array(z.string().uuid()).optional(),
-  sdg_ids: z.array(z.number()).optional(),
-  ifrc_ids: z.array(z.number()).optional(),
-  type_of_intervention: z.array(z.string()).optional(),
-  thematic_area: z.array(z.string()).optional(),
-  target_demographic: z.string().optional(),
-  lives_improved: z.number().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  donations_received: z.number().optional(),
-  amount_needed: z.number().optional(),
-  currency: z.string().optional(),
-  location: z.object({ lat: z.number(), lng: z.number(), place_name: z.string() })
-}).refine(d => d.description || (d.links && d.links.length > 0), {
-  message: "Description or at least one link required",
-  path: ["description"],
+const locationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+  place_name: z.string().trim().min(1),
 });
+
+const linkSchema = z.object({
+  url: z.string().trim().url(),
+  label: z.string().trim().optional().or(z.literal(""))
+    .transform(value => (value ? value.trim() : undefined)),
+});
+
+const payloadSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    description: z.string().trim().optional(),
+    lead_org_id: z.string().uuid().optional(),
+    links: z.array(linkSchema).optional(),
+    partner_org_ids: z.array(z.string().uuid()).optional(),
+    sdg_ids: z.array(z.number().int()).optional(),
+    ifrc_ids: z.array(z.number().int()).optional(),
+    type_of_intervention: z.array(z.string()).optional(),
+    thematic_area: z.array(z.string()).optional(),
+    target_demographic: z.string().trim().optional(),
+    lives_improved: z.number().int().optional(),
+    start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/).optional(),
+    end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/).optional(),
+    donations_received: z.number().optional(),
+    amount_needed: z.number().optional(),
+    currency: z.string().trim().length(3).optional(),
+    location: locationSchema,
+  })
+  .superRefine((value, ctx) => {
+    const hasDescription = Boolean(value.description && value.description.trim().length);
+    const linkCount = value.links?.filter(link => link.url.trim().length > 0).length ?? 0;
+    if (!hasDescription && linkCount === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["description"],
+        message: "Add a description or at least one supporting link",
+      });
+    }
+    if (value.start_date && value.end_date && value.start_date > value.end_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_date"],
+        message: "End date must be after start date",
+      });
+    }
+  });
 
 export async function POST(req: Request) {
   const supabase = await getServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const json = await req.json();
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-  const data = parsed.data;
-  const { location, links = [], partner_org_ids = [], sdg_ids = [], ifrc_ids = [], type_of_intervention = [], thematic_area = [], ...rest } = data;
-
-  const { data: project, error } = await supabase
-    .from("projects")
-    .insert({
-      ...rest,
-      lat: location.lat,
-      lng: location.lng,
-      place_name: location.place_name,
-      type_of_intervention,
-      thematic_area,
-      status: "pending",
-      created_by: user.id,
-    })
-    .select("id,status")
-    .single();
-  if (error || !project) {
-    return NextResponse.json({ error: error?.message }, { status: 400 });
-  }
-  const projectId = project.id;
-
-  const linkRows = links.map(l => ({ project_id: projectId, url: l.url, label: l.label }));
-  if (linkRows.length) {
-    const { error: linkErr } = await supabase.from("project_links").insert(linkRows);
-    if (linkErr) {
-      await supabase.from("projects").delete().eq("id", projectId);
-      return NextResponse.json({ error: linkErr.message }, { status: 400 });
-    }
-  }
-  if (partner_org_ids.length) {
-    const { error: partnerErr } = await supabase.from("project_partners").insert(partner_org_ids.map(id => ({ project_id: projectId, organisation_id: id })));
-    if (partnerErr) {
-      await supabase.from("projects").delete().eq("id", projectId);
-      return NextResponse.json({ error: partnerErr.message }, { status: 400 });
-    }
-  }
-  if (sdg_ids.length) {
-    const { error: sdgErr } = await supabase.from("project_sdgs").insert(sdg_ids.map(id => ({ project_id: projectId, sdg_id: id })));
-    if (sdgErr) {
-      await supabase.from("projects").delete().eq("id", projectId);
-      return NextResponse.json({ error: sdgErr.message }, { status: 400 });
-    }
-  }
-  if (ifrc_ids.length) {
-    const { error: ifrcErr } = await supabase.from("project_ifrc_challenges").insert(ifrc_ids.map(id => ({ project_id: projectId, challenge_id: id })));
-    if (ifrcErr) {
-      await supabase.from("projects").delete().eq("id", projectId);
-      return NextResponse.json({ error: ifrcErr.message }, { status: 400 });
-    }
+  if (!user) {
+    return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
 
-  return NextResponse.json({ id: projectId, status: project.status });
+  const body = await req.json();
+  const result = payloadSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
+  }
+
+  const data = result.data;
+  const links = data.links?.filter(link => link.url.trim().length > 0).map(link => ({
+    url: link.url.trim(),
+    label: link.label,
+  }));
+
+  const { data: submission, error } = await supabase.rpc("create_project_submission", {
+    p_name: data.name,
+    p_description: data.description ?? null,
+    p_lead_org_id: data.lead_org_id ?? null,
+    p_lat: data.location.lat,
+    p_lng: data.location.lng,
+    p_place_name: data.location.place_name,
+    p_type_of_intervention: data.type_of_intervention ?? [],
+    p_target_demographic: data.target_demographic ?? null,
+    p_lives_improved: data.lives_improved ?? null,
+    p_start_date: data.start_date ?? null,
+    p_end_date: data.end_date ?? null,
+    p_thematic_area: data.thematic_area ?? [],
+    p_donations_received: data.donations_received ?? null,
+    p_amount_needed: data.amount_needed ?? null,
+    p_currency: (data.currency ?? "USD").toUpperCase(),
+    p_links: links && links.length ? links : null,
+    p_partner_org_ids: data.partner_org_ids ?? [],
+    p_sdg_ids: data.sdg_ids ?? [],
+    p_ifrc_ids: data.ifrc_ids ?? [],
+  });
+
+  if (error || !submission || submission.length === 0) {
+    return NextResponse.json({ error: error?.message ?? "Unable to submit project" }, { status: 400 });
+  }
+
+  return NextResponse.json(submission[0]);
 }

@@ -900,100 +900,67 @@ export type Database = {
       }
       projects: {
         Row: {
-          approval_status: Database["public"]["Enums"]["project_approval_status"]
-          approved_at: string | null
-          approved_by: string | null
-          country: string | null
+          amount_needed: number | null
           created_at: string | null
           created_by: string | null
+          currency: string | null
           description: string | null
           donations_received: number | null
           end_date: string | null
-          funding_needed: number | null
           id: string
-          ifrc_global_challenges: string[] | null
-          intervention_type: string | null
           lat: number | null
           lead_org_id: string | null
-          links: Json | null
           lives_improved: number | null
           lng: number | null
-          partner_org_ids: string[] | null
-          region: string | null
-          rejected_at: string | null
-          rejected_by: string | null
-          rejection_reason: string | null
-          review_status: string
-          sdgs: string[] | null
+          name: string
+          place_name: string | null
           start_date: string | null
           status: string
-          target_demographics: string[] | null
-          thematic_area: string | null
-          title: string
+          target_demographic: string | null
+          thematic_area: string[] | null
+          type_of_intervention: string[] | null
         }
         Insert: {
-          approval_status?: Database["public"]["Enums"]["project_approval_status"]
-          approved_at?: string | null
-          approved_by?: string | null
-          country?: string | null
+          amount_needed?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           donations_received?: number | null
           end_date?: string | null
-          funding_needed?: number | null
           id?: string
-          ifrc_global_challenges?: string[] | null
-          intervention_type?: string | null
           lat?: number | null
           lead_org_id?: string | null
-          links?: Json | null
           lives_improved?: number | null
           lng?: number | null
-          partner_org_ids?: string[] | null
-          region?: string | null
-          rejected_at?: string | null
-          rejected_by?: string | null
-          rejection_reason?: string | null
-          review_status?: string
-          sdgs?: string[] | null
+          name: string
+          place_name?: string | null
           start_date?: string | null
           status?: string
-          target_demographics?: string[] | null
-          thematic_area?: string | null
-          title: string
+          target_demographic?: string | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
         }
         Update: {
-          approval_status?: Database["public"]["Enums"]["project_approval_status"]
-          approved_at?: string | null
-          approved_by?: string | null
-          country?: string | null
+          amount_needed?: number | null
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           donations_received?: number | null
           end_date?: string | null
-          funding_needed?: number | null
           id?: string
-          ifrc_global_challenges?: string[] | null
-          intervention_type?: string | null
           lat?: number | null
           lead_org_id?: string | null
-          links?: Json | null
           lives_improved?: number | null
           lng?: number | null
-          partner_org_ids?: string[] | null
-          region?: string | null
-          rejected_at?: string | null
-          rejected_by?: string | null
-          rejection_reason?: string | null
-          review_status?: string
-          sdgs?: string[] | null
+          name?: string
+          place_name?: string | null
           start_date?: string | null
           status?: string
-          target_demographics?: string[] | null
-          thematic_area?: string | null
-          title?: string
+          target_demographic?: string | null
+          thematic_area?: string[] | null
+          type_of_intervention?: string[] | null
         }
         Relationships: [
           {
@@ -1004,6 +971,234 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_ifrc_challenges: {
+        Row: {
+          challenge_id: number
+          project_id: string
+        }
+        Insert: {
+          challenge_id: number
+          project_id: string
+        }
+        Update: {
+          challenge_id?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_ifrc_challenges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "ifrc_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_ifrc_challenges_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          label: string | null
+          project_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          project_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          project_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_media: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          mime_type: string | null
+          path: string
+          project_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          path: string
+          project_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          path?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_media_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_partners: {
+        Row: {
+          organisation_id: string
+          project_id: string
+        }
+        Insert: {
+          organisation_id: string
+          project_id: string
+        }
+        Update: {
+          organisation_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_partners_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_partners_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_posts: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          project_id: string
+          title: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id: string
+          title?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_posts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_sdgs: {
+        Row: {
+          project_id: string
+          sdg_id: number
+        }
+        Insert: {
+          project_id: string
+          sdg_id: number
+        }
+        Update: {
+          project_id?: string
+          sdg_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_sdgs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_sdgs_sdg_id_fkey"
+            columns: ["sdg_id"]
+            isOneToOne: false
+            referencedRelation: "sdgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sdgs: {
+        Row: {
+          id: number
+          name: string
+        }
+        Insert: {
+          id: number
+          name: string
+        }
+        Update: {
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      ifrc_challenges: {
+        Row: {
+          code: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          code?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          code?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
       }
       watchdog_cases: {
         Row: {
