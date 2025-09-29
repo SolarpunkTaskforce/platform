@@ -60,10 +60,7 @@ const linkSchema = z.object({
 
 const formSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, "Please enter a project name"),
+    name: z.string().trim().min(1, "Please enter a project name"),
     description: z
       .string()
       .trim()
@@ -90,11 +87,7 @@ const formSchema = z
       .optional()
       .or(z.literal(""))
       .transform(value => (value && value.trim().length ? value.trim() : undefined)),
-    lives_improved: z
-      .number()
-      .int("Enter a whole number")
-      .nonnegative("Cannot be negative")
-      .optional(),
+    lives_improved: z.number().int("Enter a whole number").nonnegative("Cannot be negative").optional(),
     start_date: z.date().optional(),
     end_date: z.date().optional(),
     donations_received: z.number().nonnegative("Cannot be negative").optional(),
@@ -162,6 +155,7 @@ const createDefaultValues = (): FormValues => ({
   currency: "USD",
   location: null,
 });
+
 export default function ProjectForm() {
   const router = useRouter();
   const [orgOptions, setOrgOptions] = useState<Option[]>([]);
@@ -396,6 +390,7 @@ export default function ProjectForm() {
       setIsSubmitting(false);
     }
   };
+
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -607,6 +602,7 @@ export default function ProjectForm() {
             />
           </div>
         </section>
+
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Location & beneficiaries</h2>
           <p className="mt-1 text-sm text-slate-600">Find the place where the project has the greatest impact.</p>
@@ -765,6 +761,7 @@ export default function ProjectForm() {
             </div>
           </div>
         </section>
+
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Timeline & funding</h2>
           <p className="mt-1 text-sm text-slate-600">Share when the project runs and what support is still required.</p>
@@ -781,10 +778,7 @@ export default function ProjectForm() {
                       <FormControl>
                         <Button
                           variant="outline"
-                          className={cn(
-                            "justify-start text-left font-normal",
-                            !field.value && "text-slate-500",
-                          )}
+                          className={cn("justify-start text-left font-normal", !field.value && "text-slate-500")}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {field.value ? format(field.value, "PPP") : "Pick a start date"}
@@ -792,12 +786,7 @@ export default function ProjectForm() {
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ?? undefined}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
+                      <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} initialFocus />
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
@@ -816,10 +805,7 @@ export default function ProjectForm() {
                       <FormControl>
                         <Button
                           variant="outline"
-                          className={cn(
-                            "justify-start text-left font-normal",
-                            !field.value && "text-slate-500",
-                          )}
+                          className={cn("justify-start text-left font-normal", !field.value && "text-slate-500")}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {field.value ? format(field.value, "PPP") : "Pick an end date"}
@@ -909,6 +895,7 @@ export default function ProjectForm() {
             />
           </div>
         </section>
+
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Project media</h2>
           <p className="mt-1 text-sm text-slate-600">Upload images, video, or documents after submitting the form.</p>
@@ -954,10 +941,7 @@ export default function ProjectForm() {
                     </div>
                     <div className="mt-2 h-2 rounded-full bg-slate-100">
                       <div
-                        className={cn(
-                          "h-2 rounded-full",
-                          upload.status === "error" ? "bg-rose-400" : "bg-emerald-500",
-                        )}
+                        className={cn("h-2 rounded-full", upload.status === "error" ? "bg-rose-400" : "bg-emerald-500")}
                         style={{ width: `${upload.progress}%` }}
                       />
                     </div>
@@ -976,11 +960,7 @@ export default function ProjectForm() {
         )}
 
         <div className="sticky bottom-4 z-10 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex w-full items-center justify-center gap-2"
-          >
+          <Button type="submit" disabled={isSubmitting} className="inline-flex w-full items-center justify-center gap-2">
             {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
             {isSubmitting ? "Submitting" : "Submit project"}
           </Button>

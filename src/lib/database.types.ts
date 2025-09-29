@@ -864,6 +864,7 @@ export type Database = {
           nationality: string | null
           organisation_id: string | null
           organisation_name: string | null
+          role: string
           surname: string | null
         }
         Insert: {
@@ -875,6 +876,7 @@ export type Database = {
           nationality?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
+          role?: string
           surname?: string | null
         }
         Update: {
@@ -886,6 +888,7 @@ export type Database = {
           nationality?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
+          role?: string
           surname?: string | null
         }
         Relationships: [

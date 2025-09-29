@@ -9,11 +9,16 @@ const locationSchema = z.object({
   place_name: z.string().trim().min(1),
 });
 
-const linkSchema = z.object({
-  url: z.string().trim().url(),
-  label: z.string().trim().optional().or(z.literal(""))
-    .transform(value => (value ? value.trim() : undefined)),
-});
+const linkSchema = z
+  .object({
+    url: z.string().trim().url(),
+    label: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .transform(value => (value ? value.trim() : undefined)),
+  });
 
 const payloadSchema = z
   .object({
@@ -28,8 +33,14 @@ const payloadSchema = z
     thematic_area: z.array(z.string()).optional(),
     target_demographic: z.string().trim().optional(),
     lives_improved: z.number().int().optional(),
-    start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/).optional(),
-    end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/).optional(),
+    start_date: z
+      .string()
+      .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)
+      .optional(),
+    end_date: z
+      .string()
+      .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)
+      .optional(),
     donations_received: z.number().optional(),
     amount_needed: z.number().optional(),
     currency: z.string().trim().length(3).optional(),
@@ -72,10 +83,13 @@ export async function POST(req: Request) {
   }
 
   const data = result.data;
-  const links = data.links?.filter(link => link.url.trim().length > 0).map(link => ({
-    url: link.url.trim(),
-    label: link.label,
-  }));
+  const links =
+    data.links
+      ?.filter(link => link.url.trim().length > 0)
+      .map(link => ({
+        url: link.url.trim(),
+        label: link.label,
+      })) ?? null;
 
   const { data: submission, error } = await supabase.rpc("create_project_submission", {
     p_name: data.name,

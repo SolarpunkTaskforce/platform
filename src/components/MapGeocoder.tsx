@@ -26,7 +26,7 @@ export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
         "Mapbox token missing or invalid. Add a public token to NEXT_PUBLIC_MAPBOX_TOKEN in your .env file."
       );
       container.innerHTML =
-        "<p class=\"text-sm text-rose-600\">Map search unavailable: add a valid Mapbox public token.</p>";
+        '<p class="text-sm text-rose-600">Map search unavailable: add a valid Mapbox public token.</p>';
       return;
     }
 
@@ -57,7 +57,7 @@ export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
       const handleError = (error: unknown) => {
         console.error("Mapbox geocoder error", error);
         container.innerHTML =
-          "<p class=\"text-sm text-rose-600\">Map search unavailable: check your Mapbox token.</p>";
+          '<p class="text-sm text-rose-600">Map search unavailable: check your Mapbox token.</p>';
       };
 
       geocoder.on("error", handleError);
@@ -71,7 +71,7 @@ export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
     } catch (error) {
       console.error("Failed to initialise Mapbox geocoder", error);
       container.innerHTML =
-        "<p class=\"text-sm text-rose-600\">Map search unavailable: failed to initialise Mapbox geocoder.</p>";
+        '<p class="text-sm text-rose-600">Map search unavailable: failed to initialise Mapbox geocoder.</p>';
       return () => {};
     }
   }, [onSelect]);

@@ -83,7 +83,10 @@ export default function MultiSelect({
           {ariaLabel ?? placeholder}
         </label>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            aria-hidden
+          />
           <Input
             id={searchInputId}
             type="search"
@@ -96,7 +99,9 @@ export default function MultiSelect({
 
         <div className="max-h-56 space-y-1 overflow-y-auto" role="listbox" aria-label={ariaLabel ?? placeholder}>
           {filtered.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-500">{emptyMessage}</p>
+            <p className="rounded-2xl border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-500">
+              {emptyMessage}
+            </p>
           ) : (
             filtered.map(option => {
               const selected = value.includes(option.value);
