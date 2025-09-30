@@ -8,9 +8,9 @@ permissions:
   contents: write
 
 env:
-  SUPABASE_DB_URL:       ${{ secrets.SUPABASE_DB_URL }}        # session pooler URL with password
-  SUPABASE_PROJECT_REF:  ${{ secrets.SUPABASE_PROJECT_REF }}    # kept for future use
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}   # sbp_ token
+  SUPABASE_DB_URL:       ${{ secrets.SUPABASE_DB_URL }}
+  SUPABASE_PROJECT_REF:  ${{ secrets.SUPABASE_PROJECT_REF }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
 jobs:
   auto_sync:
@@ -33,32 +33,30 @@ jobs:
           test -n "${SUPABASE_DB_URL}" || { echo "ERR: SUPABASE_DB_URL missing"; exit 1; }
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "ERR: SUPABASE_ACCESS_TOKEN missing"; exit 1; }
 
-      - name: Supabase CLI warmup (optional)
-        run: pnpm dlx supabase@latest --version
+      - name: Install Supabase CLI globally
+        run: pnpm install -g supabase
 
       - name: Supabase CLI login
-        run: pnpm dlx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
+        run: supabase login --token "${SUPABASE_ACCESS_TOKEN}"
 
       - name: Create migration diff (no Docker)
         run: |
           set -euo pipefail
           STAMP="$(date -u +%Y%m%d%H%M%S)"
-          pnpm dlx supabase@latest db diff \
+          supabase db diff \
             --db-url "${SUPABASE_DB_URL}" \
             --schema public \
             --use-pg-schema \
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
       - name: Apply migrations (db push)
-        run: |
-          set -euo pipefail
-          pnpm dlx supabase@latest db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
+        run: supabase db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
 
       - name: Regenerate TypeScript DB types (via DB URL)
         run: |
           set -euo pipefail
           mkdir -p src/lib
-          pnpm dlx supabase@latest gen types typescript \
+          supabase gen types typescript \
             --db-url "${SUPABASE_DB_URL}" \
             -s public -s auth -s storage > src/lib/database.types.ts
           head -n 3 src/lib/database.types.ts || true
