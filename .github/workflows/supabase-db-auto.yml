@@ -26,7 +26,6 @@ jobs:
           fi
 
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
 
       - name: Validate secrets
         run: |
