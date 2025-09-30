@@ -33,8 +33,10 @@ jobs:
           test -n "${SUPABASE_DB_URL}" || { echo "ERR: SUPABASE_DB_URL missing"; exit 1; }
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "ERR: SUPABASE_ACCESS_TOKEN missing"; exit 1; }
 
-      - name: Install Supabase CLI globally
-        run: pnpm install -g supabase
+      - name: Install Supabase CLI globally (npm)
+        run: |
+          npm install -g supabase
+          supabase --version
 
       - name: Supabase CLI login
         run: supabase login --token "${SUPABASE_ACCESS_TOKEN}"
