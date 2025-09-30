@@ -163,6 +163,7 @@ export default function ProjectForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [interventionDraft, setInterventionDraft] = useState("");
   const [thematicDraft, setThematicDraft] = useState("");
+  const [showGeocoder, setShowGeocoder] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -564,7 +565,21 @@ export default function ProjectForm() {
                   <FormLabel>Search for a location</FormLabel>
                   <FormDescription>Use the map search to pin the primary impact location.</FormDescription>
                   <div className="mt-2 space-y-3 rounded-2xl border border-slate-200 p-4">
-                    <MapGeocoder onSelect={value => field.onChange(value)} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowGeocoder(previous => !previous)}
+                    >
+                      {field.value ? "Change location" : "Add location"}
+                    </Button>
+                    {showGeocoder ? (
+                      <MapGeocoder
+                        onSelect={value => {
+                          field.onChange(value);
+                          setShowGeocoder(false);
+                        }}
+                      />
+                    ) : null}
                     {field.value ? (
                       <Badge variant="emerald" className="inline-flex items-center gap-2 text-sm">
                         <MapPin className="h-4 w-4" /> {field.value.place_name}
