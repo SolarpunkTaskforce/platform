@@ -44,18 +44,14 @@ const locationSchema = z.object({
 });
 
 const linkSchema = z.object({
-  url: z
-    .string()
-    .trim()
-    .min(1, "Link URL is required")
-    .url("Enter a valid URL"),
+  url: z.string().trim().min(1, "Link URL is required").url("Enter a valid URL"),
   label: z
     .string()
     .trim()
     .max(120, "Labels should be under 120 characters")
     .optional()
     .or(z.literal(""))
-    .transform(value => (value ? value.trim() : undefined)),
+    .transform(v => (v ? v.trim() : undefined)),
 });
 
 const formSchema = z
@@ -67,13 +63,13 @@ const formSchema = z
       .max(4000, "Keep descriptions under 4000 characters")
       .optional()
       .or(z.literal(""))
-      .transform(value => (value && value.trim().length ? value.trim() : undefined)),
+      .transform(v => (v && v.trim().length ? v.trim() : undefined)),
     lead_org_id: z
       .string()
       .uuid({ message: "Organisation id must be a UUID" })
       .optional()
       .or(z.literal(""))
-      .transform(value => (value ? value : undefined)),
+      .transform(v => (v ? v : undefined)),
     links: z.array(linkSchema).default([]),
     partner_org_ids: z.array(z.string().uuid()).default([]),
     sdg_ids: z.array(z.number().int()).default([]),
@@ -86,7 +82,7 @@ const formSchema = z
       .max(255, "Target demographic should be concise")
       .optional()
       .or(z.literal(""))
-      .transform(value => (value && value.trim().length ? value.trim() : undefined)),
+      .transform(v => (v && v.trim().length ? v.trim() : undefined)),
     lives_improved: z.number().int("Enter a whole number").nonnegative("Cannot be negative").optional(),
     start_date: z.date().optional(),
     end_date: z.date().optional(),
@@ -98,7 +94,7 @@ const formSchema = z
       .length(3, "Use a three-letter currency code")
       .optional()
       .or(z.literal(""))
-      .transform(value => (value ? value.toUpperCase() : undefined)),
+      .transform(v => (v ? v.toUpperCase() : undefined)),
     location: locationSchema.nullable(),
   })
   .superRefine((values, ctx) => {
@@ -175,21 +171,17 @@ export default function ProjectForm() {
   });
 
   const { control, handleSubmit, reset, watch, setValue } = form;
-
   const linkArray = useFieldArray({ control, name: "links" });
 
   useEffect(() => {
     let isMounted = true;
-
     async function loadOptions() {
       const [orgRes, sdgRes, ifrcRes] = await Promise.all([
         supabase.from("organisations").select("id, name").order("name"),
         supabase.from("sdgs").select("id, name").order("id"),
         supabase.from("ifrc_challenges").select("id, name").order("name"),
       ]);
-
       if (!isMounted) return;
-
       if (!orgRes.error && orgRes.data) {
         setOrgOptions(orgRes.data.map(org => ({ value: org.id, label: org.name })));
       }
@@ -197,12 +189,10 @@ export default function ProjectForm() {
         setSdgOptions(sdgRes.data.map(sdg => ({ value: String(sdg.id), label: `${sdg.id}. ${sdg.name}` })));
       }
       if (!ifrcRes.error && ifrcRes.data) {
-        setIfrcOptions(ifrcRes.data.map(challenge => ({ value: String(challenge.id), label: challenge.name })));
+        setIfrcOptions(ifrcRes.data.map(ch => ({ value: String(ch.id), label: ch.name })));
       }
     }
-
     loadOptions();
-
     return () => {
       isMounted = false;
     };
@@ -211,7 +201,6 @@ export default function ProjectForm() {
   const selectedInterventions = watch("type_of_intervention");
   const selectedThemes = watch("thematic_area");
   const startDate = watch("start_date");
-
   const partnerOptions = useMemo(() => orgOptions, [orgOptions]);
 
   const addIntervention = useCallback(() => {
@@ -254,11 +243,8 @@ export default function ProjectForm() {
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null);
     setIsSubmitting(true);
-
     try {
-      if (!values.location) {
-        throw new Error("Please pick a location using the search field");
-      }
+      if (!values.location) throw new Error("Please pick a location using the search field");
 
       const linkPayload = values.links
         .filter(link => link.url.trim().length > 0)
@@ -314,31 +300,16 @@ export default function ProjectForm() {
           const extension = file.name.split(".").pop() ?? "bin";
           const path = `${id}/${crypto.randomUUID()}.${extension}`;
 
-          setUploads(current =>
-            current.map((entry, uploadIndex) =>
-              uploadIndex === index ? { ...entry, status: "uploading", progress: 10 } : entry,
-            ),
-          );
+          setUploads(curr => curr.map((e, i) => (i === index ? { ...e, status: "uploading", progress: 10 } : e)));
 
           const { error: uploadError } = await supabase.storage
             .from("project-media")
-            .upload(path, file, {
-              contentType: file.type || undefined,
-              upsert: false,
-            });
+            .upload(path, file, { contentType: file.type || undefined, upsert: false });
 
           if (uploadError) {
             uploadFailed = true;
-            setUploads(current =>
-              current.map((entry, uploadIndex) =>
-                uploadIndex === index
-                  ? {
-                      ...entry,
-                      status: "error",
-                      error: uploadError.message,
-                    }
-                  : entry,
-              ),
+            setUploads(curr =>
+              curr.map((e, i) => (i === index ? { ...e, status: "error", error: uploadError.message } : e)),
             );
             continue;
           }
@@ -349,30 +320,16 @@ export default function ProjectForm() {
 
           if (recordError) {
             uploadFailed = true;
-            setUploads(current =>
-              current.map((entry, uploadIndex) =>
-                uploadIndex === index
-                  ? {
-                      ...entry,
-                      status: "error",
-                      error: recordError.message,
-                    }
-                  : entry,
-              ),
+            setUploads(curr =>
+              curr.map((e, i) => (i === index ? { ...e, status: "error", error: recordError.message } : e)),
             );
           } else {
-            setUploads(current =>
-              current.map((entry, uploadIndex) =>
-                uploadIndex === index ? { ...entry, status: "complete", progress: 100 } : entry,
-              ),
-            );
+            setUploads(curr => curr.map((e, i) => (i === index ? { ...e, status: "complete", progress: 100 } : e)));
           }
         }
 
         if (uploadFailed) {
-          setSubmitError(
-            "Some media files could not be uploaded. Please review the errors below and try again.",
-          );
+          setSubmitError("Some media files could not be uploaded. Please review the errors below and try again.");
           setIsSubmitting(false);
           return;
         }
@@ -398,9 +355,7 @@ export default function ProjectForm() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">Project overview</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Tell us the basics so our reviewers understand what you are proposing.
-              </p>
+              <p className="mt-1 text-sm text-slate-600">Tell us the basics so our reviewers understand what you are proposing.</p>
             </div>
           </div>
 
@@ -426,8 +381,7 @@ export default function ProjectForm() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormDescription>
-                    Share the story, goals, and current progress of this project. Include details that help reviewers
-                    understand impact.
+                    Share the story, goals, and current progress of this project. Include details that help reviewers understand impact.
                   </FormDescription>
                   <FormControl>
                     <Textarea rows={5} placeholder="Tell the story of this project" {...field} />
@@ -444,14 +398,17 @@ export default function ProjectForm() {
                 <FormItem>
                   <FormLabel>Lead organisation</FormLabel>
                   <FormDescription>Select the organisation primarily responsible for the project.</FormDescription>
-                  <Select onValueChange={value => field.onChange(value || undefined)} value={field.value ?? ""}>
+                  <Select
+                    onValueChange={val => field.onChange(val === "__none__" ? undefined : val)}
+                    value={field.value ?? undefined}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Choose an organisation" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent align="start">
-                      <SelectItem value="">No lead organisation</SelectItem>
+                      <SelectItem value="__none__">No lead organisation</SelectItem>
                       {orgOptions.map(option => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -468,24 +425,15 @@ export default function ProjectForm() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-medium text-slate-900">Supporting links</h3>
-                  <p className="text-sm text-slate-500">
-                    Include press, documentation, or public updates that help validate the project.
-                  </p>
+                  <p className="text-sm text-slate-500">Include press, documentation, or public updates that help validate the project.</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => linkArray.append({ url: "", label: undefined })}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => linkArray.append({ url: "", label: undefined })}>
                   <Plus className="mr-1 h-4 w-4" /> Add link
                 </Button>
               </div>
 
               {linkArray.fields.length === 0 && (
-                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
-                  No links added yet.
-                </p>
+                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">No links added yet.</p>
               )}
 
               <div className="space-y-3">
@@ -570,7 +518,7 @@ export default function ProjectForm() {
                     <MultiSelect
                       options={sdgOptions}
                       value={field.value.map(String)}
-                      onChange={selection => field.onChange(selection.map(Number))}
+                      onChange={sel => field.onChange(sel.map(Number))}
                       placeholder="Search SDGs..."
                       ariaLabel="Sustainable Development Goals"
                     />
@@ -591,7 +539,7 @@ export default function ProjectForm() {
                     <MultiSelect
                       options={ifrcOptions}
                       value={field.value.map(String)}
-                      onChange={selection => field.onChange(selection.map(Number))}
+                      onChange={sel => field.onChange(sel.map(Number))}
                       placeholder="Search challenges..."
                       ariaLabel="IFRC Global Challenges"
                     />
@@ -657,8 +605,8 @@ export default function ProjectForm() {
                       min={0}
                       placeholder="If unknown, leave blank"
                       value={field.value ?? ""}
-                      onChange={event => {
-                        const next = event.target.value;
+                      onChange={e => {
+                        const next = e.target.value;
                         field.onChange(next === "" ? undefined : Number(next));
                       }}
                     />
@@ -672,9 +620,7 @@ export default function ProjectForm() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-medium text-slate-900">Type of intervention</h3>
-                  <p className="text-sm text-slate-500">
-                    Add tags that describe the intervention (e.g. Urban farming, Cooling, Renewable energy).
-                  </p>
+                  <p className="text-sm text-slate-500">Add tags that describe the intervention (e.g. Urban farming, Cooling, Renewable energy).</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -700,10 +646,10 @@ export default function ProjectForm() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Input
                   value={interventionDraft}
-                  onChange={event => setInterventionDraft(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
+                  onChange={e => setInterventionDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
                       addIntervention();
                     }
                   }}
@@ -745,10 +691,10 @@ export default function ProjectForm() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Input
                   value={thematicDraft}
-                  onChange={event => setThematicDraft(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
+                  onChange={e => setThematicDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
                       addTheme();
                     }
                   }}
@@ -840,8 +786,8 @@ export default function ProjectForm() {
                       step="0.01"
                       placeholder="0.00"
                       value={field.value ?? ""}
-                      onChange={event => {
-                        const next = event.target.value;
+                      onChange={e => {
+                        const next = e.target.value;
                         field.onChange(next === "" ? undefined : Number(next));
                       }}
                     />
@@ -864,8 +810,8 @@ export default function ProjectForm() {
                       step="0.01"
                       placeholder="0.00"
                       value={field.value ?? ""}
-                      onChange={event => {
-                        const next = event.target.value;
+                      onChange={e => {
+                        const next = e.target.value;
                         field.onChange(next === "" ? undefined : Number(next));
                       }}
                     />
@@ -886,7 +832,7 @@ export default function ProjectForm() {
                       maxLength={3}
                       placeholder="USD"
                       value={field.value ?? ""}
-                      onChange={event => field.onChange(event.target.value.toUpperCase())}
+                      onChange={e => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -914,7 +860,7 @@ export default function ProjectForm() {
                 accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.txt"
                 multiple
                 className="hidden"
-                onChange={event => handleFileSelection(event.target.files)}
+                onChange={e => handleFileSelection(e.target.files)}
               />
             </label>
 
@@ -953,11 +899,7 @@ export default function ProjectForm() {
           </div>
         </section>
 
-        {submitError && (
-          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {submitError}
-          </div>
-        )}
+        {submitError && <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</div>}
 
         <div className="sticky bottom-4 z-10 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
           <Button type="submit" disabled={isSubmitting} className="inline-flex w-full items-center justify-center gap-2">
