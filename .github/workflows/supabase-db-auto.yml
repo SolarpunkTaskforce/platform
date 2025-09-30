@@ -33,32 +33,30 @@ jobs:
           test -n "${SUPABASE_DB_URL}" || { echo "ERR: SUPABASE_DB_URL missing"; exit 1; }
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "ERR: SUPABASE_ACCESS_TOKEN missing"; exit 1; }
 
-      - name: Install Supabase CLI globally (npm)
-        run: |
-          npm install -g supabase
-          supabase --version
+      - name: Supabase CLI warmup
+        run: npx supabase@latest --version
 
       - name: Supabase CLI login
-        run: supabase login --token "${SUPABASE_ACCESS_TOKEN}"
+        run: npx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
 
       - name: Create migration diff (no Docker)
         run: |
           set -euo pipefail
           STAMP="$(date -u +%Y%m%d%H%M%S)"
-          supabase db diff \
+          npx supabase@latest db diff \
             --db-url "${SUPABASE_DB_URL}" \
             --schema public \
             --use-pg-schema \
             -f "supabase/migrations/${STAMP}_auto.sql" || true
 
       - name: Apply migrations (db push)
-        run: supabase db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
+        run: npx supabase@latest db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
 
       - name: Regenerate TypeScript DB types (via DB URL)
         run: |
           set -euo pipefail
           mkdir -p src/lib
-          supabase gen types typescript \
+          npx supabase@latest gen types typescript \
             --db-url "${SUPABASE_DB_URL}" \
             -s public -s auth -s storage > src/lib/database.types.ts
           head -n 3 src/lib/database.types.ts || true
