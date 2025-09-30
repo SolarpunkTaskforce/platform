@@ -2,6 +2,7 @@
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
+import "react-day-picker/dist/style.css";
 
 import type { Metadata } from "next";
 import { ReactNode } from "react";

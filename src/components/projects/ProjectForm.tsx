@@ -1,16 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useState, type HTMLAttributes } from "react";
 import { format } from "date-fns";
-import {
-  Calendar as CalendarIcon,
-  Link as LinkIcon,
-  Loader2,
-  MapPin,
-  Plus,
-  Trash2,
-  UploadCloud,
-} from "lucide-react";
+import { Link as LinkIcon, Loader2, MapPin, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, type Resolver } from "react-hook-form";
@@ -20,7 +12,6 @@ import MapGeocoder from "@/components/MapGeocoder";
 import MultiSelect, { type Option } from "@/components/ui/MultiSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -31,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
@@ -152,6 +142,195 @@ const createDefaultValues = (): FormValues => ({
   location: null,
 });
 
+type DateParts = {
+  day?: number;
+  month?: number;
+  year?: number;
+};
+
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => {
+  const day = index + 1;
+  return {
+    value: String(day),
+    label: day.toString().padStart(2, "0"),
+  };
+});
+
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => {
+  const monthNumber = index + 1;
+  return {
+    value: String(monthNumber),
+    label: `${monthNumber.toString().padStart(2, "0")} – ${format(new Date(2000, index, 1), "LLLL")}`,
+  };
+});
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: (CURRENT_YEAR + 30) - 1950 + 1 }, (_, index) => {
+  const year = 1950 + index;
+  return {
+    value: String(year),
+    label: String(year),
+  };
+});
+
+const CURRENCY_CODES = [
+  "USD",
+  "EUR",
+  "GBP",
+  "CHF",
+  "AUD",
+  "CAD",
+  "NZD",
+  "JPY",
+  "CNY",
+  "INR",
+  "SEK",
+  "NOK",
+  "DKK",
+  "BRL",
+  "MXN",
+  "ZAR",
+  "KES",
+  "NGN",
+  "GHS",
+  "IDR",
+  "SGD",
+  "HKD",
+  "KRW",
+  "TRY",
+  "PLN",
+  "CZK",
+  "HUF",
+  "ILS",
+  "SAR",
+  "AED",
+];
+
+const currencyDisplay =
+  typeof Intl.DisplayNames === "function" ? new Intl.DisplayNames(["en"], { type: "currency" }) : undefined;
+
+const CURRENCY_OPTIONS = CURRENCY_CODES.map(code => ({
+  value: code,
+  label: currencyDisplay ? `${code} – ${currencyDisplay.of(code) ?? code}` : code,
+}));
+
+const deriveParts = (value?: Date | null): DateParts => {
+  if (!value) {
+    return { day: undefined, month: undefined, year: undefined };
+  }
+  return {
+    day: value.getDate(),
+    month: value.getMonth() + 1,
+    year: value.getFullYear(),
+  };
+};
+
+const clampDayToMonth = (day: number, month: number, year: number) => {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return Math.min(day, daysInMonth);
+};
+
+const CLEAR_SELECT_VALUE = "__clear__";
+
+type DateDropdownsProps = {
+  value?: Date | null;
+  onChange: (value: Date | undefined) => void;
+  onBlur: () => void;
+  minDate?: Date | null;
+} & HTMLAttributes<HTMLDivElement>;
+
+const DateDropdowns = forwardRef<HTMLDivElement, DateDropdownsProps>(
+  ({ value, onChange, onBlur, minDate, className, ...props }, ref) => {
+    const [parts, setParts] = useState<DateParts>(() => deriveParts(value ?? undefined));
+    const timestamp = value ? value.getTime() : null;
+
+    useEffect(() => {
+      setParts(deriveParts(value ?? undefined));
+    }, [timestamp, value]);
+
+    const handlePartChange = useCallback(
+      (key: keyof DateParts) => (raw: string) => {
+        const nextRaw = raw === CLEAR_SELECT_VALUE ? "" : raw;
+        setParts(prev => {
+          const nextValue = nextRaw ? Number(nextRaw) : undefined;
+          const updated: DateParts = { ...prev, [key]: nextValue };
+
+          if (!updated.day && !updated.month && !updated.year) {
+            onChange(undefined);
+            return { day: undefined, month: undefined, year: undefined };
+          }
+
+          if (updated.day && updated.month && updated.year) {
+            const clampedDay = clampDayToMonth(updated.day, updated.month, updated.year);
+            const candidate = new Date(updated.year, updated.month - 1, clampedDay);
+
+            if (minDate && candidate < minDate) {
+              onChange(minDate);
+              return deriveParts(minDate);
+            }
+
+            onChange(candidate);
+            return { ...updated, day: clampedDay };
+          }
+
+          onChange(undefined);
+          return updated;
+        });
+        onBlur();
+      },
+      [minDate, onBlur, onChange],
+    );
+
+    return (
+      <div ref={ref} className={cn("flex flex-col gap-3 sm:flex-row", className)} {...props}>
+        <Select value={parts.day ? String(parts.day) : undefined} onValueChange={handlePartChange("day")}>
+          <SelectTrigger className="sm:w-28">
+            <SelectValue placeholder="DD" />
+          </SelectTrigger>
+          <SelectContent align="start">
+            <SelectItem value={CLEAR_SELECT_VALUE}>Not set</SelectItem>
+            {DAY_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={parts.month ? String(parts.month) : undefined} onValueChange={handlePartChange("month")}>
+          <SelectTrigger className="sm:w-40">
+            <SelectValue placeholder="MM" />
+          </SelectTrigger>
+          <SelectContent align="start">
+            <SelectItem value={CLEAR_SELECT_VALUE}>Not set</SelectItem>
+            {MONTH_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={parts.year ? String(parts.year) : undefined} onValueChange={handlePartChange("year")}>
+          <SelectTrigger className="sm:w-32">
+            <SelectValue placeholder="YYYY" />
+          </SelectTrigger>
+          <SelectContent align="start">
+            <SelectItem value={CLEAR_SELECT_VALUE}>Not set</SelectItem>
+            {YEAR_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  },
+);
+
+DateDropdowns.displayName = "DateDropdowns";
+
 export default function ProjectForm() {
   const router = useRouter();
   const [orgOptions, setOrgOptions] = useState<Option[]>([]);
@@ -163,6 +342,7 @@ export default function ProjectForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [interventionDraft, setInterventionDraft] = useState("");
   const [thematicDraft, setThematicDraft] = useState("");
+  const [showGeocoder, setShowGeocoder] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -564,7 +744,21 @@ export default function ProjectForm() {
                   <FormLabel>Search for a location</FormLabel>
                   <FormDescription>Use the map search to pin the primary impact location.</FormDescription>
                   <div className="mt-2 space-y-3 rounded-2xl border border-slate-200 p-4">
-                    <MapGeocoder onSelect={value => field.onChange(value)} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowGeocoder(previous => !previous)}
+                    >
+                      {field.value ? "Change location" : "Add location"}
+                    </Button>
+                    {showGeocoder ? (
+                      <MapGeocoder
+                        onSelect={value => {
+                          field.onChange(value);
+                          setShowGeocoder(false);
+                        }}
+                      />
+                    ) : null}
                     {field.value ? (
                       <Badge variant="emerald" className="inline-flex items-center gap-2 text-sm">
                         <MapPin className="h-4 w-4" /> {field.value.place_name}
@@ -655,7 +849,7 @@ export default function ProjectForm() {
                   }}
                   placeholder="Add a new intervention"
                 />
-                <Button type="button" onClick={addIntervention}>
+                <Button type="button" onClick={addIntervention} className="whitespace-nowrap">
                   <Plus className="mr-1 h-4 w-4" /> Add tag
                 </Button>
               </div>
@@ -700,7 +894,7 @@ export default function ProjectForm() {
                   }}
                   placeholder="Add a thematic area"
                 />
-                <Button type="button" onClick={addTheme}>
+                <Button type="button" onClick={addTheme} className="whitespace-nowrap">
                   <Plus className="mr-1 h-4 w-4" /> Add tag
                 </Button>
               </div>
@@ -717,24 +911,11 @@ export default function ProjectForm() {
               control={control}
               name="start_date"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Start date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn("justify-start text-left font-normal", !field.value && "text-slate-500")}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, "PPP") : "Pick a start date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <DateDropdowns value={field.value ?? null} onChange={field.onChange} onBlur={field.onBlur} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -744,30 +925,16 @@ export default function ProjectForm() {
               control={control}
               name="end_date"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>End date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn("justify-start text-left font-normal", !field.value && "text-slate-500")}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, "PPP") : "Pick an end date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ?? undefined}
-                        onSelect={field.onChange}
-                        disabled={date => Boolean(startDate && date < startDate)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <DateDropdowns
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      minDate={startDate ?? null}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -827,14 +994,24 @@ export default function ProjectForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
-                  <FormControl>
-                    <Input
-                      maxLength={3}
-                      placeholder="USD"
-                      value={field.value ?? ""}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
-                    />
-                  </FormControl>
+                  <Select
+                    value={field.value ?? undefined}
+                    onValueChange={val => field.onChange(val === "__none__" ? undefined : val)}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a currency" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent align="start">
+                      <SelectItem value="__none__">No currency selected</SelectItem>
+                      {CURRENCY_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

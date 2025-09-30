@@ -12,10 +12,20 @@ type MapGeocoderProps = {
 
 export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const geocoderRef = useRef<InstanceType<typeof MapboxGeocoder> | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const initializedRef = useRef(false);
+  const onSelectRef = useRef(onSelect);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || initializedRef.current) {
+      return;
+    }
 
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     const tokenLooksValid = typeof token === "string" && /^pk\./.test(token);
@@ -31,49 +41,76 @@ export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
 
     mapboxgl.accessToken = token;
 
+    let map: mapboxgl.Map | null = null;
+    let geocoder: InstanceType<typeof MapboxGeocoder> | null = null;
+
+    const handleResult = (event: {
+      result: { center: [number, number]; place_name: string };
+    }) => {
+      const [lng, lat] = event.result.center;
+      onSelectRef.current({ lat, lng, place_name: event.result.place_name });
+    };
+
+    const handleError = (error: unknown) => {
+      console.error("Mapbox geocoder error", error);
+      if (containerRef.current) {
+        containerRef.current.innerHTML =
+          '<p class="text-sm text-rose-600">Map search unavailable: check your Mapbox token.</p>';
+      }
+    };
+
     try {
-      const map = new mapboxgl.Map({
+      map = new mapboxgl.Map({
         container: document.createElement("div"),
         style: "mapbox://styles/mapbox/streets-v12",
       });
 
-      const geocoder = new MapboxGeocoder({
+      geocoder = new MapboxGeocoder({
         accessToken: token,
         mapboxgl,
         marker: false,
         placeholder: "Search for a place or address",
       });
 
+      container.innerHTML = "";
       geocoder.addTo(container);
 
-      const handleResult = (event: { result: { center: [number, number]; place_name: string } }) => {
-        const [lng, lat] = event.result.center;
-        onSelect({ lat, lng, place_name: event.result.place_name });
-      };
-
       geocoder.on("result", handleResult);
-
-      const handleError = (error: unknown) => {
-        console.error("Mapbox geocoder error", error);
-        container.innerHTML =
-          '<p class="text-sm text-rose-600">Map search unavailable: check your Mapbox token.</p>';
-      };
-
       geocoder.on("error", handleError);
 
+      geocoderRef.current = geocoder;
+      mapRef.current = map;
+      initializedRef.current = true;
+
       return () => {
-        geocoder.off("result", handleResult);
-        geocoder.off("error", handleError);
-        geocoder.clear();
-        map.remove();
+        if (geocoder) {
+          geocoder.off("result", handleResult);
+          geocoder.off("error", handleError);
+          geocoder.clear();
+        }
+        if (map) {
+          map.remove();
+        }
+        geocoderRef.current = null;
+        mapRef.current = null;
+        initializedRef.current = false;
       };
     } catch (error) {
       console.error("Failed to initialise Mapbox geocoder", error);
       container.innerHTML =
         '<p class="text-sm text-rose-600">Map search unavailable: failed to initialise Mapbox geocoder.</p>';
+      if (geocoder) {
+        geocoder.clear();
+      }
+      if (map) {
+        map.remove();
+      }
+      geocoderRef.current = null;
+      mapRef.current = null;
+      initializedRef.current = false;
       return () => {};
     }
-  }, [onSelect]);
+  }, []);
 
   return <div ref={containerRef} className="w-full min-h-[56px]" />;
 }
