@@ -1,4 +1,6 @@
 import "./globals.css";
+import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css"; // global CSS from node_modules must be here
+
 import type { Metadata } from "next";
 import { ReactNode } from "react";
 import Header from "@/components/Header";
