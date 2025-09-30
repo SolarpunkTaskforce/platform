@@ -112,7 +112,7 @@ export default function Header() {
 
   const addButton = (
     <Link
-      href="/add/project"
+      href="/projects/new"
       className="grid h-9 w-9 place-items-center rounded-full border"
       aria-label="Add Project"
     >
