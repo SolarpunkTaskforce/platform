@@ -1,90 +1,6 @@
-CREATE EXTENSION "citext" WITH SCHEMA "public" VERSION "1.6";
+CREATE EXTENSION IF NOT EXISTS "citext" WITH SCHEMA public;
 
 CREATE TYPE "public"."project_approval_status" AS ENUM ('pending', 'approved', 'rejected');
-
--- HAS_UNTRACKABLE_DEPENDENCIES: Dependencies, i.e. other functions used in the function body, of non-sql functions cannot be tracked. As a result, we cannot guarantee that function dependencies are ordered properly relative to this statement. For adds, this means you need to ensure that all functions this function depends on are created/altered before this statement.
-CREATE OR REPLACE FUNCTION public.enforce_moderation_by_admin()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-begin
-  -- Only admins may change moderation-related fields
-  if (new.approval_status is distinct from old.approval_status)
-     or (new.approved_at is distinct from old.approved_at)
-     or (new.approved_by is distinct from old.approved_by)
-     or (new.rejected_at is distinct from old.rejected_at)
-     or (new.rejected_by is distinct from old.rejected_by)
-     or (new.rejection_reason is distinct from old.rejection_reason)
-  then
-    if not public.is_admin() then
-      raise exception 'Only admins can modify moderation fields';
-    end if;
-
-    -- Stamp transitions
-    if new.approval_status = 'approved' and old.approval_status <> 'approved' then
-      new.approved_at := now();
-      new.approved_by := auth.uid();
-      new.rejected_at := null;
-      new.rejected_by := null;
-      new.rejection_reason := null;
-    elsif new.approval_status = 'rejected' and old.approval_status <> 'rejected' then
-      new.rejected_at := now();
-      new.rejected_by := auth.uid();
-      new.approved_at := null;
-      new.approved_by := null;
-      -- rejection_reason can be set by admin via update payload
-    end if;
-  end if;
-
-  -- Non-admins cannot change approval_status at all
-  if not public.is_admin() and (new.approval_status is distinct from old.approval_status) then
-    raise exception 'Only admins can change approval_status';
-  end if;
-
-  return new;
-end;
-$function$
-;
-
--- HAS_UNTRACKABLE_DEPENDENCIES: Dependencies, i.e. other functions used in the function body, of non-sql functions cannot be tracked. As a result, we cannot guarantee that function dependencies are ordered properly relative to this statement. For adds, this means you need to ensure that all functions this function depends on are created/altered before this statement.
-CREATE OR REPLACE FUNCTION public.handle_new_user()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-begin
-  insert into public.profiles (id) values (new.id);
-  return new;
-end;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.is_admin()
- RETURNS boolean
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'auth'
-AS $function$
-  select exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'admin'
-  );
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.is_admin(uid uuid)
- RETURNS boolean
- LANGUAGE sql
- STABLE
-AS $function$
-  select coalesce((select is_admin from public.profiles p where p.id = uid), false)
-$function$
-;
 
 CREATE OR REPLACE FUNCTION public.is_superadmin()
  RETURNS boolean
@@ -133,12 +49,6 @@ CREATE POLICY "admin_emails_insert_super" ON "public"."admin_emails"
 	FOR INSERT
 	TO authenticated
 	WITH CHECK (is_superadmin());
-
-CREATE POLICY "admin_emails_select_admins" ON "public"."admin_emails"
-	AS PERMISSIVE
-	FOR SELECT
-	TO authenticated
-	USING (is_admin());
 
 CREATE POLICY "admin_emails_update_super" ON "public"."admin_emails"
 	AS PERMISSIVE
@@ -316,6 +226,96 @@ ALTER TABLE "public"."profiles" VALIDATE CONSTRAINT "profiles_organisation_id_fk
 CREATE UNIQUE INDEX CONCURRENTLY profiles_pkey ON public.profiles USING btree (id);
 
 ALTER TABLE "public"."profiles" ADD CONSTRAINT "profiles_pkey" PRIMARY KEY USING INDEX "profiles_pkey";
+
+-- HAS_UNTRACKABLE_DEPENDENCIES: Dependencies, i.e. other functions used in the function body, of non-sql functions cannot be tracked. As a result, we cannot guarantee that function dependencies are ordered properly relative to this statement. For adds, this means you need to ensure that all functions this function depends on are created/altered before this statement.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into public.profiles (id) values (new.id);
+  return new;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'auth'
+AS $function$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+  );
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.is_admin(uid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select coalesce((select is_admin from public.profiles p where p.id = uid), false)
+$function$
+;
+
+-- HAS_UNTRACKABLE_DEPENDENCIES: Dependencies, i.e. other functions used in the function body, of non-sql functions cannot be tracked. As a result, we cannot guarantee that function dependencies are ordered properly relative to this statement. For adds, this means you need to ensure that all functions this function depends on are created/altered before this statement.
+CREATE OR REPLACE FUNCTION public.enforce_moderation_by_admin()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  -- Only admins may change moderation-related fields
+  if (new.approval_status is distinct from old.approval_status)
+     or (new.approved_at is distinct from old.approved_at)
+     or (new.approved_by is distinct from old.approved_by)
+     or (new.rejected_at is distinct from old.rejected_at)
+     or (new.rejected_by is distinct from old.rejected_by)
+     or (new.rejection_reason is distinct from old.rejection_reason)
+  then
+    if not public.is_admin() then
+      raise exception 'Only admins can modify moderation fields';
+    end if;
+
+    -- Stamp transitions
+    if new.approval_status = 'approved' and old.approval_status <> 'approved' then
+      new.approved_at := now();
+      new.approved_by := auth.uid();
+      new.rejected_at := null;
+      new.rejected_by := null;
+      new.rejection_reason := null;
+    elsif new.approval_status = 'rejected' and old.approval_status <> 'rejected' then
+      new.rejected_at := now();
+      new.rejected_by := auth.uid();
+      new.approved_at := null;
+      new.approved_by := null;
+      -- rejection_reason can be set by admin via update payload
+    end if;
+  end if;
+
+  -- Non-admins cannot change approval_status at all
+  if not public.is_admin() and (new.approval_status is distinct from old.approval_status) then
+    raise exception 'Only admins can change approval_status';
+  end if;
+
+  return new;
+end;
+$function$
+;
+
+CREATE POLICY "admin_emails_select_admins" ON "public"."admin_emails"
+        AS PERMISSIVE
+        FOR SELECT
+        TO authenticated
+        USING (is_admin());
 
 CREATE TABLE "public"."projects" (
 	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
