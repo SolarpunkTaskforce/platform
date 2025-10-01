@@ -45,13 +45,22 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         Settings
       </Link>
       {isAdmin && (
-        <Link
-          href="/admin/registrations"
-          className="px-4 py-2 hover:bg-white/10"
-          onClick={onNavigate}
-        >
-          Project Registrations
-        </Link>
+        <>
+          <Link
+            href="/admin/projects"
+            className="px-4 py-2 hover:bg-white/10"
+            onClick={onNavigate}
+          >
+            Pending Projects
+          </Link>
+          <Link
+            href="/admin/registrations"
+            className="px-4 py-2 hover:bg-white/10"
+            onClick={onNavigate}
+          >
+            Project Registrations
+          </Link>
+        </>
       )}
       {isSuper && (
         <Link
