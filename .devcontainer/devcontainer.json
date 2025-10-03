@@ -1,16 +1,25 @@
 {
   "name": "Solarpunk Taskforce Dev",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "containerEnv": {
     "PNPM_ALLOW_SCRIPTS": "supabase"
   },
-  "postCreateCommand": "pnpm install && pnpm exec supabase login --token $SUPABASE_ACCESS_TOKEN && mkdir -p src/lib && pnpm exec supabase gen types typescript --project-ref $SUPABASE_PROJECT_REF > src/lib/database.types.ts",
+  "updateContentCommand": "set -e; npm i -g pnpm && pnpm --version && pnpm install",
+  "postCreateCommand": "set -e; npm i -g supabase vercel; supabase --version; mkdir -p src/lib; if [ -n \"$SUPABASE_ACCESS_TOKEN\" ]; then supabase login --token \"$SUPABASE_ACCESS_TOKEN\" || true; fi; if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase gen types typescript --project-ref \"$SUPABASE_PROJECT_REF\" > src/lib/database.types.ts || true; fi",
+  "postStartCommand": "if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase link --project-ref \"$SUPABASE_PROJECT_REF\" >/dev/null 2>&1 || true; fi",
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-vscode.vscode-typescript-next",
-        "bradlc.vscode-tailwindcss"
+        "bradlc.vscode-tailwindcss",
+        "github.vscode-github-actions"
       ]
     }
-  }
+  },
+  "remoteUser": "node",
+  "forwardPorts": [3000, 54321, 54322, 54323, 54324],
+  "portsAttributes": { "3000": { "label": "Next.js" } }
 }
