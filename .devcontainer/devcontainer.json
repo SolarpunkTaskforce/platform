@@ -2,13 +2,17 @@
   "name": "Solarpunk Taskforce Dev",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "os-provided",
+      "installLFS": true
+    }
   },
   "containerEnv": {
     "PNPM_ALLOW_SCRIPTS": "supabase"
   },
   "updateContentCommand": "set -e; npm i -g pnpm && pnpm --version && pnpm install",
-  "postCreateCommand": "set -e; npm i -g supabase vercel; supabase --version; mkdir -p src/lib; if [ -n \"$SUPABASE_ACCESS_TOKEN\" ]; then supabase login --token \"$SUPABASE_ACCESS_TOKEN\" || true; fi; if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase gen types typescript --project-ref \"$SUPABASE_PROJECT_REF\" > src/lib/database.types.ts || true; fi",
+  "postCreateCommand": "set -e; npm i -g supabase vercel; supabase --version; git lfs install --system || true; mkdir -p src/lib; if [ -n \"$SUPABASE_ACCESS_TOKEN\" ]; then supabase login --token \"$SUPABASE_ACCESS_TOKEN\" || true; else echo 'WARN: SUPABASE_ACCESS_TOKEN not set'; fi; if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase gen types typescript --project-ref \"$SUPABASE_PROJECT_REF\" > src/lib/database.types.ts || echo 'WARN: types gen failed'; else echo 'WARN: SUPABASE_PROJECT_REF not set'; fi",
   "postStartCommand": "if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase link --project-ref \"$SUPABASE_PROJECT_REF\" >/dev/null 2>&1 || true; fi",
   "customizations": {
     "vscode": {
