@@ -11,9 +11,12 @@
   "containerEnv": {
     "PNPM_ALLOW_SCRIPTS": "supabase"
   },
-  "updateContentCommand": "set -e; npm i -g pnpm && pnpm --version && pnpm install",
-  "postCreateCommand": "set -e; npm i -g supabase vercel; supabase --version; git lfs install --system || true; mkdir -p src/lib; if [ -n \"$SUPABASE_ACCESS_TOKEN\" ]; then supabase login --token \"$SUPABASE_ACCESS_TOKEN\" || true; else echo 'WARN: SUPABASE_ACCESS_TOKEN not set'; fi; if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase gen types typescript --project-ref \"$SUPABASE_PROJECT_REF\" > src/lib/database.types.ts || echo 'WARN: types gen failed'; else echo 'WARN: SUPABASE_PROJECT_REF not set'; fi",
-  "postStartCommand": "if [ -n \"$SUPABASE_PROJECT_REF\" ]; then supabase link --project-ref \"$SUPABASE_PROJECT_REF\" >/dev/null 2>&1 || true; fi",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/node/.supabase/bin:/home/node/.local/bin"
+  },
+  "updateContentCommand": "set -e; corepack enable || true; corepack prepare pnpm@10.0.0 --activate || true; pnpm --version; pnpm install",
+  "postCreateCommand": "set -e; mkdir -p /home/node/.supabase/bin; curl -fsSL https://raw.githubusercontent.com/supabase/cli/main/install.sh | sh -s -- -b /home/node/.supabase/bin; supabase --version; git lfs install --system || true; pnpm sb:sync || true; nohup pnpm dev >/tmp/next.log 2>&1 &",
+  "postStartCommand": "bash -lc 'pgrep -f \"next dev\" >/dev/null || nohup pnpm dev >/tmp/next.log 2>&1 &'",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -25,5 +28,7 @@
   },
   "remoteUser": "node",
   "forwardPorts": [3000, 54321, 54322, 54323, 54324],
-  "portsAttributes": { "3000": { "label": "Next.js" } }
+  "portsAttributes": {
+    "3000": { "label": "Next.js", "onAutoForward": "openBrowser" }
+  }
 }

@@ -4,11 +4,20 @@
   "private": true,
   "packageManager": "pnpm@10.0.0",
   "scripts": {
+    "postinstall": "pnpm sb:sync",
+    "predev": "pnpm sb:sync",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:sync": "scripts/db-sync.sh"
+    "db:sync": "scripts/db-sync.sh",
+    "sb:version": "supabase --version",
+    "sb:login": "supabase login --token $SUPABASE_ACCESS_TOKEN",
+    "sb:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
+    "sb:types": "supabase gen types typescript --project-ref $SUPABASE_PROJECT_REF > src/lib/database.types.ts",
+    "sb:diff": "supabase db remote changes",
+    "sb:commit": "supabase db remote commit --dry-run",
+    "sb:sync": "bash scripts/sb-sync.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
