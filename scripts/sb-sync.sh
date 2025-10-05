@@ -8,16 +8,20 @@ if [ ! -d node_modules ]; then
   pnpm install
 fi
 
-# Supabase CLI via pnpm
-if ! pnpm exec supabase --version >/dev/null 2>&1; then
-  echo "ERROR: Supabase CLI missing (devDependency 'supabase')."
+# Prefer the CLI from devDependencies; fall back to PATH
+if pnpm exec supabase --version >/dev/null 2>&1; then
+  SB="pnpm exec supabase"
+elif command -v supabase >/dev/null 2>&1; then
+  SB="supabase"
+else
+  echo "ERROR: Supabase CLI not found (neither pnpm devDependency nor PATH)."
   exit 1
 fi
 
 # Login if token exists
 if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   echo "==> supabase login"
-  pnpm exec supabase login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
+  $SB login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_ACCESS_TOKEN not set"
 fi
@@ -25,21 +29,18 @@ fi
 # Link if project ref exists
 if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
   echo "==> supabase link ($SUPABASE_PROJECT_REF)"
-  pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
+  $SB link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_PROJECT_REF not set"
 fi
 
-# Types
+# Types (use --linked, not --project-ref)
 mkdir -p src/lib
-if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
-  echo "==> generating types"
-  pnpm exec supabase gen types typescript --project-ref "$SUPABASE_PROJECT_REF" > src/lib/database.types.ts
-  echo "==> types updated"
-fi
+echo "==> generating types (--linked)"
+$SB gen types typescript --linked > src/lib/database.types.ts
 
 # Schema diff (non-fatal)
 echo "==> remote diff"
-pnpm exec supabase db remote changes || true
+$SB db remote changes || true
 
 echo "==> sb-sync done"
