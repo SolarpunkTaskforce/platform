@@ -4,8 +4,8 @@
   "private": true,
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "postinstall": "bash -lc '[ -n \"$CI\" ] || [ -n \"$VERCEL\" ] || pnpm -s sb:sync'",
-    "predev": "pnpm -s sb:sync",
+    "postinstall": "bash -lc 'if [ -n \"$SUPABASE_ACCESS_TOKEN$SUPABASE_PROJECT_REF\" ] || [ -f supabase/config.toml ]; then echo \"postinstall: running sb:sync\"; pnpm -s sb:sync || true; else echo \"postinstall: skipping sb:sync (no Supabase secrets/link)\"; fi'",
+    "predev": "pnpm -s sb:sync || true",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

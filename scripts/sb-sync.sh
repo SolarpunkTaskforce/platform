@@ -2,52 +2,58 @@
 set -euo pipefail
 echo "==> sb-sync start"
 
-# Skip entirely on CI/Vercel
-if [ -n "${CI:-}" ] || [ -n "${VERCEL:-}" ]; then
-  echo "→ CI detected; skipping sb-sync."
+# Ensure deps installed once
+if [ ! -d node_modules ]; then
+  echo "==> installing deps"
+  pnpm install --no-frozen-lockfile
+fi
+
+# Supabase CLI via devDependency (pnpm exec)
+if ! pnpm exec supabase --version >/dev/null 2>&1; then
+  echo "WARN: Supabase CLI devDependency not available; skipping sync."
   exit 0
 fi
 
-# Ensure deps
-if [ ! -d node_modules ]; then
-  echo "==> installing deps"
-  pnpm install
-fi
-
-# Prefer global supabase if present, else use pnpm exec
-if command -v supabase >/dev/null 2>&1; then
-  SB="supabase"
-else
-  SB="pnpm exec supabase"
-fi
-
-# Login if token exists
+# Login if token exists (non-fatal)
 if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   echo "==> supabase login"
-  $SB login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
+  pnpm exec supabase login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_ACCESS_TOKEN not set"
 fi
 
-# Link if project ref exists
-if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
-  echo "==> supabase link (${SUPABASE_PROJECT_REF})"
-  $SB link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
-else
-  echo "WARN: SUPABASE_PROJECT_REF not set"
+# Discover/link project ref if possible
+PROJECT_REF="${SUPABASE_PROJECT_REF:-}"
+if [ -z "$PROJECT_REF" ] && [ -f supabase/config.toml ]; then
+  PROJECT_REF="$(sed -nE 's/^project_ref\\s*=\\s*\"([^\"]+)\".*/\\1/p' supabase/config.toml | head -n1 || true)"
 fi
 
-# Types (from linked project)
-mkdir -p src/lib
-echo "==> generating types (--linked)"
-$SB gen types typescript --linked > src/lib/database.types.ts
+if [ -n "${PROJECT_REF:-}" ]; then
+  echo "==> supabase link ($PROJECT_REF)"
+  pnpm exec supabase link --project-ref "$PROJECT_REF" >/dev/null 2>&1 || true
+else
+  echo "WARN: No project ref available (no SUPABASE_PROJECT_REF and no config.toml)"
+fi
 
-# Remote diff (skip if no Docker daemon)
+# Types only when linked/known
+mkdir -p src/lib
+if [ -n "${PROJECT_REF:-}" ] || [ -f supabase/config.toml ]; then
+  echo "==> generating types (--linked)"
+  if ! pnpm exec supabase gen types typescript --linked > src/lib/database.types.ts 2>/dev/null; then
+    echo "WARN: typegen failed (likely not linked). Skipping."
+  else
+    echo "==> types updated"
+  fi
+else
+  echo "→ Skipping typegen (no link info)"
+fi
+
+# Remote diff (skip if no Docker)
 echo "==> remote diff"
 if [ -S /var/run/docker.sock ]; then
-  $SB db diff --use-migra --linked || true
+  pnpm exec supabase db diff --use-migra --linked || true
 else
-  echo "→ Skipping diff (no Docker daemon in this environment)."
+  echo "→ Skipping diff (no Docker daemon)."
 fi
 
 echo "==> sb-sync done"
