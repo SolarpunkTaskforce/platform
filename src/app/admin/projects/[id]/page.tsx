@@ -1,7 +1,95 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getServerSupabase } from "@/lib/supabaseServer";
+
+import { ProjectApprovalActions } from "@/components/admin/ProjectApprovalActions";
 import Map from "@/components/Map";
+import type { Database } from "@/lib/database.types";
+import { getServerSupabase } from "@/lib/supabaseServer";
+
+type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ProjectLinksRow = Database["public"]["Tables"]["project_links"]["Row"];
+type ProjectMediaRow = Database["public"]["Tables"]["project_media"]["Row"];
+type ProjectPartnersRow = Database["public"]["Tables"]["project_partners"]["Row"];
+type ProjectSdgsRow = Database["public"]["Tables"]["project_sdgs"]["Row"];
+type ProjectIfrcRow = Database["public"]["Tables"]["project_ifrc_challenges"]["Row"];
+type OrganisationRow = Database["public"]["Tables"]["organisations"]["Row"];
+type SdgRow = Database["public"]["Tables"]["sdgs"]["Row"];
+type IfrcChallengeRow = Database["public"]["Tables"]["ifrc_challenges"]["Row"];
+
+type ProjectDetail = ProjectRow & {
+  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name" | "role"> | null;
+  project_links: (Pick<ProjectLinksRow, "id" | "label" | "url"> & {
+    created_at?: string | null;
+  })[];
+  project_media: (Pick<ProjectMediaRow, "id" | "path" | "caption" | "mime_type"> & {
+    created_at?: string | null;
+  })[];
+  project_partners: (Pick<ProjectPartnersRow, "organisation_id"> & {
+    organisation: Pick<OrganisationRow, "id" | "name"> | null;
+  })[];
+  project_sdgs: (Pick<ProjectSdgsRow, "sdg_id"> & {
+    sdg: Pick<SdgRow, "id" | "name"> | null;
+  })[];
+  project_ifrc_challenges: (Pick<ProjectIfrcRow, "challenge_id"> & {
+    challenge: Pick<IfrcChallengeRow, "id" | "name" | "code"> | null;
+  })[];
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(value));
+  } catch (error) {
+    console.error("date-format", error);
+    return value;
+  }
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "—";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch (error) {
+    console.error("datetime-format", error);
+    return value;
+  }
+}
+
+function formatCurrency(amount: number | null, currency: string | null) {
+  if (typeof amount !== "number") return null;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency ?? "USD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch (error) {
+    console.error("currency-format", error);
+    return currency ? `${currency} ${amount}` : `${amount}`;
+  }
+}
+
+function parseJsonLinks(value: ProjectRow["links"]) {
+  if (!value) return [] as { label?: string | null; url?: string | null }[];
+  if (Array.isArray(value)) {
+    return value as { label?: string | null; url?: string | null }[];
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.values(value) as { label?: string | null; url?: string | null }[];
+  }
+  return [];
+}
 
 export default async function AdminProjectDetail({
   params,
@@ -11,114 +99,278 @@ export default async function AdminProjectDetail({
   const supabase = await getServerSupabase();
   const { id } = await params;
   const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (!isAdmin) return new Response(null, { status: 404 }) as never;
 
-  const { data: project, error } = await supabase
+  if (!isAdmin) {
+    notFound();
+  }
+
+  const { data, error } = await supabase
     .from("projects")
     .select(
+      `*,
+       project_links:project_links(id,label,url,created_at),
+       project_media:project_media(id,path,caption,mime_type,created_at),
+       project_partners:project_partners(organisation_id,organisation:organisations(id,name)),
+       project_sdgs:project_sdgs(sdg_id,sdg:sdgs(id,name)),
+       project_ifrc_challenges:project_ifrc_challenges(challenge_id,challenge:ifrc_challenges(id,name,code)),
+       created_by_profile:profiles(full_name,organisation_name,role)
       `
-    id,name,description,lat,lng,status,created_at,
-    lead_org_id,
-    start_date,end_date,thematic_area,donations_received,amount_needed,currency,
-    approved_at,approved_by,rejected_at,rejected_by,rejection_reason
-  `
     )
     .eq("id", id)
     .single();
 
-  if (error) throw error;
-  if (!project) return notFound();
+  if (error) {
+    throw error;
+  }
 
-  const metadata: { label: string; value: string | null }[] = [
-    { label: "Status", value: project.status },
-    { label: "Created", value: new Date(project.created_at).toLocaleString() },
-    { label: "Lead Org", value: project.lead_org_id },
-    {
-      label: "Timeline",
-      value:
-        project.start_date || project.end_date
-          ? [project.start_date, project.end_date].filter(Boolean).join(" → ")
-          : null,
-    },
-    { label: "Thematic Area", value: project.thematic_area },
-    {
-      label: "Funding",
-      value:
-        project.amount_needed || project.donations_received
-          ? `${project.currency ?? ""} ${project.donations_received ?? 0} raised / ${project.amount_needed ?? "?"}`
-          : null,
-    },
-    { label: "Approved By", value: project.approved_by },
-    {
-      label: "Approved At",
-      value: project.approved_at ? new Date(project.approved_at).toLocaleString() : null,
-    },
-    { label: "Rejected By", value: project.rejected_by },
-    {
-      label: "Rejected At",
-      value: project.rejected_at ? new Date(project.rejected_at).toLocaleString() : null,
-    },
-    { label: "Rejection Reason", value: project.rejection_reason },
-  ];
+  if (!data) {
+    notFound();
+  }
 
+  const project = {
+    ...data,
+    project_links: data.project_links ?? [],
+    project_media: data.project_media ?? [],
+    project_partners: data.project_partners ?? [],
+    project_sdgs: data.project_sdgs ?? [],
+    project_ifrc_challenges: data.project_ifrc_challenges ?? [],
+  } as ProjectDetail;
+  const jsonLinks = parseJsonLinks(project.links);
   const hasLocation = typeof project.lat === "number" && typeof project.lng === "number";
+
+  const fundingParts = [
+    formatCurrency(project.donations_received, project.currency)
+      ? `Raised ${formatCurrency(project.donations_received, project.currency)}`
+      : null,
+    formatCurrency(project.amount_needed, project.currency)
+      ? `Needed ${formatCurrency(project.amount_needed, project.currency)}`
+      : null,
+  ].filter(Boolean);
+
+  const createdBy = project.created_by_profile?.full_name
+    ?? project.created_by_profile?.organisation_name
+    ?? project.created_by
+    ?? "Unknown";
 
   return (
     <main className="space-y-6 p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{project.name}</h1>
-          <p className="text-sm text-gray-600">Project ID: {project.id}</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-semibold text-slate-900">{project.name}</h1>
+          <p className="text-sm text-slate-500">
+            Created {formatDateTime(project.created_at)} by {createdBy}
+          </p>
+          <p className="text-xs text-slate-500">
+            Project ID: {project.id}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <form action={`/api/admin/projects/${project.id}/approve`} method="post">
-            <button className="rounded border px-4 py-2 hover:bg-gray-50">Approve</button>
-          </form>
-          <form
-            action={`/api/admin/projects/${project.id}/reject`}
-            method="post"
-            className="flex gap-2"
-          >
-            <input
-              name="reason"
-              placeholder="Reason"
-              className="rounded border px-3 py-2"
-              required
-            />
-            <button className="rounded border px-4 py-2 hover:bg-gray-50">Reject</button>
-          </form>
-          <Link
-            href="/admin/projects"
-            className="rounded border px-4 py-2 hover:bg-gray-50"
-          >
-            Back to list
-          </Link>
-        </div>
+        <ProjectApprovalActions projectId={project.id} projectName={project.name} layout="inline" />
       </div>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-medium">Metadata</h2>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          {metadata
-            .filter(item => item.value)
-            .map(item => (
-              <div key={item.label}>
-                <dt className="text-xs uppercase tracking-wide text-gray-500">
-                  {item.label}
-                </dt>
-                <dd className="text-sm text-gray-900">{item.value}</dd>
-              </div>
-            ))}
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Overview</h2>
+        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Status
+            </dt>
+            <dd className="text-sm text-slate-900">{project.status}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Lifecycle status
+            </dt>
+            <dd className="text-sm text-slate-900">{project.lifecycle_status ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Review status
+            </dt>
+            <dd className="text-sm text-slate-900">{project.review_status ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Location
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {[project.place_name, project.region, project.country]
+                .filter(Boolean)
+                .join(", ") || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Timeline
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {[formatDate(project.start_date), formatDate(project.end_date)]
+                .filter(value => value !== "—")
+                .join(" → ") || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Funding
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {fundingParts.length ? fundingParts.join(" · ") : "—"}
+            </dd>
+          </div>
         </dl>
       </section>
 
-      {hasLocation && (
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Description</h2>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
+          {project.description || "No description provided."}
+        </p>
+      </section>
+
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Links</h2>
+        <div className="space-y-2 text-sm">
+          {project.project_links.length === 0 && jsonLinks.length === 0 ? (
+            <p className="text-slate-500">No links submitted.</p>
+          ) : (
+            <ul className="space-y-2">
+              {project.project_links.map(link => (
+                <li key={link.id}>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emerald-600 hover:underline"
+                  >
+                    {link.label || link.url}
+                  </a>
+                </li>
+              ))}
+              {jsonLinks.map((link, index) => (
+                <li key={`json-${index}`}>
+                  {link?.url ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-600 hover:underline"
+                    >
+                      {link.label || link.url}
+                    </a>
+                  ) : (
+                    <span className="text-slate-500">{link.label}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Partners</h2>
+        {project.project_partners.length === 0 && !project.partner_org_ids?.length ? (
+          <p className="text-sm text-slate-500">No partner organisations listed.</p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {project.project_partners.map(partner => (
+              <li key={partner.organisation_id}>
+                {partner.organisation?.name ?? partner.organisation_id}
+              </li>
+            ))}
+            {project.partner_org_ids?.map(id => (
+              <li key={`fallback-${id}`}>{id}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Sustainable Development Goals</h2>
+        {project.project_sdgs.length === 0 && !project.sdgs?.length ? (
+          <p className="text-sm text-slate-500">No SDGs specified.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 text-sm">
+            {project.project_sdgs.map(item => (
+              <span
+                key={item.sdg_id}
+                className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
+              >
+                {item.sdg?.name ?? `SDG ${item.sdg_id}`}
+              </span>
+            ))}
+            {project.sdgs?.map(code => (
+              <span
+                key={`sdg-${code}`}
+                className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
+              >
+                {code}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">IFRC Global Challenges</h2>
+        {project.project_ifrc_challenges.length === 0 && !project.ifrc_global_challenges?.length ? (
+          <p className="text-sm text-slate-500">No IFRC challenges specified.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 text-sm">
+            {project.project_ifrc_challenges.map(item => (
+              <span
+                key={item.challenge_id}
+                className="rounded-full bg-amber-50 px-3 py-1 text-amber-700"
+              >
+                {item.challenge?.name ?? item.challenge?.code ?? `Challenge ${item.challenge_id}`}
+              </span>
+            ))}
+            {project.ifrc_global_challenges?.map(code => (
+              <span
+                key={`ifrc-${code}`}
+                className="rounded-full bg-amber-50 px-3 py-1 text-amber-700"
+              >
+                {code}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border p-4">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Media</h2>
+        {project.project_media.length === 0 ? (
+          <p className="text-sm text-slate-500">No media uploaded.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {project.project_media.map(item => (
+              <li key={item.id} className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-medium text-slate-900">{item.caption || item.path}</div>
+                  <div className="text-xs text-slate-500">
+                    {item.mime_type || "Unknown type"} · {formatDateTime(item.created_at)}
+                  </div>
+                </div>
+                <Link
+                  href={item.path}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-medium text-emerald-600 hover:underline"
+                >
+                  View
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {hasLocation ? (
         <section className="rounded-xl border p-4">
-          <h2 className="mb-3 text-lg font-medium">Location</h2>
-          <p className="mb-3 text-sm text-gray-600">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Location</h2>
+          <p className="mb-3 text-sm text-slate-500">
             Coordinates: {project.lat?.toFixed(4)}, {project.lng?.toFixed(4)}
           </p>
-          <div className="h-64 overflow-hidden rounded-lg">
+          <div className="h-64 overflow-hidden rounded-lg border">
             <Map
               markers={[
                 {
@@ -131,14 +383,13 @@ export default async function AdminProjectDetail({
             />
           </div>
         </section>
-      )}
+      ) : null}
 
-      <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-medium">Description</h2>
-        <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800">
-          {project.description || "No description provided."}
-        </p>
-      </section>
+      <div>
+        <Link href="/admin/projects" className="text-sm font-medium text-emerald-600 hover:underline">
+          ← Back to approvals
+        </Link>
+      </div>
     </main>
   );
 }
