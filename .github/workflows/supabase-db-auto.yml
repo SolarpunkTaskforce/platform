@@ -1,8 +1,16 @@
 name: supabase-db-auto
+
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
+    paths:
+      - "supabase/**"
+      - "src/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/supabase-db-auto.yml"
 
 permissions:
   contents: write
@@ -13,7 +21,9 @@ env:
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
 jobs:
-  auto_sync:
+  # ------------------ Types on push (no DB writes) ------------------
+  types_only:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +35,37 @@ jobs:
             exit 0
           fi
 
-      - uses: pnpm/action-setup@v4
+      - name: Supabase CLI (npx) – version
+        run: npx supabase@latest --version
+
+      - name: Login to Supabase
+        run: npx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
+
+      - name: Generate TypeScript types (DB URL)
+        run: |
+          set -euo pipefail
+          mkdir -p src/lib
+          npx supabase@latest gen types typescript \
+            --db-url "${SUPABASE_DB_URL}" \
+            -s public -s auth -s storage > src/lib/database.types.ts
+          head -n 3 src/lib/database.types.ts || true
+
+      - name: Commit & push types (if changed)
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/lib/database.types.ts
+          git diff --cached --quiet && { echo "No type changes"; exit 0; }
+          git commit -m "chore(types): regenerate DB types [skip ci]"
+          git push origin main
+
+  # ------------------ Full DB ops (manual only) ------------------
+  db_ops:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Validate secrets
         run: |
@@ -33,16 +73,17 @@ jobs:
           test -n "${SUPABASE_DB_URL}" || { echo "ERR: SUPABASE_DB_URL missing"; exit 1; }
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "ERR: SUPABASE_ACCESS_TOKEN missing"; exit 1; }
 
-      - name: Supabase CLI warmup
+      - name: Supabase CLI (npx) – version
         run: npx supabase@latest --version
 
-      - name: Supabase CLI login
+      - name: Login to Supabase
         run: npx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
 
-      - name: Create migration diff (no Docker)
+      - name: Create migration diff (no Docker required)
         run: |
           set -euo pipefail
           STAMP="$(date -u +%Y%m%d%H%M%S)"
+          mkdir -p supabase/migrations
           npx supabase@latest db diff \
             --db-url "${SUPABASE_DB_URL}" \
             --schema public \
@@ -52,16 +93,15 @@ jobs:
       - name: Apply migrations (db push)
         run: npx supabase@latest db push --db-url "${SUPABASE_DB_URL}" --yes --include-all
 
-      - name: Regenerate TypeScript DB types (via DB URL)
+      - name: Regenerate TypeScript types
         run: |
           set -euo pipefail
           mkdir -p src/lib
           npx supabase@latest gen types typescript \
             --db-url "${SUPABASE_DB_URL}" \
             -s public -s auth -s storage > src/lib/database.types.ts
-          head -n 3 src/lib/database.types.ts || true
 
-      - name: Commit and push changes to main
+      - name: Commit & push migrations/types (if changed)
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
