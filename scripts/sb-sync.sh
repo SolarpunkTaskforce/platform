@@ -8,39 +8,40 @@ if [ ! -d node_modules ]; then
   pnpm install
 fi
 
-# Prefer the CLI from devDependencies; fall back to PATH
-if pnpm exec supabase --version >/dev/null 2>&1; then
-  SB="pnpm exec supabase"
-elif command -v supabase >/dev/null 2>&1; then
-  SB="supabase"
-else
-  echo "ERROR: Supabase CLI not found (neither pnpm devDependency nor PATH)."
+# Supabase CLI via pnpm
+if ! pnpm exec supabase --version >/dev/null 2>&1; then
+  echo "ERROR: Supabase CLI missing (devDependency 'supabase')."
   exit 1
 fi
 
 # Login if token exists
 if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   echo "==> supabase login"
-  $SB login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
+  pnpm exec supabase login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_ACCESS_TOKEN not set"
 fi
 
 # Link if project ref exists
 if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
-  echo "==> supabase link ($SUPABASE_PROJECT_REF)"
-  $SB link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
+  echo "==> supabase link (${SUPABASE_PROJECT_REF})"
+  pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_PROJECT_REF not set"
 fi
 
-# Types (use --linked, not --project-ref)
+# Types
 mkdir -p src/lib
 echo "==> generating types (--linked)"
-$SB gen types typescript --linked > src/lib/database.types.ts
+pnpm exec supabase gen types typescript --linked > src/lib/database.types.ts
+echo "==> types updated"
 
-# Schema diff (non-fatal)
+# in scripts/sb-sync.sh, replace the "remote diff" section with:
 echo "==> remote diff"
-$SB db remote changes || true
+if [ -S /var/run/docker.sock ]; then
+  pnpm exec supabase db diff --use-migra --linked || true
+else
+  echo "→ Skipping diff (no Docker daemon in Codespaces)."
+fi
 
 echo "==> sb-sync done"
