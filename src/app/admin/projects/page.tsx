@@ -19,6 +19,10 @@ type ProjectListItem = Pick<
   created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null;
 };
 
+type RawProjectListItem = Omit<ProjectListItem, "created_by_profile"> & {
+  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name">[] | null;
+};
+
 function formatDate(value: string | null) {
   if (!value) return "—";
   try {
@@ -85,7 +89,12 @@ export default async function AdminProjectsPage() {
     throw error;
   }
 
-  const projects: ProjectListItem[] = data ?? [];
+  const projects: ProjectListItem[] = (data as RawProjectListItem[] | null)?.map(
+    project => ({
+      ...project,
+      created_by_profile: project.created_by_profile?.[0] ?? null,
+    })
+  ) ?? [];
 
   return (
     <main className="space-y-6 p-6">

@@ -36,6 +36,13 @@ type ProjectDetail = ProjectRow & {
   })[];
 };
 
+type RawProjectDetail = Omit<ProjectDetail, "created_by_profile"> & {
+  created_by_profile: Pick<
+    ProfileRow,
+    "full_name" | "organisation_name" | "role"
+  >[] | null;
+};
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   try {
@@ -127,14 +134,17 @@ export default async function AdminProjectDetail({
     notFound();
   }
 
-  const project = {
-    ...data,
-    project_links: data.project_links ?? [],
-    project_media: data.project_media ?? [],
-    project_partners: data.project_partners ?? [],
-    project_sdgs: data.project_sdgs ?? [],
-    project_ifrc_challenges: data.project_ifrc_challenges ?? [],
-  } as ProjectDetail;
+  const rawProject = data as RawProjectDetail;
+
+  const project: ProjectDetail = {
+    ...rawProject,
+    created_by_profile: rawProject.created_by_profile?.[0] ?? null,
+    project_links: rawProject.project_links ?? [],
+    project_media: rawProject.project_media ?? [],
+    project_partners: rawProject.project_partners ?? [],
+    project_sdgs: rawProject.project_sdgs ?? [],
+    project_ifrc_challenges: rawProject.project_ifrc_challenges ?? [],
+  };
   const jsonLinks = parseJsonLinks(project.links);
   const hasLocation = typeof project.lat === "number" && typeof project.lng === "number";
 
