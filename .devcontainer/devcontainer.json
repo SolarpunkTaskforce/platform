@@ -15,7 +15,7 @@
     "PATH": "${containerEnv:PATH}:/home/node/.supabase/bin:/home/node/.local/bin"
   },
   "updateContentCommand": "set -e; corepack enable || true; corepack prepare pnpm@10.0.0 --activate || true; pnpm --version; pnpm install",
-  "postCreateCommand": "set -e; mkdir -p /home/node/.supabase/bin; URL=\"$(curl -sH \"Authorization: Bearer ${GITHUB_TOKEN:-}\" https://api.github.com/repos/supabase/cli/releases/latest | grep -Eo '\"browser_download_url\":\\s*\"[^\\\"]+linux_amd64\\.tar\\.gz\"' | cut -d '\"' -f4 | head -n1)\"; if [ -z \"$URL\" ]; then URL=\"https://github.com/supabase/cli/releases/download/v2.48.3/supabase_2.48.3_linux_amd64.tar.gz\"; fi; curl -L \"$URL\" -o /tmp/supabase.tgz && tar -xzf /tmp/supabase.tgz -C /tmp && install -m 0755 /tmp/supabase /home/node/.supabase/bin/supabase || true; supabase --version || true; git lfs install --system || true; pnpm sb:sync || true",
+  "postCreateCommand": "set -e; mkdir -p /home/node/.supabase/bin; ( curl -fsSL https://raw.githubusercontent.com/supabase/cli/main/install.sh | sh -s -- -b /home/node/.supabase/bin && supabase --version ) || echo 'WARN: Supabase CLI install skipped'; git lfs install --system || true; if [ -n \"$SUPABASE_ACCESS_TOKEN\" ] && { [ -n \"$SUPABASE_PROJECT_REF\" ] || [ -n \"$SUPABASE_DB_URL\" ]; }; then pnpm -s sb:sync || true; else echo 'INFO: skipping sb:sync (missing Supabase secrets)'; fi",
   "postStartCommand": "bash -lc 'pgrep -f \"next dev\" >/dev/null || nohup pnpm dev >/tmp/next.log 2>&1 &'",
   "customizations": {
     "vscode": {

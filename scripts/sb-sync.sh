@@ -2,58 +2,56 @@
 set -euo pipefail
 echo "==> sb-sync start"
 
-# Ensure deps installed once
+# 0) Ensure deps installed
 if [ ! -d node_modules ]; then
   echo "==> installing deps"
   pnpm install --no-frozen-lockfile
 fi
 
-# Supabase CLI via devDependency (pnpm exec)
-if ! pnpm exec supabase --version >/dev/null 2>&1; then
-  echo "WARN: Supabase CLI devDependency not available; skipping sync."
+# 1) Fast exit when no Supabase creds (prevents CI/Codex hangs)
+if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || { [ -z "${SUPABASE_PROJECT_REF:-}" ] && [ -z "${SUPABASE_DB_URL:-}" ]; }; then
+  echo "INFO: No Supabase credentials (SUPABASE_ACCESS_TOKEN + PROJECT_REF/DB_URL). Skipping sb-sync."
   exit 0
 fi
 
-# Login if token exists (non-fatal)
-if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-  echo "==> supabase login"
-  pnpm exec supabase login --token "$SUPABASE_ACCESS_TOKEN" >/dev/null 2>&1 || true
-else
-  echo "WARN: SUPABASE_ACCESS_TOKEN not set"
+# 2) Ensure CLI is available; otherwise skip gracefully
+if ! command -v supabase >/dev/null 2>&1 && ! pnpm exec supabase --version >/dev/null 2>&1; then
+  echo "WARN: Supabase CLI not found on PATH and not in node_modules. Skipping sb-sync."
+  exit 0
+fi
+SUPA="pnpm exec supabase"
+$SUPA --version >/dev/null 2>&1 || SUPA="supabase"
+
+# 3) Non-interactive auth + optional link
+echo "==> supabase login"
+$SUPA login --token "${SUPABASE_ACCESS_TOKEN}" >/dev/null 2>&1 || true
+
+if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
+  echo "==> supabase link (${SUPABASE_PROJECT_REF})"
+  $SUPA link --project-ref "${SUPABASE_PROJECT_REF}" >/dev/null 2>&1 || true
 fi
 
-# Discover/link project ref if possible
-PROJECT_REF="${SUPABASE_PROJECT_REF:-}"
-if [ -z "$PROJECT_REF" ] && [ -f supabase/config.toml ]; then
-  PROJECT_REF="$(sed -nE 's/^project_ref\\s*=\\s*\"([^\"]+)\".*/\\1/p' supabase/config.toml | head -n1 || true)"
-fi
-
-if [ -n "${PROJECT_REF:-}" ]; then
-  echo "==> supabase link ($PROJECT_REF)"
-  pnpm exec supabase link --project-ref "$PROJECT_REF" >/dev/null 2>&1 || true
-else
-  echo "WARN: No project ref available (no SUPABASE_PROJECT_REF and no config.toml)"
-fi
-
-# Types only when linked/known
+# 4) Type generation (prefer DB URL; fallback to linked)
+echo "==> generating types"
 mkdir -p src/lib
-if [ -n "${PROJECT_REF:-}" ] || [ -f supabase/config.toml ]; then
-  echo "==> generating types (--linked)"
-  if ! pnpm exec supabase gen types typescript --linked > src/lib/database.types.ts 2>/dev/null; then
-    echo "WARN: typegen failed (likely not linked). Skipping."
-  else
-    echo "==> types updated"
-  fi
+if [ -n "${SUPABASE_DB_URL:-}" ]; then
+  $SUPA gen types typescript --db-url "${SUPABASE_DB_URL}" > src/lib/database.types.ts
 else
-  echo "→ Skipping typegen (no link info)"
+  $SUPA gen types typescript --linked > src/lib/database.types.ts
 fi
+echo "==> types updated"
 
-# Remote diff (skip if no Docker)
+# 5) Optional schema diff (avoid Docker requirement; use DB URL if present)
 echo "==> remote diff"
-if [ -S /var/run/docker.sock ]; then
-  pnpm exec supabase db diff --use-migra --linked || true
+if [ -n "${SUPABASE_DB_URL:-}" ]; then
+  # Create a throwaway diff file just to surface drift in logs
+  TMP_DIFF="$(mktemp)"
+  $SUPA db diff --db-url "${SUPABASE_DB_URL}" --schema public --use-pg-schema -f "${TMP_DIFF}" || true
+  rm -f "${TMP_DIFF}"
+elif [ -S /var/run/docker.sock ]; then
+  $SUPA db diff --use-migra --linked || true
 else
-  echo "→ Skipping diff (no Docker daemon)."
+  echo "→ Skipping diff (no DB_URL and no Docker daemon)."
 fi
 
 echo "==> sb-sync done"
