@@ -11,12 +11,12 @@
     "start": "next start",
     "lint": "next lint",
     "db:sync": "scripts/db-sync.sh",
-    "sb:version": "supabase --version",
-    "sb:login": "supabase login --token $SUPABASE_ACCESS_TOKEN",
-    "sb:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
-    "sb:types": "supabase gen types typescript --project-ref $SUPABASE_PROJECT_REF > src/lib/database.types.ts",
-    "sb:diff": "supabase db remote changes",
-    "sb:commit": "supabase db remote commit --dry-run",
+    "sb:version": "pnpm exec supabase --version",
+    "sb:login": "pnpm exec supabase login --token $SUPABASE_ACCESS_TOKEN",
+    "sb:link": "pnpm exec supabase link --project-ref $SUPABASE_PROJECT_REF",
+    "sb:types": "pnpm exec supabase gen types typescript --linked > src/lib/database.types.ts",
+    "sb:diff": "pnpm exec supabase db diff --use-migra --linked || true",
+    "sb:commit": "pnpm exec supabase db remote commit --dry-run || true",
     "sb:sync": "bash scripts/sb-sync.sh"
   },
   "dependencies": {
@@ -48,8 +48,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.7",
-    "supabase": "^2.39.2",
+    "supabase": "^2.48.3",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["supabase"]
   }
 }
