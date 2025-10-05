@@ -2,6 +2,12 @@
 set -euo pipefail
 echo "==> sb-sync start"
 
+# Skip entirely on CI/Vercel
+if [ -n "${CI:-}" ] || [ -n "${VERCEL:-}" ]; then
+  echo "→ CI detected; skipping sb-sync."
+  exit 0
+fi
+
 # Ensure deps
 if [ ! -d node_modules ]; then
   echo "==> installing deps"
@@ -25,23 +31,23 @@ fi
 
 # Link if project ref exists
 if [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
-  echo "==> supabase link ($SUPABASE_PROJECT_REF)"
+  echo "==> supabase link (${SUPABASE_PROJECT_REF})"
   $SB link --project-ref "$SUPABASE_PROJECT_REF" >/dev/null 2>&1 || true
 else
   echo "WARN: SUPABASE_PROJECT_REF not set"
 fi
 
-# Generate types from the linked project
+# Types (from linked project)
 mkdir -p src/lib
 echo "==> generating types (--linked)"
 $SB gen types typescript --linked > src/lib/database.types.ts
 
-# Remote diff (skip in Codespaces if no Docker)
+# Remote diff (skip if no Docker daemon)
 echo "==> remote diff"
 if [ -S /var/run/docker.sock ]; then
   $SB db diff --use-migra --linked || true
 else
-  echo "→ Skipping diff (no Docker daemon)."
+  echo "→ Skipping diff (no Docker daemon in this environment)."
 fi
 
 echo "==> sb-sync done"
