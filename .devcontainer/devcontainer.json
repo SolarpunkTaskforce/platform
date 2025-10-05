@@ -15,8 +15,8 @@
     "PATH": "${containerEnv:PATH}:/home/node/.supabase/bin:/home/node/.local/bin"
   },
   "updateContentCommand": "set -e; corepack enable || true; corepack prepare pnpm@10.0.0 --activate || true; pnpm --version; pnpm install",
-  "postCreateCommand": "set -e; mkdir -p /home/node/.supabase/bin; curl -fsSL https://raw.githubusercontent.com/supabase/cli/main/install.sh | sh -s -- -b /home/node/.supabase/bin; supabase --version; git lfs install --system || true; pnpm sb:sync || true; nohup pnpm dev >/tmp/next.log 2>&1 &",
-  "postStartCommand": "bash -lc 'pgrep -f \"next dev\" >/dev/null || nohup pnpm dev >/tmp/next.log 2>&1 &'",
+  "postCreateCommand": "set -e; mkdir -p /home/node/.supabase/bin; curl -sL https://api.github.com/repos/supabase/cli/releases/latest | grep -Eo '\"browser_download_url\":\\s*\"[^\"]+linux_amd64\\.tar\\.gz\"' | cut -d '\"' -f4 | head -n1 | xargs -I{} sh -c 'curl -L {} -o /tmp/supabase.tgz && tar -xzf /tmp/supabase.tgz -C /tmp && install -m 0755 /tmp/supabase /home/node/.supabase/bin/supabase'; supabase --version; git lfs install --system || true; pnpm sb:sync || true",
+  "postStartCommand": "set -e; bash scripts/sb-sync.sh || true; if ! pgrep -f 'next dev' >/dev/null; then nohup pnpm dev >/tmp/next.log 2>&1 & fi",
   "customizations": {
     "vscode": {
       "extensions": [
