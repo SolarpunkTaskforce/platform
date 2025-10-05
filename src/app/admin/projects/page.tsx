@@ -1,20 +1,63 @@
 import Link from "next/link";
+import type { Database } from "@/lib/database.types";
 import { getServerSupabase } from "@/lib/supabaseServer";
+
+type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+
+type ProjectListItem = Pick<
+  ProjectRow,
+  | "id"
+  | "name"
+  | "description"
+  | "lat"
+  | "lng"
+  | "created_at"
+  | "status"
+  | "lead_org_id"
+  | "approved_at"
+  | "approved_by"
+  | "rejected_at"
+  | "rejected_by"
+  | "rejection_reason"
+> & {
+  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name">[] | null;
+};
+
+type NormalizedProjectListItem = Omit<ProjectListItem, "created_by_profile"> & {
+  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null;
+};
+
+function getCreatedBy(project: NormalizedProjectListItem) {
+  const profile = project.created_by_profile;
+  if (!profile) return null;
+
+  return profile.full_name ?? profile.organisation_name ?? null;
+}
 
 export default async function AdminProjectsPage() {
   const supabase = await getServerSupabase();
   const { data: isAdmin } = await supabase.rpc("is_admin");
   if (!isAdmin) return new Response(null, { status: 404 }) as never;
 
-  const { data: projects, error } = await supabase
+  const { data, error } = await supabase
     .from("projects")
     .select(
-      "id,name,description,lat,lng,created_at,status,lead_org_id,approved_at,approved_by,rejected_at,rejected_by,rejection_reason"
+      "id,name,description,lat,lng,created_at,status,lead_org_id,approved_at,approved_by,rejected_at,rejected_by,rejection_reason,created_by_profile:profiles!projects_created_by_fkey(full_name,organisation_name)"
     )
     .eq("status", "pending")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .returns<ProjectListItem[]>();
 
   if (error) throw error;
+
+  const projects =
+    data?.map<NormalizedProjectListItem>(project => ({
+      ...project,
+      created_by_profile: Array.isArray(project.created_by_profile)
+        ? project.created_by_profile[0] ?? null
+        : project.created_by_profile ?? null,
+    })) ?? null;
 
   return (
     <main className="p-6">
@@ -38,12 +81,15 @@ export default async function AdminProjectsPage() {
           <tbody>
             {projects?.length ? (
               projects.map(project => {
-                const created = new Date(project.created_at).toLocaleString();
+                const created = project.created_at
+                  ? new Date(project.created_at).toLocaleString()
+                  : "—";
                 const excerpt = project.description?.slice(0, 120) ?? "";
                 const location =
                   project.lat && project.lng
                     ? `${project.lat.toFixed(4)}, ${project.lng.toFixed(4)}`
                     : "—";
+                const createdBy = getCreatedBy(project);
 
                 return (
                   <tr key={project.id} className="border-t align-top">
@@ -58,6 +104,11 @@ export default async function AdminProjectsPage() {
                         </Link>
                       </div>
                       <div className="text-xs text-gray-500">ID: {project.id}</div>
+                      {createdBy ? (
+                        <div className="text-xs text-gray-500">
+                          Submitted by: {createdBy}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">{location}</td>
                     <td className="px-4 py-2">{excerpt}{project.description && project.description.length > 120 ? "…" : ""}</td>
