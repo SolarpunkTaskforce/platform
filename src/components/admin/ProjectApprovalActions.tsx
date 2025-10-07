@@ -61,7 +61,10 @@ export function ProjectApprovalActions({
         router.refresh();
       } catch (error) {
         console.error(error);
-        setMessage({ kind: "error", text: "Unexpected error. Please try again." });
+        setMessage({
+          kind: "error",
+          text: "Unexpected error. Please try again.",
+        });
       } finally {
         setPendingAction(null);
       }
@@ -81,8 +84,10 @@ export function ProjectApprovalActions({
           onClick={() => runAction("approve")}
           disabled={disabled}
           className={cn(
-            "rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
-            (disabled && pendingAction !== "approve") || (pendingAction === "approve" && isPending)
+            "rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
+            (disabled && pendingAction !== "approve") ||
+              (pendingAction === "approve" && isPending)
               ? "opacity-80"
               : undefined
           )}
@@ -91,6 +96,7 @@ export function ProjectApprovalActions({
             ? "Approving…"
             : "Approve"}
         </button>
+
         <button
           type="button"
           onClick={() => {
@@ -108,8 +114,10 @@ export function ProjectApprovalActions({
           }}
           disabled={disabled}
           className={cn(
-            "rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600",
-            (disabled && pendingAction !== "reject") || (pendingAction === "reject" && isPending)
+            "rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-rose-700",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600",
+            (disabled && pendingAction !== "reject") ||
+              (pendingAction === "reject" && isPending)
               ? "opacity-80"
               : undefined
           )}
@@ -119,16 +127,19 @@ export function ProjectApprovalActions({
             : "Reject"}
         </button>
       </div>
-      {message ? (
+
+      {message && (
         <p
           className={cn(
-            "text-xs", 
-            message.kind === "success" ? "text-emerald-600" : "text-rose-600"
+            "text-xs",
+            message.kind === "success"
+              ? "text-emerald-600"
+              : "text-rose-600"
           )}
         >
           {message.text}
         </p>
-      ) : null}
+      )}
     </div>
   );
 }
