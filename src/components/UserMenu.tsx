@@ -47,13 +47,6 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       {isAdmin && (
         <>
           <Link
-            href="/admin/projects"
-            className="px-4 py-2 hover:bg-white/10"
-            onClick={onNavigate}
-          >
-            Pending Projects
-          </Link>
-          <Link
             href="/admin/registrations"
             className="px-4 py-2 hover:bg-white/10"
             onClick={onNavigate}
