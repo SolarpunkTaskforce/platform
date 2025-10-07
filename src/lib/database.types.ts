@@ -1467,6 +1467,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_project: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       can_admin_projects: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1522,12 +1526,20 @@ export type Database = {
           status: string
         }[]
       }
+      grant_admin: {
+        Args: { p_email: string }
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<PropertyKey, never> | { uid: string }
         Returns: boolean
       }
       is_admin_email: {
         Args: { e: string }
+        Returns: boolean
+      }
+      is_moderator: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_superadmin: {
@@ -1537,6 +1549,14 @@ export type Database = {
       is_superadmin_email: {
         Args: { e: string }
         Returns: boolean
+      }
+      reject_project: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      revoke_admin: {
+        Args: { p_email: string }
+        Returns: undefined
       }
     }
     Enums: {
