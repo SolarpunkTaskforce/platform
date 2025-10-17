@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type Action = "approve" | "reject";
+type Action = "approve" | "reject" | "unapprove";
+
+type Status = "pending" | "approved";
 
 type Message = {
   kind: "success" | "error";
@@ -15,6 +17,7 @@ type Props = {
   projectId: string;
   projectName?: string;
   layout?: "stacked" | "inline";
+  status?: Status;
   className?: string;
 };
 
@@ -22,6 +25,7 @@ export function ProjectApprovalActions({
   projectId,
   projectName,
   layout = "stacked",
+  status = "pending",
   className,
 }: Props) {
   const router = useRouter();
@@ -52,11 +56,16 @@ export function ProjectApprovalActions({
           return;
         }
 
+        const actionText =
+          action === "approve"
+            ? "approved"
+            : action === "reject"
+              ? "rejected"
+              : "moved back to pending";
+
         setMessage({
           kind: "success",
-          text: `Project ${projectName ? `“${projectName}” ` : ""}${
-            action === "approve" ? "approved" : "rejected"
-          }.`,
+          text: `Project ${projectName ? `“${projectName}” ` : ""}${actionText}.`,
         });
         router.refresh();
       } catch (error) {
@@ -73,60 +82,98 @@ export function ProjectApprovalActions({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div
-        className={cn(
-          "flex gap-2",
-          layout === "stacked" ? "flex-col sm:flex-row" : "flex-row flex-wrap"
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => runAction("approve")}
-          disabled={disabled}
+      {status === "approved" ? (
+        <div
           className={cn(
-            "rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
-            (disabled && pendingAction !== "approve") ||
-              (pendingAction === "approve" && isPending)
-              ? "opacity-80"
-              : undefined
+            "flex gap-2",
+            layout === "stacked" ? "flex-col sm:flex-row" : "flex-row flex-wrap"
           )}
         >
-          {pendingAction === "approve" && (isPending || pendingAction)
-            ? "Approving…"
-            : "Approve"}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                const confirmed = window.confirm(
+                  "Move this project back to the pending queue?"
+                );
+                if (!confirmed) {
+                  setPendingAction(null);
+                  return;
+                }
+              }
+              runAction("unapprove");
+            }}
+            disabled={disabled}
+            className={cn(
+              "rounded bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-300",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400",
+              (disabled && pendingAction !== "unapprove") ||
+                (pendingAction === "unapprove" && isPending)
+                ? "opacity-80"
+                : undefined
+            )}
+          >
+            {pendingAction === "unapprove" && (isPending || pendingAction)
+              ? "Moving…"
+              : "Move to pending"}
+          </button>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "flex gap-2",
+            layout === "stacked" ? "flex-col sm:flex-row" : "flex-row flex-wrap"
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => runAction("approve")}
+            disabled={disabled}
+            className={cn(
+              "rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
+              (disabled && pendingAction !== "approve") ||
+                (pendingAction === "approve" && isPending)
+                ? "opacity-80"
+                : undefined
+            )}
+          >
+            {pendingAction === "approve" && (isPending || pendingAction)
+              ? "Approving…"
+              : "Approve"}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              const confirmed = window.confirm("Reject this project?");
-              if (!confirmed) {
-                setPendingAction(null);
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                const confirmed = window.confirm("Reject this project?");
+                if (!confirmed) {
+                  setPendingAction(null);
+                  return;
+                }
+                const reason = window.prompt("Reason for rejection (optional)")?.trim();
+                runAction("reject", reason ? { reason } : undefined);
                 return;
               }
-              const reason = window.prompt("Reason for rejection (optional)")?.trim();
-              runAction("reject", reason ? { reason } : undefined);
-              return;
-            }
-            runAction("reject");
-          }}
-          disabled={disabled}
-          className={cn(
-            "rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-rose-700",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600",
-            (disabled && pendingAction !== "reject") ||
-              (pendingAction === "reject" && isPending)
-              ? "opacity-80"
-              : undefined
-          )}
-        >
-          {pendingAction === "reject" && (isPending || pendingAction)
-            ? "Rejecting…"
-            : "Reject"}
-        </button>
-      </div>
+              runAction("reject");
+            }}
+            disabled={disabled}
+            className={cn(
+              "rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-rose-700",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600",
+              (disabled && pendingAction !== "reject") ||
+                (pendingAction === "reject" && isPending)
+                ? "opacity-80"
+                : undefined
+            )}
+          >
+            {pendingAction === "reject" && (isPending || pendingAction)
+              ? "Rejecting…"
+              : "Reject"}
+          </button>
+        </div>
+      )}
 
       {message && (
         <p
