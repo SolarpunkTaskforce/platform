@@ -206,6 +206,37 @@ Configured in Codespaces and GitHub Secrets:
 | `SUPABASE_PROJECT_REF` | Supabase project reference ID |
 | `SUPABASE_DB_URL` | Supabase database connection URL |
 
+For local development you also need the Supabase client credentials that the
+Next.js app uses to fetch data:
+
+1. In the Supabase dashboard, open **Project Settings → API**.
+2. Copy the **Project URL** into `NEXT_PUBLIC_SUPABASE_URL`.
+3. Copy the **anon public** key into `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Add both values to `.env.local` (or to your deployment environment) and
+   restart the dev server.
+
+If either variable is missing the admin approvals page will now show a warning
+instead of crashing, because the new `src/lib/supabaseConfig.ts` helper refuses
+to create Supabase clients without a complete configuration.
+
+### Admin project approvals + Supabase
+
+The moderation tooling now relies on three Supabase-facing pieces:
+
+- `src/app/api/admin/projects/unapprove/route.ts` is an authenticated API route
+  that lets admins move a project from "approved" back to "pending". It returns
+  a clear error if the Supabase credentials above are not configured.
+- `src/lib/supabaseConfig.ts` centralises Supabase environment validation so the
+  browser and server clients fail fast with actionable messages.
+- `supabase/migrations/20251007000000_fix_project_moderation.sql` refreshes the
+  moderation trigger to use the consolidated `status` column and to reset audit
+  fields when a project returns to `pending`.
+
+After pulling the latest code run `pnpm sb:sync` to apply the migration and
+regenerate types locally. Once the migration has been applied, approving a
+project in the admin UI will make it visible on the public map, and unapproving
+it will move it back to the pending queue.
+
 ---
 
 ## 11. Legacy Script
