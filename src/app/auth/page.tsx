@@ -20,20 +20,7 @@ try {
 }
 
 export default function AuthPage() {
-  const router = useRouter();
-  const [mode, setMode] = useState<"signin"|"signup">("signin");
-  const [account, setAccount] = useState<"individual"|"organisation">("individual");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [orgName, setOrgName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
-
-  const client = supabase;
-
-  if (!client) {
+  if (!supabase) {
     return (
       <div className="mx-auto max-w-md space-y-4 p-6">
         <div className="space-y-1">
@@ -49,6 +36,23 @@ export default function AuthPage() {
       </div>
     );
   }
+
+  return <AuthPageContent client={supabase} />;
+}
+
+type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
+
+function AuthPageContent({ client }: { client: SupabaseClient }) {
+  const router = useRouter();
+  const [mode, setMode] = useState<"signin"|"signup">("signin");
+  const [account, setAccount] = useState<"individual"|"organisation">("individual");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
