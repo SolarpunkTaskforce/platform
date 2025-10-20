@@ -1,9 +1,23 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { supabaseClient } from "@/lib/supabaseClient";
 
-const supabase = supabaseClient();
+let supabaseInitializationError: MissingSupabaseEnvError | null = null;
+let supabase: ReturnType<typeof supabaseClient> | null = null;
+
+try {
+  supabase = supabaseClient();
+} catch (error) {
+  if (error instanceof MissingSupabaseEnvError) {
+    supabaseInitializationError = error;
+    supabase = null;
+  } else {
+    throw error;
+  }
+}
 
 export default function AuthPage() {
   const router = useRouter();
@@ -16,6 +30,23 @@ export default function AuthPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+
+  if (!supabase) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 p-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Sign in</h1>
+          <p className="text-sm text-slate-600">
+            {supabaseInitializationError?.message}
+          </p>
+        </div>
+        <p className="text-sm text-slate-600">
+          Update <code>.env.local</code> with the Supabase project&apos;s URL and anon key,
+          restart the development server, then reload this page to continue.
+        </p>
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
