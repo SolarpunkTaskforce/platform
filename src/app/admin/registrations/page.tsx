@@ -29,7 +29,7 @@ const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
   const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
@@ -59,20 +59,22 @@ export default async function Page({
     }
   }
 
-  const currentViewParam = Array.isArray(searchParams?.view)
-    ? searchParams?.view[0]
-    : searchParams?.view;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const currentViewParam = Array.isArray(resolvedSearchParams?.view)
+    ? resolvedSearchParams?.view[0]
+    : resolvedSearchParams?.view;
   const currentView: ProjectStatus =
     currentViewParam === "approved" || currentViewParam === "rejected"
       ? currentViewParam
       : "pending";
 
-  const messageParam = Array.isArray(searchParams?.message)
-    ? searchParams?.message[0]
-    : searchParams?.message;
-  const errorParam = Array.isArray(searchParams?.error)
-    ? searchParams?.error[0]
-    : searchParams?.error;
+  const messageParam = Array.isArray(resolvedSearchParams?.message)
+    ? resolvedSearchParams?.message[0]
+    : resolvedSearchParams?.message;
+  const errorParam = Array.isArray(resolvedSearchParams?.error)
+    ? resolvedSearchParams?.error[0]
+    : resolvedSearchParams?.error;
 
   const rows = grouped[currentView] ?? [];
   const columnCount = currentView === "pending" ? 3 : currentView === "approved" ? 4 : 5;
