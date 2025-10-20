@@ -1,11 +1,48 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { supabaseClient } from "@/lib/supabaseClient";
 
-const supabase = supabaseClient();
+let supabaseInitializationError: MissingSupabaseEnvError | null = null;
+let supabase: ReturnType<typeof supabaseClient> | null = null;
+
+try {
+  supabase = supabaseClient();
+} catch (error) {
+  if (error instanceof MissingSupabaseEnvError) {
+    supabaseInitializationError = error;
+    supabase = null;
+  } else {
+    throw error;
+  }
+}
 
 export default function AuthPage() {
+  if (!supabase) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 p-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Sign in</h1>
+          <p className="text-sm text-slate-600">
+            {supabaseInitializationError?.message}
+          </p>
+        </div>
+        <p className="text-sm text-slate-600">
+          Update <code>.env.local</code> with the Supabase project&apos;s URL and anon key,
+          restart the development server, then reload this page to continue.
+        </p>
+      </div>
+    );
+  }
+
+  return <AuthPageContent client={supabase} />;
+}
+
+type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
+
+function AuthPageContent({ client }: { client: SupabaseClient }) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin"|"signup">("signin");
   const [account, setAccount] = useState<"individual"|"organisation">("individual");
@@ -25,7 +62,7 @@ export default function AuthPage() {
 
     try {
       if (mode === "signin") {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
         if (error) {
           setErrorMsg(error.message);
           return;
@@ -37,7 +74,7 @@ export default function AuthPage() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await client.auth.signUp({
         email,
         password,
         options: {
@@ -50,20 +87,20 @@ export default function AuthPage() {
       // If org, provision org + membership + profile flag
       if (account === "organisation" && orgName && data.user?.id) {
         const userId = data.user.id;
-        const { data: org, error: orgErr } = await supabase
+        const { data: org, error: orgErr } = await client
           .from("organisations")
           .insert({ name: orgName, created_by: userId })
           .select("id")
           .single();
         if (orgErr) throw orgErr;
 
-        await supabase.from("organisation_members").insert({
+        await client.from("organisation_members").insert({
           organisation_id: org.id,
           user_id: userId,
           role: "owner",
         });
 
-        await supabase.from("profiles").update({
+        await client.from("profiles").update({
           kind: "organisation",
           organisation_name: orgName,
           organisation_id: org.id,
@@ -71,7 +108,7 @@ export default function AuthPage() {
       }
 
       // If email confirmation is OFF or session is present, redirect now
-      const { data: sess } = await supabase.auth.getSession();
+      const { data: sess } = await client.auth.getSession();
       if (sess.session) {
         router.replace("/"); router.refresh();
       } else {
