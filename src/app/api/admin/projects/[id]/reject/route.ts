@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type IssueLike = { message?: string | undefined };
@@ -24,26 +25,53 @@ const formatErrorMessage = (error: unknown): string => {
   return "Unknown error";
 };
 
+const buildRedirect = (request: Request) => {
+  const referer = request.headers.get("referer");
+  const url = new URL(referer ?? "/admin/registrations?view=rejected", request.url);
+  url.searchParams.delete("message");
+  url.searchParams.delete("error");
+  return url;
+};
+
 export async function POST(
-  req: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  const form = await req.formData();
-  const reason = (form.get("reason") as string) || null;
+
+  const form = await request.formData();
+  const reason = ((form.get("reason") as string) || "").trim() || null;
+
+  const { data: auth } = await supabase.auth.getUser();
+  const reviewerId = auth?.user?.id ?? null;
 
   const { id } = await params;
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("projects")
-    .update({ status: "rejected", rejection_reason: reason })
-    .eq("id", id)
-    .select()
-    .single();
+    .update({
+      status: "rejected",
+      rejected_at: new Date().toISOString(),
+      rejected_by: reviewerId,
+      rejection_reason: reason,
+      approved_at: null,
+      approved_by: null,
+    })
+    .eq("id", id);
+
+  const redirectUrl = buildRedirect(request);
+
   if (error) {
-    return NextResponse.json({ error: formatErrorMessage(error) }, { status: 400 });
+    redirectUrl.searchParams.set("error", formatErrorMessage(error));
+    return NextResponse.redirect(redirectUrl);
   }
-  return NextResponse.json({ data });
+
+  redirectUrl.searchParams.set(
+    "message",
+    reason ? "Project rejected and reason recorded." : "Project rejected.",
+  );
+  redirectUrl.searchParams.set("view", "rejected");
+  return NextResponse.redirect(redirectUrl);
 }
