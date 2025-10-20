@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 
 import { ProjectApprovalActions } from "@/components/admin/ProjectApprovalActions";
 import type { Database } from "@/lib/database.types";
+import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { getServerSupabase } from "@/lib/supabaseServer";
+import { cn } from "@/lib/utils";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -12,15 +14,33 @@ type ProjectLinksRow = Database["public"]["Tables"]["project_links"]["Row"];
 
 type ProjectListItem = Pick<
   ProjectRow,
-  "id" | "name" | "created_at" | "created_by" | "place_name" | "links"
+  | "id"
+  | "name"
+  | "created_at"
+  | "created_by"
+  | "place_name"
+  | "links"
+  | "status"
+  | "approved_at"
+  | "approved_by"
+  | "rejected_at"
+  | "rejected_by"
+  | "rejection_reason"
 > & {
   project_media: Pick<ProjectMediaRow, "id">[] | null;
   project_links: Pick<ProjectLinksRow, "id">[] | null;
   created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null;
+  approved_by_profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null;
+  rejected_by_profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null;
 };
 
-type RawProjectListItem = Omit<ProjectListItem, "created_by_profile"> & {
+type RawProjectListItem = Omit<
+  ProjectListItem,
+  "created_by_profile" | "approved_by_profile" | "rejected_by_profile"
+> & {
   created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name">[] | null;
+  approved_by_profile: Pick<ProfileRow, "full_name" | "organisation_name">[] | null;
+  rejected_by_profile: Pick<ProfileRow, "full_name" | "organisation_name">[] | null;
 };
 
 function formatDate(value: string | null) {
@@ -57,31 +77,112 @@ function getMediaCount(project: ProjectListItem) {
   return 0;
 }
 
-function getCreatedBy(project: ProjectListItem) {
-  const profile = project.created_by_profile;
+function getProfileName(profile: Pick<ProfileRow, "full_name" | "organisation_name"> | null) {
   if (profile?.full_name) return profile.full_name;
   if (profile?.organisation_name) return profile.organisation_name;
-  return project.created_by ?? "—";
+  return null;
 }
 
-export default async function AdminProjectsPage() {
-  const supabase = await getServerSupabase();
+function getCreatedBy(project: ProjectListItem) {
+  return (
+    getProfileName(project.created_by_profile) ?? project.created_by ?? "—"
+  );
+}
+
+function getApprovedBy(project: ProjectListItem) {
+  return (
+    getProfileName(project.approved_by_profile) ?? project.approved_by ?? "—"
+  );
+}
+
+function getRejectedBy(project: ProjectListItem) {
+  return (
+    getProfileName(project.rejected_by_profile) ?? project.rejected_by ?? "—"
+  );
+}
+
+const views = {
+  pending: {
+    label: "Pending",
+    description:
+      "Review the latest pending projects and approve or reject them.",
+    empty: "No pending projects right now.",
+  },
+  approved: {
+    label: "Approved",
+    description: "Projects that are currently visible on the public map.",
+    empty: "No approved projects yet.",
+  },
+  rejected: {
+    label: "Rejected",
+    description: "Projects that were rejected during moderation.",
+    empty: "No rejected projects right now.",
+  },
+} as const;
+
+type ViewKey = keyof typeof views;
+
+export default async function AdminProjectsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+  let supabase;
+
+  try {
+    supabase = await getServerSupabase();
+  } catch (error) {
+    if (error instanceof MissingSupabaseEnvError) {
+      return (
+        <main className="space-y-6 p-6">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold">Project Approvals</h1>
+            <p className="text-sm text-slate-500">
+              Review the latest pending projects and approve or reject them.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p className="font-medium">Supabase configuration required</p>
+            <p className="mt-1">
+              {error.message} Update your <code>.env.local</code> with the correct values
+              from the Supabase dashboard and restart the development server.
+            </p>
+          </div>
+        </main>
+      );
+    }
+    throw error;
+  }
   const { data: isAdmin } = await supabase.rpc("is_admin");
 
   if (!isAdmin) {
     notFound();
   }
 
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const selectedView = ((): ViewKey => {
+    const value = resolvedSearchParams?.status;
+    if (value === "approved" || value === "rejected") {
+      return value;
+    }
+    return "pending";
+  })();
+
   const { data, error } = await supabase
     .from("projects")
     .select(
-      `id,name,created_at,created_by,place_name,links,
+      `id,name,created_at,created_by,place_name,links,status,
+       approved_at,approved_by,rejected_at,rejected_by,rejection_reason,
        project_links:project_links(id),
        project_media:project_media(id),
-       created_by_profile:profiles(full_name,organisation_name)
+       created_by_profile:profiles(full_name,organisation_name),
+       approved_by_profile:profiles!projects_approved_by_fkey(full_name,organisation_name),
+       rejected_by_profile:profiles!projects_rejected_by_fkey(full_name,organisation_name)
       `
     )
-    .eq("status", "pending")
+    .eq("status", selectedView)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -93,6 +194,8 @@ export default async function AdminProjectsPage() {
     project => ({
       ...project,
       created_by_profile: project.created_by_profile?.[0] ?? null,
+      approved_by_profile: project.approved_by_profile?.[0] ?? null,
+      rejected_by_profile: project.rejected_by_profile?.[0] ?? null,
     })
   ) ?? [];
 
@@ -100,9 +203,28 @@ export default async function AdminProjectsPage() {
     <main className="space-y-6 p-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Project Approvals</h1>
-        <p className="text-sm text-slate-500">
-          Review the latest pending projects and approve or reject them.
-        </p>
+        <p className="text-sm text-slate-500">{views[selectedView].description}</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {(Object.keys(views) as ViewKey[]).map(view => {
+          const isActive = selectedView === view;
+          const query = view === "pending" ? {} : { status: view };
+          return (
+            <Link
+              key={view}
+              href={{ pathname: "/admin/projects", query }}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition",
+                isActive
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+              )}
+            >
+              {views[view].label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="overflow-x-auto rounded-xl border">
@@ -115,14 +237,20 @@ export default async function AdminProjectsPage() {
               <th className="px-4 py-3">Location</th>
               <th className="px-4 py-3">Links</th>
               <th className="px-4 py-3">Media</th>
-              <th className="px-4 py-3">Actions</th>
+              <th className="px-4 py-3">
+                {selectedView === "pending"
+                  ? "Actions"
+                  : selectedView === "approved"
+                    ? "Approval"
+                    : "Rejection"}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {projects.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
-                  No pending projects right now.
+                  {views[selectedView].empty}
                 </td>
               </tr>
             ) : (
@@ -150,11 +278,49 @@ export default async function AdminProjectsPage() {
                     <td className="px-4 py-3 whitespace-nowrap">{linksCount}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{mediaCount}</td>
                     <td className="px-4 py-3">
-                      <ProjectApprovalActions
-                        projectId={project.id}
-                        projectName={project.name}
-                        layout="inline"
-                      />
+                      {selectedView === "pending" ? (
+                        <ProjectApprovalActions
+                          projectId={project.id}
+                          projectName={project.name}
+                          layout="inline"
+                        />
+                      ) : null}
+                      {selectedView === "approved" ? (
+                        <div className="space-y-2 text-xs text-slate-500">
+                          <div>
+                            <span className="font-medium text-slate-700">Approved:</span>{" "}
+                            {formatDate(project.approved_at)}
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">By:</span>{" "}
+                            {getApprovedBy(project)}
+                          </div>
+                          <ProjectApprovalActions
+                            projectId={project.id}
+                            projectName={project.name}
+                            layout="inline"
+                            status="approved"
+                          />
+                        </div>
+                      ) : null}
+                      {selectedView === "rejected" ? (
+                        <div className="space-y-2 text-xs text-slate-500">
+                          <div>
+                            <span className="font-medium text-slate-700">Rejected:</span>{" "}
+                            {formatDate(project.rejected_at)}
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">By:</span>{" "}
+                            {getRejectedBy(project)}
+                          </div>
+                          {project.rejection_reason ? (
+                            <div className="rounded bg-rose-50 p-2 text-slate-600">
+                              <span className="font-medium text-rose-600">Reason:</span>{" "}
+                              {project.rejection_reason}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 );
