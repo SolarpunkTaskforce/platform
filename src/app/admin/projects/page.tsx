@@ -125,7 +125,7 @@ type ViewKey = keyof typeof views;
 export default async function AdminProjectsPage({
   searchParams,
 }: {
-  searchParams?: { status?: string };
+  searchParams?: Promise<{ status?: string }>;
 }) {
   let supabase;
 
@@ -160,8 +160,10 @@ export default async function AdminProjectsPage({
     notFound();
   }
 
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
   const selectedView = ((): ViewKey => {
-    const value = searchParams?.status;
+    const value = resolvedSearchParams?.status;
     if (value === "approved" || value === "rejected") {
       return value;
     }
