@@ -113,19 +113,12 @@ export default function Map({ markers = [] as Marker[] }) {
 
       popup.setDOMContent(popupNode);
 
-      const markerEl = document.createElement("div");
-      markerEl.className =
-        "flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 ring-2 ring-white";
-      markerEl.style.transition = "width 160ms ease, height 160ms ease, box-shadow 160ms ease";
-
-      const marker = new mapboxgl.Marker({ element: markerEl, anchor: "bottom" })
+      const marker = new mapboxgl.Marker()
         .setLngLat([m.lng, m.lat])
         .setPopup(popup);
       marker.addTo(map);
-      markerObjs.current.push({ marker, element: markerEl });
+      markerObjs.current.push(marker);
     });
-
-    updateMarkerSizes();
 
     if (validMarkers.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();

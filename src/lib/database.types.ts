@@ -626,7 +626,7 @@ export type Database = {
           created_at: string | null
           factor_id: string | null
           id: string
-          ip: unknown | null
+          ip: unknown
           not_after: string | null
           oauth_client_id: string | null
           refreshed_at: string | null
@@ -640,7 +640,7 @@ export type Database = {
           created_at?: string | null
           factor_id?: string | null
           id: string
-          ip?: unknown | null
+          ip?: unknown
           not_after?: string | null
           oauth_client_id?: string | null
           refreshed_at?: string | null
@@ -654,7 +654,7 @@ export type Database = {
           created_at?: string | null
           factor_id?: string | null
           id?: string
-          ip?: unknown | null
+          ip?: unknown
           not_after?: string | null
           oauth_client_id?: string | null
           refreshed_at?: string | null
@@ -855,22 +855,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      email: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      jwt: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      uid: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      email: { Args: never; Returns: string }
+      jwt: { Args: never; Returns: Json }
+      role: { Args: never; Returns: string }
+      uid: { Args: never; Returns: string }
     }
     Enums: {
       aal_level: "aal1" | "aal2" | "aal3"
@@ -1600,38 +1588,8 @@ export type Database = {
       }
     }
     Functions: {
-      approve_project: {
-        Args: { p_project_id: string }
-        Returns: undefined
-      }
-      can_admin_projects: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      citext: {
-        Args: { "": boolean } | { "": string } | { "": unknown }
-        Returns: string
-      }
-      citext_hash: {
-        Args: { "": string }
-        Returns: number
-      }
-      citextin: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      citextout: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      citextrecv: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      citextsend: {
-        Args: { "": string }
-        Returns: string
-      }
+      approve_project: { Args: { p_project_id: string }; Returns: undefined }
+      can_admin_projects: { Args: never; Returns: boolean }
       create_project_submission: {
         Args: {
           p_amount_needed: number
@@ -1659,38 +1617,16 @@ export type Database = {
           status: string
         }[]
       }
-      grant_admin: {
-        Args: { p_email: string }
-        Returns: undefined
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never> | { uid: string }
-        Returns: boolean
-      }
-      is_admin_email: {
-        Args: { e: string }
-        Returns: boolean
-      }
-      is_moderator: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_superadmin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_superadmin_email: {
-        Args: { e: string }
-        Returns: boolean
-      }
-      reject_project: {
-        Args: { p_project_id: string }
-        Returns: undefined
-      }
-      revoke_admin: {
-        Args: { p_email: string }
-        Returns: undefined
-      }
+      grant_admin: { Args: { p_email: string }; Returns: undefined }
+      is_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { uid: string }; Returns: boolean }
+      is_admin_email: { Args: { e: string }; Returns: boolean }
+      is_moderator: { Args: never; Returns: boolean }
+      is_superadmin: { Args: never; Returns: boolean }
+      is_superadmin_email: { Args: { e: string }; Returns: boolean }
+      reject_project: { Args: { p_project_id: string }; Returns: undefined }
+      revoke_admin: { Args: { p_email: string }; Returns: undefined }
     }
     Enums: {
       project_approval_status: "pending" | "approved" | "rejected"
@@ -1995,32 +1931,14 @@ export type Database = {
         Args: { _bucket_id: string; _name: string }
         Returns: boolean
       }
-      extension: {
-        Args: { name: string }
-        Returns: string
-      }
-      filename: {
-        Args: { name: string }
-        Returns: string
-      }
-      foldername: {
-        Args: { name: string }
-        Returns: string[]
-      }
-      get_level: {
-        Args: { name: string }
-        Returns: number
-      }
-      get_prefix: {
-        Args: { name: string }
-        Returns: string
-      }
-      get_prefixes: {
-        Args: { name: string }
-        Returns: string[]
-      }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_level: { Args: { name: string }; Returns: number }
+      get_prefix: { Args: { name: string }; Returns: string }
+      get_prefixes: { Args: { name: string }; Returns: string[] }
       get_size_by_bucket: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bucket_id: string
           size: number
@@ -2061,10 +1979,7 @@ export type Database = {
         Args: { bucket_ids: string[]; names: string[] }
         Returns: undefined
       }
-      operation: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      operation: { Args: never; Returns: string }
       search: {
         Args: {
           bucketname: string
