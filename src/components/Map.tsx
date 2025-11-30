@@ -20,7 +20,25 @@ type Marker = {
 export default function Map({ markers = [] as Marker[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerObjs = useRef<mapboxgl.Marker[]>([]);
+  const markerObjs = useRef<{ marker: mapboxgl.Marker; element: HTMLDivElement }[]>([]);
+  const zoomListenerRef = useRef<(() => void) | null>(null);
+
+  const updateMarkerSizes = () => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const zoom = map.getZoom();
+    const scale = Math.min(Math.max(zoom / 8, 0.65), 1.75);
+    const size = 18 * scale;
+    const borderWidth = Math.max(2, size * 0.2);
+
+    markerObjs.current.forEach(({ element }) => {
+      element.style.width = `${size}px`;
+      element.style.height = `${size}px`;
+      element.style.borderWidth = `${borderWidth}px`;
+      element.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.28)";
+    });
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -40,9 +58,17 @@ export default function Map({ markers = [] as Marker[] }) {
     });
     mapRef.current = map;
 
+    const zoomListener = () => updateMarkerSizes();
+    map.on("zoom", zoomListener);
+    zoomListenerRef.current = zoomListener;
+
     return () => {
-      markerObjs.current.forEach(m => m.remove());
+      markerObjs.current.forEach(({ marker }) => marker.remove());
       markerObjs.current = [];
+
+      if (zoomListenerRef.current) {
+        map.off("zoom", zoomListenerRef.current);
+      }
       map.remove();
       mapRef.current = null;
     };
@@ -51,7 +77,7 @@ export default function Map({ markers = [] as Marker[] }) {
   useEffect(() => {
     if (!mapRef.current) return;
     // clear previous markers
-    markerObjs.current.forEach(m => m.remove());
+    markerObjs.current.forEach(({ marker }) => marker.remove());
     markerObjs.current = [];
 
     const map = mapRef.current;
