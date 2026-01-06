@@ -59,9 +59,7 @@ const linkSchema = z.object({
 
 const formSchema = z
   .object({
-    category: z.enum(["humanitarian", "environmental"], {
-      errorMap: () => ({ message: "Select a category" }),
-    }),
+    category: z.enum(["humanitarian", "environmental"], { required_error: "Select a category" }),
     name: z.string().trim().min(1, "Please enter a project name"),
     description: z
       .string()
