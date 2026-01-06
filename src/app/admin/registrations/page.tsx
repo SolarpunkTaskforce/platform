@@ -39,7 +39,7 @@ export default async function Page({
   const { data: projects, error } = await supabase
     .from("projects")
     .select(
-      "id,name,description,lat,lng,status,created_at,approved_at,approved_by,rejected_at,rejected_by,rejection_reason",
+      "id,name,description,place_name,lat,lng,lead_org_id,status,created_at,approved_at,approved_by,rejected_at,rejected_by,rejection_reason,lead_org:organisations!projects_lead_org_id_fkey(name)",
     )
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -77,7 +77,9 @@ export default async function Page({
     : resolvedSearchParams?.error;
 
   const rows = grouped[currentView] ?? [];
-  const columnCount = currentView === "pending" ? 3 : currentView === "approved" ? 4 : 5;
+  const baseColumns = 4;
+  const columnCount =
+    baseColumns + (currentView === "pending" ? 1 : currentView === "approved" ? 2 : 3);
 
   const formatDate = (value: string | null | undefined) => {
     if (!value) return "";
@@ -86,6 +88,24 @@ export default async function Page({
     } catch {
       return value;
     }
+  };
+
+  const formatLocation = (
+    project:
+      | {
+          place_name?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+        }
+      | null
+      | undefined,
+  ) => {
+    if (!project) return "";
+    if (project.place_name) return project.place_name;
+    const hasLat = project.lat !== null && project.lat !== undefined;
+    const hasLng = project.lng !== null && project.lng !== undefined;
+    if (hasLat && hasLng) return `${project.lat}, ${project.lng}`;
+    return "";
   };
 
   return (
@@ -131,6 +151,8 @@ export default async function Page({
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-2">Name</th>
+              <th className="px-4 py-2">Organisation</th>
+              <th className="px-4 py-2">Location</th>
               <th className="px-4 py-2">Submitted</th>
               {currentView === "approved" && (
                 <>
@@ -159,6 +181,8 @@ export default async function Page({
               rows.map(project => (
                 <tr key={project.id} className="border-t">
                   <td className="px-4 py-3 font-medium text-gray-900">{project.name}</td>
+                  <td className="px-4 py-3">{project.lead_org?.name ?? ""}</td>
+                  <td className="px-4 py-3">{formatLocation(project)}</td>
                   <td className="px-4 py-3">{formatDate(project.created_at)}</td>
                   {currentView === "approved" && (
                     <>
