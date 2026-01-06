@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 const legacyPayloadSchema = z.object({
-  category: z.enum(["humanitarian", "environmental"]),
+  category: z.enum(["humanitarian", "environmental"] as const),
   name: z.string().trim().min(1),
   description: z.string().trim().optional(),
   lat: z.number(),

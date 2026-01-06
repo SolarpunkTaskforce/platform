@@ -22,7 +22,7 @@ const linkSchema = z
 
 const payloadSchema = z
   .object({
-    category: z.enum(["humanitarian", "environmental"]),
+    category: z.enum(["humanitarian", "environmental"] as const),
     name: z.string().trim().min(1),
     description: z.string().trim().optional(),
     lead_org_id: z.string().uuid().optional(),
