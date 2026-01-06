@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectStatus = "pending" | "approved" | "rejected";
+type ProjectCategory = "humanitarian" | "environmental";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -24,6 +25,11 @@ const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
     label: "Rejected",
     description: "Projects that were rejected. You can optionally provide a reason when rejecting.",
   },
+];
+
+const CATEGORIES: { id: ProjectCategory; label: string }[] = [
+  { id: "humanitarian", label: "Humanitarian" },
+  { id: "environmental", label: "Environmental" },
 ];
 
 type ProjectRow = {
@@ -48,6 +54,7 @@ type ProjectRow = {
   rejected_at: string | null;
   rejected_by: string | null;
   rejection_reason: string | null;
+  category?: ProjectCategory;
 };
 
 export default async function Page({
@@ -58,6 +65,17 @@ export default async function Page({
   const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return new Response(null, { status: 404 }) as never;
+
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const currentCategoryParam = Array.isArray(resolvedSearchParams?.category)
+    ? resolvedSearchParams?.category[0]
+    : resolvedSearchParams?.category;
+
+  const currentCategory: ProjectCategory =
+    currentCategoryParam === "humanitarian" || currentCategoryParam === "environmental"
+      ? currentCategoryParam
+      : "environmental";
 
   // TODO: surface full metadata in /admin/projects/[id]
   const { data: projects, error } = await supabase
@@ -78,9 +96,11 @@ export default async function Page({
       approved_by,
       rejected_at,
       rejected_by,
-      rejection_reason
+      rejection_reason,
+      category
       `,
     )
+    .eq("category", currentCategory)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -99,8 +119,6 @@ export default async function Page({
       grouped.pending.push(raw);
     }
   }
-
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   const currentViewParam = Array.isArray(resolvedSearchParams?.view)
     ? resolvedSearchParams?.view[0]
@@ -152,9 +170,15 @@ export default async function Page({
     return project.lead_org?.[0]?.name ?? "";
   };
 
+  const currentCategoryLabel =
+    CATEGORIES.find(category => category.id === currentCategory)?.label ?? "Environmental";
+
   return (
     <main className="p-6">
-      <h1 className="mb-6 text-2xl font-semibold">Project Registrations</h1>
+      <h1 className="mb-2 text-2xl font-semibold">Project Registrations — {currentCategoryLabel}</h1>
+      <p className="mb-4 text-sm text-gray-600">
+        Reviewing {currentCategoryLabel.toLowerCase()} project submissions.
+      </p>
 
       {(messageParam || errorParam) && (
         <div
@@ -169,11 +193,34 @@ export default async function Page({
         </div>
       )}
 
+      <div className="mb-3 flex flex-wrap gap-2">
+        {CATEGORIES.map(category => (
+          <Link
+            key={category.id}
+            href={{
+              pathname: "/admin/registrations",
+              query: { category: category.id, view: currentView },
+            }}
+            className={clsx(
+              "rounded-full border px-4 py-1 text-sm transition",
+              currentCategory === category.id
+                ? "border-blue-600 bg-blue-600 text-white shadow"
+                : "border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-600",
+            )}
+          >
+            {category.label}
+          </Link>
+        ))}
+      </div>
+
       <div className="mb-6 flex flex-wrap gap-2">
         {VIEWS.map(view => (
           <Link
             key={view.id}
-            href={{ pathname: "/admin/registrations", query: { view: view.id } }}
+            href={{
+              pathname: "/admin/registrations",
+              query: { view: view.id, category: currentCategory },
+            }}
             className={clsx(
               "rounded-full border px-4 py-1 text-sm transition",
               currentView === view.id
