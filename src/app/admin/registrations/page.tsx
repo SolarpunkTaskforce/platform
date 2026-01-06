@@ -34,8 +34,13 @@ type ProjectRow = {
   lng: number | null;
   place_name: string | null;
   lead_org_id: string | null;
-  // PostgREST joins are often typed as arrays, even for 1:1 relationships
-  lead_org: { name: any }[] | null;
+
+  /**
+   * PostgREST joins are commonly typed as arrays, even for "single row" relationships.
+   * We only need the organisation name.
+   */
+  lead_org: { name: string | null }[] | null;
+
   status: string | null;
   created_at: string | null;
   approved_at: string | null;
@@ -54,6 +59,7 @@ export default async function Page({
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return new Response(null, { status: 404 }) as never;
 
+  // TODO: surface full metadata in /admin/projects/[id]
   const { data: projects, error } = await supabase
     .from("projects")
     .select(
@@ -87,7 +93,7 @@ export default async function Page({
 
   for (const raw of (projects ?? []) as unknown as ProjectRow[]) {
     const status = (raw.status as ProjectStatus | null) ?? "pending";
-    if (grouped[status]) {
+    if (status in grouped) {
       grouped[status].push(raw);
     } else {
       grouped.pending.push(raw);
@@ -143,7 +149,6 @@ export default async function Page({
   };
 
   const formatOrganisation = (project: ProjectRow) => {
-    // Join result is often an array
     return project.lead_org?.[0]?.name ?? "";
   };
 
