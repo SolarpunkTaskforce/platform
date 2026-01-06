@@ -61,6 +61,8 @@ export default function Header() {
     () => [
       { href: "/", label: "Home" },
       { href: "/about", label: "About" },
+      { href: "/projects/humanitarian", label: "Humanitarian Projects" },
+      { href: "/projects/environmental", label: "Environmental Projects" },
       { href: "/find-projects", label: "Find Projects" },
       { href: "/find-organisations", label: "Find Organisations" },
       { href: "/feed", label: "Feed" },
