@@ -1318,7 +1318,7 @@ export type Database = {
           amount_needed: number | null
           approved_at: string | null
           approved_by: string | null
-          category: string
+          category: "environmental" | "humanitarian"
           country: string | null
           created_at: string | null
           created_by: string | null
@@ -1355,7 +1355,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
-          category?: string
+          category?: "environmental" | "humanitarian"
           country?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1392,7 +1392,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
-          category?: string
+          category?: "environmental" | "humanitarian"
           country?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2330,4 +2330,3 @@ export const Constants = {
     },
   },
 } as const
-
