@@ -18,6 +18,11 @@ type Marker = {
   description?: string | null;
 };
 
+type MapProps = {
+  markers?: Marker[];
+  markerColor?: string;
+};
+
 type MarkerObject = {
   marker: mapboxgl.Marker;
   element: HTMLDivElement;
@@ -29,7 +34,7 @@ const getMarkerScale = (zoom: number) => {
   return Math.min(Math.max(scale, 0.65), 1.75);
 };
 
-export default function Map({ markers = [] as Marker[] }) {
+export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
@@ -120,7 +125,7 @@ export default function Map({ markers = [] as Marker[] }) {
         width: "20px",
         height: "20px",
         borderRadius: "9999px",
-        backgroundColor: "#22c55e",
+        backgroundColor: markerColor,
         boxShadow: "0 4px 12px rgba(15, 23, 42, 0.35)",
         transform: `translate(-50%, -50%) scale(${scale})`,
       });
@@ -147,7 +152,7 @@ export default function Map({ markers = [] as Marker[] }) {
         map.fitBounds(bounds, { padding: 40, duration: 1000 });
       }
     }
-  }, [markers]);
+  }, [markerColor, markers]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
