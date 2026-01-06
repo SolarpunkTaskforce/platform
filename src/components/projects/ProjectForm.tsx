@@ -33,6 +33,19 @@ const locationSchema = z.object({
   place_name: z.string().trim().min(1, "Location is required"),
 });
 
+const CATEGORY_OPTIONS = [
+  {
+    value: "humanitarian",
+    label: "Humanitarian",
+    description: "Emergency response, disaster relief, community health, or social support.",
+  },
+  {
+    value: "environmental",
+    label: "Environmental",
+    description: "Climate adaptation, conservation, renewable energy, or ecological stewardship.",
+  },
+] as const;
+
 const linkSchema = z.object({
   url: z.string().trim().min(1, "Link URL is required").url("Enter a valid URL"),
   label: z
@@ -46,6 +59,7 @@ const linkSchema = z.object({
 
 const formSchema = z
   .object({
+    category: z.enum(["humanitarian", "environmental"], { required_error: "Select a category" }),
     name: z.string().trim().min(1, "Please enter a project name"),
     description: z
       .string()
@@ -122,7 +136,8 @@ type UploadState = {
   error?: string;
 };
 
-const createDefaultValues = (): FormValues => ({
+const createDefaultValues = (): Partial<FormValues> => ({
+  category: undefined,
   name: "",
   description: undefined,
   lead_org_id: undefined,
@@ -434,6 +449,7 @@ export default function ProjectForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          category: values.category,
           name: values.name,
           description: values.description,
           lead_org_id: values.lead_org_id,
@@ -540,6 +556,38 @@ export default function ProjectForm() {
           </div>
 
           <div className="mt-6 space-y-6">
+            <FormField
+              control={control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project category</FormLabel>
+                  <FormDescription>Select the primary focus of this project.</FormDescription>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {CATEGORY_OPTIONS.map(option => {
+                      const isSelected = field.value === option.value;
+                      return (
+                        <Button
+                          key={option.value}
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "flex h-full flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition",
+                            isSelected ? "border-emerald-500 bg-emerald-50 text-emerald-800" : "bg-white",
+                          )}
+                          onClick={() => field.onChange(option.value)}
+                        >
+                          <span className="font-semibold">{option.label}</span>
+                          <span className="text-sm text-slate-600">{option.description}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={control}
               name="name"

@@ -22,6 +22,7 @@ const linkSchema = z
 
 const payloadSchema = z
   .object({
+    category: z.enum(["humanitarian", "environmental"]),
     name: z.string().trim().min(1),
     description: z.string().trim().optional(),
     lead_org_id: z.string().uuid().optional(),
@@ -79,6 +80,14 @@ export async function POST(req: Request) {
   const result = payloadSchema.safeParse(body);
 
   if (!result.success) {
+    const categoryIssue = result.error.issues.find(issue => issue.path[0] === "category");
+    if (categoryIssue) {
+      return NextResponse.json(
+        { error: "Project category must be either humanitarian or environmental." },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
   }
 
@@ -115,6 +124,18 @@ export async function POST(req: Request) {
 
   if (error || !submission || submission.length === 0) {
     return NextResponse.json({ error: error?.message ?? "Unable to submit project" }, { status: 400 });
+  }
+
+  const projectId = submission[0].id;
+
+  const { error: categoryError } = await supabase
+    .from("projects")
+    .update({ category: data.category })
+    .eq("id", projectId)
+    .eq("created_by", user.id);
+
+  if (categoryError) {
+    return NextResponse.json({ error: categoryError.message }, { status: 400 });
   }
 
   return NextResponse.json(submission[0]);
