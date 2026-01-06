@@ -1318,6 +1318,7 @@ export type Database = {
           amount_needed: number | null
           approved_at: string | null
           approved_by: string | null
+          category: string
           country: string | null
           created_at: string | null
           created_by: string | null
@@ -1354,6 +1355,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          category?: string
           country?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1390,6 +1392,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          category?: string
           country?: string | null
           created_at?: string | null
           created_by?: string | null
