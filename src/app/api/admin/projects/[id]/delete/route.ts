@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
+type ErrorWithMessage = { message: string };
+
+function hasMessage(value: unknown): value is ErrorWithMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof (value as Record<string, unknown>).message === "string"
+  );
+}
+
 function errorMessage(err: unknown): string {
   if (typeof err === "string") return err;
-  if (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") {
-    return (err as any).message;
-  }
+  if (hasMessage(err)) return err.message;
   return "Unknown error";
 }
 
@@ -27,25 +36,22 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   redirectUrl.searchParams.set("category", category);
   redirectUrl.searchParams.set("view", view);
 
-  // Delete related rows first (best-effort).
-  // Each call is awaited individually: simpler + type-safe.
+  // Delete related rows first (best-effort)
   const childDeletes = [
     supabase.from("project_links").delete().eq("project_id", id),
     supabase.from("project_media").delete().eq("project_id", id),
     supabase.from("project_partners").delete().eq("project_id", id),
     supabase.from("project_sdgs").delete().eq("project_id", id),
     supabase.from("project_ifrc_challenges").delete().eq("project_id", id),
-    // project_shares may not exist in every environment; try it, but don't fail hard if table is missing.
+    // May not exist in some environments; ignore missing-table error only for this one.
     supabase.from("project_shares").delete().eq("project_id", id),
   ];
 
   for (const op of childDeletes) {
     const res = await op;
 
-    // If the table doesn't exist, Supabase returns an error; ignore only for project_shares.
     if (res.error) {
       const msg = errorMessage(res.error);
-
       const isMissingSharesTable =
         msg.toLowerCase().includes("project_shares") && msg.toLowerCase().includes("does not exist");
 
