@@ -1313,6 +1313,45 @@ export type Database = {
           },
         ]
       }
+      project_shares: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           amount_needed: number | null
@@ -1336,6 +1375,7 @@ export type Database = {
           lives_improved: number | null
           lng: number | null
           name: string
+          owner_id: string | null
           partner_org_ids: string[] | null
           place_name: string | null
           region: string | null
@@ -1351,6 +1391,7 @@ export type Database = {
           target_demographics: string[] | null
           thematic_area: string[] | null
           type_of_intervention: string[] | null
+          visibility: string | null
         }
         Insert: {
           amount_needed?: number | null
@@ -1374,6 +1415,7 @@ export type Database = {
           lives_improved?: number | null
           lng?: number | null
           name: string
+          owner_id?: string | null
           partner_org_ids?: string[] | null
           place_name?: string | null
           region?: string | null
@@ -1389,6 +1431,7 @@ export type Database = {
           target_demographics?: string[] | null
           thematic_area?: string[] | null
           type_of_intervention?: string[] | null
+          visibility?: string | null
         }
         Update: {
           amount_needed?: number | null
@@ -1412,6 +1455,7 @@ export type Database = {
           lives_improved?: number | null
           lng?: number | null
           name?: string
+          owner_id?: string | null
           partner_org_ids?: string[] | null
           place_name?: string | null
           region?: string | null
@@ -1427,6 +1471,7 @@ export type Database = {
           target_demographics?: string[] | null
           thematic_area?: string[] | null
           type_of_intervention?: string[] | null
+          visibility?: string | null
         }
         Relationships: [
           {
@@ -1514,6 +1559,7 @@ export type Database = {
           amount_needed: number | null
           approved_at: string | null
           approved_by: string | null
+          category: string | null
           country: string | null
           created_at: string | null
           created_by: string | null
@@ -1539,6 +1585,7 @@ export type Database = {
           rejection_reason: string | null
           review_status: string | null
           sdgs: string[] | null
+          slug: string | null
           start_date: string | null
           status: string | null
           target_demographic: string | null
@@ -1550,6 +1597,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          category?: string | null
           country?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1575,6 +1623,7 @@ export type Database = {
           rejection_reason?: string | null
           review_status?: string | null
           sdgs?: string[] | null
+          slug?: string | null
           start_date?: string | null
           status?: string | null
           target_demographic?: string | null
@@ -1586,6 +1635,7 @@ export type Database = {
           amount_needed?: number | null
           approved_at?: string | null
           approved_by?: string | null
+          category?: string | null
           country?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1611,6 +1661,7 @@ export type Database = {
           rejection_reason?: string | null
           review_status?: string | null
           sdgs?: string[] | null
+          slug?: string | null
           start_date?: string | null
           status?: string | null
           target_demographic?: string | null
@@ -1674,6 +1725,8 @@ export type Database = {
       reject_project: { Args: { p_project_id: string }; Returns: undefined }
       revoke_admin: { Args: { p_email: string }; Returns: undefined }
       slugify_project_name: { Args: { project_name: string }; Returns: string }
+      user_can_edit_project: { Args: { pid: string }; Returns: boolean }
+      user_can_view_project: { Args: { pid: string }; Returns: boolean }
     }
     Enums: {
       project_approval_status: "pending" | "approved" | "rejected"
