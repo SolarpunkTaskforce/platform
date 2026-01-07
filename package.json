@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "db:sync": "scripts/db-sync.sh",
     "sb:version": "supabase --version",
     "sb:login": "supabase login --token $SUPABASE_ACCESS_TOKEN",

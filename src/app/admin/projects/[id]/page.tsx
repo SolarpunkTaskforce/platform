@@ -37,10 +37,7 @@ type ProjectDetail = ProjectRow & {
 };
 
 type RawProjectDetail = Omit<ProjectDetail, "created_by_profile"> & {
-  created_by_profile: Pick<
-    ProfileRow,
-    "full_name" | "organisation_name" | "role"
-  >[] | null;
+  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name" | "role">[] | null;
 };
 
 function formatDate(value: string | null | undefined) {
@@ -145,8 +142,12 @@ export default async function AdminProjectDetail({
     project_sdgs: rawProject.project_sdgs ?? [],
     project_ifrc_challenges: rawProject.project_ifrc_challenges ?? [],
   };
+
   const jsonLinks = parseJsonLinks(project.links);
   const hasLocation = typeof project.lat === "number" && typeof project.lng === "number";
+
+  // database.types.ts may be out of date; read slug safely anyway
+  const projectSlug = (project as unknown as { slug?: string | null }).slug ?? project.id;
 
   const fundingParts = [
     formatCurrency(project.donations_received, project.currency)
@@ -157,10 +158,11 @@ export default async function AdminProjectDetail({
       : null,
   ].filter(Boolean);
 
-  const createdBy = project.created_by_profile?.full_name
-    ?? project.created_by_profile?.organisation_name
-    ?? project.created_by
-    ?? "Unknown";
+  const createdBy =
+    project.created_by_profile?.full_name ??
+    project.created_by_profile?.organisation_name ??
+    project.created_by ??
+    "Unknown";
 
   return (
     <main className="space-y-6 p-6">
@@ -170,9 +172,7 @@ export default async function AdminProjectDetail({
           <p className="text-sm text-slate-500">
             Created {formatDateTime(project.created_at)} by {createdBy}
           </p>
-          <p className="text-xs text-slate-500">
-            Project ID: {project.id}
-          </p>
+          <p className="text-xs text-slate-500">Project ID: {project.id}</p>
         </div>
         <ProjectApprovalActions projectId={project.id} projectName={project.name} layout="inline" />
       </div>
@@ -181,9 +181,7 @@ export default async function AdminProjectDetail({
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Overview</h2>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Status
-            </dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</dt>
             <dd className="text-sm text-slate-900">{project.status}</dd>
           </div>
           <div>
@@ -203,15 +201,11 @@ export default async function AdminProjectDetail({
               Location
             </dt>
             <dd className="text-sm text-slate-900">
-              {[project.place_name, project.region, project.country]
-                .filter(Boolean)
-                .join(", ") || "—"}
+              {[project.place_name, project.region, project.country].filter(Boolean).join(", ") || "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Timeline
-            </dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Timeline</dt>
             <dd className="text-sm text-slate-900">
               {[formatDate(project.start_date), formatDate(project.end_date)]
                 .filter(value => value !== "—")
@@ -219,9 +213,7 @@ export default async function AdminProjectDetail({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Funding
-            </dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Funding</dt>
             <dd className="text-sm text-slate-900">
               {fundingParts.length ? fundingParts.join(" · ") : "—"}
             </dd>
@@ -283,12 +275,10 @@ export default async function AdminProjectDetail({
         ) : (
           <ul className="space-y-1 text-sm">
             {project.project_partners.map(partner => (
-              <li key={partner.organisation_id}>
-                {partner.organisation?.name ?? partner.organisation_id}
-              </li>
+              <li key={partner.organisation_id}>{partner.organisation?.name ?? partner.organisation_id}</li>
             ))}
-            {project.partner_org_ids?.map(id => (
-              <li key={`fallback-${id}`}>{id}</li>
+            {project.partner_org_ids?.map(pid => (
+              <li key={`fallback-${pid}`}>{pid}</li>
             ))}
           </ul>
         )}
@@ -301,18 +291,12 @@ export default async function AdminProjectDetail({
         ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             {project.project_sdgs.map(item => (
-              <span
-                key={item.sdg_id}
-                className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
-              >
+              <span key={item.sdg_id} className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
                 {item.sdg?.name ?? `SDG ${item.sdg_id}`}
               </span>
             ))}
             {project.sdgs?.map(code => (
-              <span
-                key={`sdg-${code}`}
-                className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
-              >
+              <span key={`sdg-${code}`} className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
                 {code}
               </span>
             ))}
@@ -327,18 +311,12 @@ export default async function AdminProjectDetail({
         ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             {project.project_ifrc_challenges.map(item => (
-              <span
-                key={item.challenge_id}
-                className="rounded-full bg-amber-50 px-3 py-1 text-amber-700"
-              >
+              <span key={item.challenge_id} className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">
                 {item.challenge?.name ?? item.challenge?.code ?? `Challenge ${item.challenge_id}`}
               </span>
             ))}
             {project.ifrc_global_challenges?.map(code => (
-              <span
-                key={`ifrc-${code}`}
-                className="rounded-full bg-amber-50 px-3 py-1 text-amber-700"
-              >
+              <span key={`ifrc-${code}`} className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">
                 {code}
               </span>
             ))}
@@ -385,6 +363,7 @@ export default async function AdminProjectDetail({
               markers={[
                 {
                   id: project.id,
+                  slug: projectSlug,
                   lat: project.lat as number,
                   lng: project.lng as number,
                   title: project.name,

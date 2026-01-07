@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -11,6 +12,7 @@ const truncate = (value: string, length = 160) =>
 
 type Marker = {
   id: string;
+  slug: string;
   lng: number;
   lat: number;
   title: string;
@@ -35,63 +37,34 @@ const getMarkerScale = (zoom: number) => {
 };
 
 export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    if (mapRef.current) return; // already initialized
+    if (mapRef.current) return;
 
-    if (!mapboxgl.accessToken) {
-      console.error("Missing NEXT_PUBLIC_MAPBOX_TOKEN");
-      return;
-    }
-
-    const map = new mapboxgl.Map({
+    mapRef.current = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/light-v11",
       center: [0, 0],
-      zoom: 2,
+      zoom: 1.25,
     });
-    mapRef.current = map;
 
-    const updateMarkerScale = () => {
-      const zoom = map.getZoom();
-      const scale = getMarkerScale(zoom);
-
-      markerObjs.current.forEach(({ element }) => {
-        element.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      });
-    };
-
-    map.on("zoom", updateMarkerScale);
-    map.on("zoomend", updateMarkerScale);
-
-    return () => {
-      markerObjs.current.forEach(({ marker }) => marker.remove());
-      markerObjs.current = [];
-
-      map.off("zoom", updateMarkerScale);
-      map.remove();
-      mapRef.current = null;
-    };
+    mapRef.current.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // clear previous markers
-    markerObjs.current.forEach(({ marker }) => marker.remove());
+    markerObjs.current.forEach(obj => obj.marker.remove());
     markerObjs.current = [];
 
-    const validMarkers = markers.filter(
-      m => Number.isFinite(m.lng) && Number.isFinite(m.lat)
-    );
-
-    const zoom = map.getZoom();
-    const scale = getMarkerScale(zoom);
+    const validMarkers = markers.filter(m => Number.isFinite(m.lng) && Number.isFinite(m.lat));
+    const scale = getMarkerScale(map.getZoom());
 
     validMarkers.forEach(m => {
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px" });
@@ -118,6 +91,16 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
         popupNode.appendChild(descriptionEl);
       }
 
+      const cta = document.createElement("button");
+      cta.type = "button";
+      cta.className =
+        "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
+      cta.textContent = "View project";
+      cta.addEventListener("click", () => {
+        router.push(`/projects/${m.slug}`);
+      });
+      popupNode.appendChild(cta);
+
       popup.setDOMContent(popupNode);
 
       const el = document.createElement("div");
@@ -130,10 +113,7 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
         transform: `translate(-50%, -50%) scale(${scale})`,
       });
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([m.lng, m.lat])
-        .setPopup(popup)
-        .addTo(map);
+      const marker = new mapboxgl.Marker({ element: el }).setLngLat([m.lng, m.lat]).setPopup(popup).addTo(map);
 
       markerObjs.current.push({ marker, element: el });
     });
@@ -152,7 +132,7 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
         map.fitBounds(bounds, { padding: 40, duration: 1000 });
       }
     }
-  }, [markerColor, markers]);
+  }, [markerColor, markers, router]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
