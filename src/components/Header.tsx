@@ -57,12 +57,18 @@ export default function Header() {
       });
   }, [sessionUserId]);
 
+  const projectLinks = useMemo(
+    () => [
+      { href: "/projects/humanitarian", label: "Humanitarian Projects" },
+      { href: "/projects/environmental", label: "Environmental Projects" },
+    ],
+    []
+  );
+
   const navLinks = useMemo(
     () => [
       { href: "/", label: "Home" },
       { href: "/about", label: "About" },
-      { href: "/projects/humanitarian", label: "Humanitarian Projects" },
-      { href: "/projects/environmental", label: "Environmental Projects" },
       { href: "/find-projects", label: "Find Projects" },
       { href: "/find-organisations", label: "Find Organisations" },
       { href: "/feed", label: "Feed" },
@@ -96,6 +102,16 @@ export default function Header() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
           <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+            {projectLinks.map(l => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="px-4 py-2 hover:bg-white/10 md:hidden"
+                onClick={() => setMenuOpen(false)}
+              >
+                {l.label}
+              </Link>
+            ))}
             {navLinks.map(l => (
               <Link
                 key={l.href}
@@ -147,17 +163,26 @@ export default function Header() {
 
   return (
     <header className="relative z-10 flex h-14 items-center justify-between px-6">
-      <button
-        type="button"
-        onClick={() => {
-          setMenuOpen(false);
-          router.push("/");
-        }}
-        className="text-lg font-semibold"
-        aria-label="Home"
-      >
-        Solarpunk Taskforce
-      </button>
+      <div className="flex items-center gap-6">
+        <button
+          type="button"
+          onClick={() => {
+            setMenuOpen(false);
+            router.push("/");
+          }}
+          className="text-lg font-semibold"
+          aria-label="Home"
+        >
+          Solarpunk Taskforce
+        </button>
+        <nav className="hidden items-center gap-4 text-sm md:flex">
+          {projectLinks.map(link => (
+            <Link key={link.href} href={link.href} className="font-medium text-slate-800 hover:text-slate-950">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
       <div className="flex items-center gap-3">
         {menu}
         {sessionUserId ? (
