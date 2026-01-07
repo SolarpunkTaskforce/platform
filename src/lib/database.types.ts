@@ -1344,6 +1344,7 @@ export type Database = {
           rejection_reason: string | null
           review_status: string
           sdgs: string[] | null
+          slug: string | null
           start_date: string | null
           status: string
           target_demographic: string | null
@@ -1381,6 +1382,7 @@ export type Database = {
           rejection_reason?: string | null
           review_status?: string
           sdgs?: string[] | null
+          slug?: string | null
           start_date?: string | null
           status?: string
           target_demographic?: string | null
@@ -1418,6 +1420,7 @@ export type Database = {
           rejection_reason?: string | null
           review_status?: string
           sdgs?: string[] | null
+          slug?: string | null
           start_date?: string | null
           status?: string
           target_demographic?: string | null
@@ -1656,6 +1659,10 @@ export type Database = {
           status: string
         }[]
       }
+      generate_project_slug: {
+        Args: { project_id: string; project_name: string }
+        Returns: string
+      }
       grant_admin: { Args: { p_email: string }; Returns: undefined }
       is_admin:
         | { Args: never; Returns: boolean }
@@ -1666,6 +1673,7 @@ export type Database = {
       is_superadmin_email: { Args: { e: string }; Returns: boolean }
       reject_project: { Args: { p_project_id: string }; Returns: undefined }
       revoke_admin: { Args: { p_email: string }; Returns: undefined }
+      slugify_project_name: { Args: { project_name: string }; Returns: string }
     }
     Enums: {
       project_approval_status: "pending" | "approved" | "rejected"
