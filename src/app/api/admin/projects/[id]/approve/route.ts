@@ -25,12 +25,18 @@ const formatErrorMessage = (error: unknown): string => {
   return "Unknown error";
 };
 
-const buildRedirect = (request: Request) => {
-  const referer = request.headers.get("referer");
-  const url = new URL(referer ?? "/admin/registrations", request.url);
-  url.searchParams.delete("message");
-  url.searchParams.delete("error");
-  return url;
+const normalizeCategory = (value: string | null) => {
+  if (value === "humanitarian" || value === "environmental") {
+    return value;
+  }
+  return "environmental";
+};
+
+const normalizeView = (value: string | null) => {
+  if (value === "pending" || value === "approved" || value === "rejected") {
+    return value;
+  }
+  return "pending";
 };
 
 export async function POST(
@@ -40,6 +46,13 @@ export async function POST(
   const supabase = await getServerSupabase();
   const { data: ok } = await supabase.rpc("is_admin");
   if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  const form = await request.formData();
+  const rawCategory = form.get("category");
+  const rawView = form.get("view");
+
+  const category = normalizeCategory(typeof rawCategory === "string" ? rawCategory : null);
+  const view = normalizeView(typeof rawView === "string" ? rawView : null);
 
   const { data: auth } = await supabase.auth.getUser();
   const approverId = auth?.user?.id ?? null;
@@ -58,7 +71,9 @@ export async function POST(
     })
     .eq("id", id);
 
-  const redirectUrl = buildRedirect(request);
+  const redirectUrl = new URL("/admin/registrations", request.url);
+  redirectUrl.searchParams.set("category", category);
+  redirectUrl.searchParams.set("view", view);
 
   if (error) {
     redirectUrl.searchParams.set("error", formatErrorMessage(error));

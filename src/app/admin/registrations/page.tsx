@@ -302,6 +302,8 @@ export default async function Page({
                         method="post"
                         className="inline"
                       >
+                        <input type="hidden" name="category" value={currentCategory} />
+                        <input type="hidden" name="view" value={currentView} />
                         <button className="rounded border border-emerald-500 px-3 py-1 text-emerald-600 transition hover:bg-emerald-50">
                           Approve
                         </button>
@@ -312,6 +314,8 @@ export default async function Page({
                         method="post"
                         className="ml-3 inline"
                       >
+                        <input type="hidden" name="category" value={currentCategory} />
+                        <input type="hidden" name="view" value={currentView} />
                         <input
                           name="reason"
                           placeholder="Reason"
