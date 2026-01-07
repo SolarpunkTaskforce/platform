@@ -48,7 +48,7 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
 
     mapRef.current = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: "mapbox://styles/mapbox/outdoors-v12",
       center: [0, 0],
       zoom: 1.25,
     });
