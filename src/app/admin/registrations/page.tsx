@@ -2,12 +2,35 @@ import Link from "next/link";
 
 import clsx from "clsx";
 
+import { DeleteProjectButton } from "@/components/admin/DeleteProjectButton";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectStatus = "pending" | "approved" | "rejected";
 type ProjectCategory = "humanitarian" | "environmental";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+// NOTE: We keep the row type loose here because database.types.ts may lag behind
+// migrations (e.g. slug). We still rely on RLS + admin gating for access.
+type ProjectRow = {
+  id: string;
+  slug?: string | null;
+  name?: string | null;
+  description?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  place_name?: string | null;
+  lead_org_id?: string | null;
+  lead_org?: { name?: string | null }[] | null;
+  status?: ProjectStatus | string | null;
+  created_at?: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
+  rejected_at?: string | null;
+  rejected_by?: string | null;
+  rejection_reason?: string | null;
+  category?: ProjectCategory | string | null;
+};
 
 const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
   {
@@ -18,55 +41,37 @@ const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
   {
     id: "approved",
     label: "Approved",
-    description: "Approved projects appear with a pin on the public map.",
+    description: "Approved projects are public and show on the map.",
   },
   {
     id: "rejected",
     label: "Rejected",
-    description: "Projects that were rejected. You can optionally provide a reason when rejecting.",
+    description: "Rejected projects are hidden from the map but remain in the archive.",
   },
 ];
 
 const CATEGORIES: { id: ProjectCategory; label: string }[] = [
-  { id: "humanitarian", label: "Humanitarian" },
   { id: "environmental", label: "Environmental" },
+  { id: "humanitarian", label: "Humanitarian" },
 ];
 
-type ProjectRow = {
-  id: string;
-  name: string | null;
-  description: string | null;
-  lat: number | null;
-  lng: number | null;
-  place_name: string | null;
-  lead_org_id: string | null;
-
-  /**
-   * PostgREST joins are commonly typed as arrays, even for "single row" relationships.
-   * We only need the organisation name.
-   */
-  lead_org: { name: string | null }[] | null;
-
-  status: string | null;
-  created_at: string | null;
-  approved_at: string | null;
-  approved_by: string | null;
-  rejected_at: string | null;
-  rejected_by: string | null;
-  rejection_reason: string | null;
-  category?: ProjectCategory;
-};
-
-export default async function Page({
+export default async function AdminRegistrationsPage({
   searchParams,
 }: {
-  searchParams?: Promise<SearchParams>;
+  searchParams: Promise<SearchParams>;
 }) {
   const supabase = await getServerSupabase();
-  const { data: ok } = await supabase.rpc("is_admin");
-  if (!ok) return new Response(null, { status: 404 }) as never;
+  const resolvedSearchParams = await searchParams;
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const { data: isAdmin } = await supabase.rpc("is_admin");
+  if (!isAdmin) {
+    // keep behavior consistent: if not admin, do not show this page
+    return (
+      <main className="p-6">
+        <h1 className="text-2xl font-semibold">Not found</h1>
+      </main>
+    );
+  }
 
   const currentCategoryParam = Array.isArray(resolvedSearchParams?.category)
     ? resolvedSearchParams?.category[0]
@@ -77,12 +82,12 @@ export default async function Page({
       ? currentCategoryParam
       : "environmental";
 
-  // TODO: surface full metadata in /admin/projects/[id]
   const { data: projects, error } = await supabase
     .from("projects")
     .select(
       `
       id,
+      slug,
       name,
       description,
       lat,
@@ -113,11 +118,8 @@ export default async function Page({
 
   for (const raw of (projects ?? []) as unknown as ProjectRow[]) {
     const status = (raw.status as ProjectStatus | null) ?? "pending";
-    if (status in grouped) {
-      grouped[status].push(raw);
-    } else {
-      grouped.pending.push(raw);
-    }
+    if (status in grouped) grouped[status].push(raw);
+    else grouped.pending.push(raw);
   }
 
   const currentViewParam = Array.isArray(resolvedSearchParams?.view)
@@ -125,9 +127,7 @@ export default async function Page({
     : resolvedSearchParams?.view;
 
   const currentView: ProjectStatus =
-    currentViewParam === "approved" || currentViewParam === "rejected"
-      ? currentViewParam
-      : "pending";
+    currentViewParam === "approved" || currentViewParam === "rejected" ? currentViewParam : "pending";
 
   const messageParam = Array.isArray(resolvedSearchParams?.message)
     ? resolvedSearchParams?.message[0]
@@ -139,11 +139,11 @@ export default async function Page({
 
   const rows = grouped[currentView] ?? [];
 
-  // Base columns: Name, Organisation, Location, Submitted
+  // Base columns: Name, Organisation, Location, Submitted, Manage
   // + Pending: Actions (1)
   // + Approved: Approved On, Approved By (2)
   // + Rejected: Rejected On, Rejected By, Reason (3)
-  const baseColumnCount = 4;
+  const baseColumnCount = 5;
   const columnCount =
     currentView === "pending"
       ? baseColumnCount + 1
@@ -189,11 +189,11 @@ export default async function Page({
               : "border-emerald-200 bg-emerald-50 text-emerald-700",
           )}
         >
-          {errorParam ?? messageParam}
+          {errorParam ? errorParam : messageParam}
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {CATEGORIES.map(category => (
           <Link
             key={category.id}
@@ -227,18 +227,15 @@ export default async function Page({
                 ? "border-blue-600 bg-blue-600 text-white shadow"
                 : "border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-600",
             )}
+            title={view.description}
           >
-            {view.label} ({grouped[view.id]?.length ?? 0})
+            {view.label}
           </Link>
         ))}
       </div>
 
-      <p className="mb-4 text-sm text-gray-600">
-        {VIEWS.find(view => view.id === currentView)?.description}
-      </p>
-
-      <div className="overflow-auto rounded-xl border">
-        <table className="min-w-full text-sm">
+      <div className="overflow-hidden rounded-xl border">
+        <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-2">Name</th>
@@ -261,6 +258,7 @@ export default async function Page({
                 </>
               )}
 
+              <th className="px-4 py-2">Manage</th>
               {currentView === "pending" && <th className="px-4 py-2">Actions</th>}
             </tr>
           </thead>
@@ -273,63 +271,93 @@ export default async function Page({
                 </td>
               </tr>
             ) : (
-              rows.map(project => (
-                <tr key={project.id} className="border-t">
-                  <td className="px-4 py-3 font-medium text-gray-900">{project.name ?? ""}</td>
-                  <td className="px-4 py-3">{formatOrganisation(project)}</td>
-                  <td className="px-4 py-3">{formatLocation(project)}</td>
-                  <td className="px-4 py-3">{formatDate(project.created_at)}</td>
+              rows.map(project => {
+                const projectSlug = project.slug ?? project.id;
 
-                  {currentView === "approved" && (
-                    <>
-                      <td className="px-4 py-3">{formatDate(project.approved_at)}</td>
-                      <td className="px-4 py-3">{project.approved_by ?? ""}</td>
-                    </>
-                  )}
+                return (
+                  <tr key={project.id} className="border-t">
+                    <td className="px-4 py-3 font-medium text-gray-900">{project.name ?? ""}</td>
+                    <td className="px-4 py-3">{formatOrganisation(project)}</td>
+                    <td className="px-4 py-3">{formatLocation(project)}</td>
+                    <td className="px-4 py-3">{formatDate(project.created_at)}</td>
 
-                  {currentView === "rejected" && (
-                    <>
-                      <td className="px-4 py-3">{formatDate(project.rejected_at)}</td>
-                      <td className="px-4 py-3">{project.rejected_by ?? ""}</td>
-                      <td className="px-4 py-3">{project.rejection_reason ?? ""}</td>
-                    </>
-                  )}
+                    {currentView === "approved" && (
+                      <>
+                        <td className="px-4 py-3">{formatDate(project.approved_at)}</td>
+                        <td className="px-4 py-3">{project.approved_by ?? ""}</td>
+                      </>
+                    )}
 
-                  {currentView === "pending" && (
+                    {currentView === "rejected" && (
+                      <>
+                        <td className="px-4 py-3">{formatDate(project.rejected_at)}</td>
+                        <td className="px-4 py-3">{project.rejected_by ?? ""}</td>
+                        <td className="px-4 py-3">{project.rejection_reason ?? ""}</td>
+                      </>
+                    )}
+
                     <td className="px-4 py-3">
-                      <form
-                        action={`/api/admin/projects/${project.id}/approve`}
-                        method="post"
-                        className="inline"
-                      >
-                        <input type="hidden" name="category" value={currentCategory} />
-                        <input type="hidden" name="view" value={currentView} />
-                        <button className="rounded border border-emerald-500 px-3 py-1 text-emerald-600 transition hover:bg-emerald-50">
-                          Approve
-                        </button>
-                      </form>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/admin/projects/${project.id}`}
+                          className="rounded border border-gray-300 px-3 py-1 text-gray-700 transition hover:bg-gray-50"
+                        >
+                          Admin
+                        </Link>
 
-                      <form
-                        action={`/api/admin/projects/${project.id}/reject`}
-                        method="post"
-                        className="ml-3 inline"
-                      >
-                        <input type="hidden" name="category" value={currentCategory} />
-                        <input type="hidden" name="view" value={currentView} />
-                        <input
-                          name="reason"
-                          placeholder="Reason"
-                          className="mr-2 rounded border px-2 py-1"
-                          aria-label="Rejection reason"
+                        <Link
+                          href={`/projects/${projectSlug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded border border-blue-500 px-3 py-1 text-blue-600 transition hover:bg-blue-50"
+                        >
+                          Open
+                        </Link>
+
+                        <DeleteProjectButton
+                          projectId={project.id}
+                          category={currentCategory}
+                          view={currentView}
                         />
-                        <button className="rounded border border-red-500 px-3 py-1 text-red-600 transition hover:bg-red-50">
-                          Reject
-                        </button>
-                      </form>
+                      </div>
                     </td>
-                  )}
-                </tr>
-              ))
+
+                    {currentView === "pending" && (
+                      <td className="px-4 py-3">
+                        <form
+                          action={`/api/admin/projects/${project.id}/approve`}
+                          method="post"
+                          className="inline"
+                        >
+                          <input type="hidden" name="category" value={currentCategory} />
+                          <input type="hidden" name="view" value={currentView} />
+                          <button className="rounded border border-emerald-500 px-3 py-1 text-emerald-600 transition hover:bg-emerald-50">
+                            Approve
+                          </button>
+                        </form>
+
+                        <form
+                          action={`/api/admin/projects/${project.id}/reject`}
+                          method="post"
+                          className="ml-3 inline"
+                        >
+                          <input type="hidden" name="category" value={currentCategory} />
+                          <input type="hidden" name="view" value={currentView} />
+                          <input
+                            name="reason"
+                            placeholder="Reason"
+                            className="mr-2 rounded border px-2 py-1"
+                            aria-label="Rejection reason"
+                          />
+                          <button className="rounded border border-red-500 px-3 py-1 text-red-600 transition hover:bg-red-50">
+                            Reject
+                          </button>
+                        </form>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
