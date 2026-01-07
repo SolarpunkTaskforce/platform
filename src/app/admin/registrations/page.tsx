@@ -3,9 +3,10 @@ import Link from "next/link";
 import clsx from "clsx";
 
 import { DeleteProjectButton } from "@/components/admin/DeleteProjectButton";
+import { ProjectStatusControl } from "@/components/admin/ProjectStatusControl";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
-type ProjectStatus = "pending" | "approved" | "rejected";
+type ProjectStatus = "pending" | "approved" | "rejected" | "archived";
 type ProjectCategory = "humanitarian" | "environmental";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -36,7 +37,7 @@ const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
   {
     id: "pending",
     label: "Pending",
-    description: "Projects awaiting review. Approving will publish them on the map.",
+    description: "Projects awaiting review.",
   },
   {
     id: "approved",
@@ -46,7 +47,12 @@ const VIEWS: { id: ProjectStatus; label: string; description: string }[] = [
   {
     id: "rejected",
     label: "Rejected",
-    description: "Rejected projects are hidden from the map but remain in the archive.",
+    description: "Rejected projects are hidden from public pages/maps (admin-only).",
+  },
+  {
+    id: "archived",
+    label: "Archived",
+    description: "Archived projects are hidden from public pages/maps (admin-only).",
   },
 ];
 
@@ -114,6 +120,7 @@ export default async function AdminRegistrationsPage({
     pending: [],
     approved: [],
     rejected: [],
+    archived: [],
   };
 
   for (const raw of (projects ?? []) as unknown as ProjectRow[]) {
@@ -127,7 +134,11 @@ export default async function AdminRegistrationsPage({
     : resolvedSearchParams?.view;
 
   const currentView: ProjectStatus =
-    currentViewParam === "approved" || currentViewParam === "rejected" ? currentViewParam : "pending";
+    currentViewParam === "approved" ||
+    currentViewParam === "rejected" ||
+    currentViewParam === "archived"
+      ? currentViewParam
+      : "pending";
 
   const messageParam = Array.isArray(resolvedSearchParams?.message)
     ? resolvedSearchParams?.message[0]
@@ -142,7 +153,7 @@ export default async function AdminRegistrationsPage({
   // Base columns: Name, Organisation, Location, Submitted, Manage
   // + Pending: Actions (1)
   // + Approved: Approved On, Approved By (2)
-  // + Rejected: Rejected On, Rejected By, Reason (3)
+  // + Rejected/Archived: Rejected On, Rejected By, Reason (3)
   const baseColumnCount = 5;
   const columnCount =
     currentView === "pending"
@@ -177,7 +188,7 @@ export default async function AdminRegistrationsPage({
     <main className="p-6">
       <h1 className="mb-2 text-2xl font-semibold">Project Registrations — {currentCategoryLabel}</h1>
       <p className="mb-4 text-sm text-gray-600">
-        Reviewing {currentCategoryLabel.toLowerCase()} project submissions.
+        Reviewing {currentCategoryLabel.toLowerCase()} project submissions and archives.
       </p>
 
       {(messageParam || errorParam) && (
@@ -250,10 +261,14 @@ export default async function AdminRegistrationsPage({
                 </>
               )}
 
-              {currentView === "rejected" && (
+              {(currentView === "rejected" || currentView === "archived") && (
                 <>
-                  <th className="px-4 py-2">Rejected On</th>
-                  <th className="px-4 py-2">Rejected By</th>
+                  <th className="px-4 py-2">
+                    {currentView === "archived" ? "Last Rejected On" : "Rejected On"}
+                  </th>
+                  <th className="px-4 py-2">
+                    {currentView === "archived" ? "Last Rejected By" : "Rejected By"}
+                  </th>
                   <th className="px-4 py-2">Reason</th>
                 </>
               )}
@@ -288,7 +303,7 @@ export default async function AdminRegistrationsPage({
                       </>
                     )}
 
-                    {currentView === "rejected" && (
+                    {(currentView === "rejected" || currentView === "archived") && (
                       <>
                         <td className="px-4 py-3">{formatDate(project.rejected_at)}</td>
                         <td className="px-4 py-3">{project.rejected_by ?? ""}</td>
@@ -297,13 +312,14 @@ export default async function AdminRegistrationsPage({
                     )}
 
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/projects/${project.id}`}
-                          className="rounded border border-gray-300 px-3 py-1 text-gray-700 transition hover:bg-gray-50"
-                        >
-                          Admin
-                        </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Replace broken Admin button with a status switcher:
+                            Admins/Superadmins can move projects between Approved/Rejected/Archived
+                            from ANY view (including pending). */}
+                        <ProjectStatusControl
+                          projectId={project.id}
+                          currentStatus={project.status ?? "pending"}
+                        />
 
                         <Link
                           href={`/projects/${projectSlug}`}
@@ -324,6 +340,7 @@ export default async function AdminRegistrationsPage({
 
                     {currentView === "pending" && (
                       <td className="px-4 py-3">
+                        {/* Keep existing approve/reject shortcuts for reviewers */}
                         <form
                           action={`/api/admin/projects/${project.id}/approve`}
                           method="post"
@@ -364,8 +381,9 @@ export default async function AdminRegistrationsPage({
       </div>
 
       <p className="mt-2 text-xs text-gray-500">
-        Approved projects show on the public map. Rejected projects appear in the rejected archive
-        and can be revisited at any time.
+        Approved projects are public. Rejected and archived projects are hidden everywhere except
+        this admin registrations view. Use the Status dropdown to move projects between Approved,
+        Rejected, and Archived at any time.
       </p>
     </main>
   );
