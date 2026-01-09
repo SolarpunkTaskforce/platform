@@ -8,216 +8,345 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type ProjectLinksRow = Database["public"]["Tables"]["project_links"]["Row"];
 type ProjectMediaRow = Database["public"]["Tables"]["project_media"]["Row"];
 type OrganisationRow = Database["public"]["Tables"]["organisations"]["Row"];
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-
-type ProjectDetail = ProjectRow & {
-  lead_organisation: Pick<OrganisationRow, "id" | "name" | "website"> | null;
-  project_links: ProjectLinksRow[];
-  project_media: ProjectMediaRow[];
-  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name" | "role"> | null;
-};
-
-type RawProjectDetail = ProjectRow & {
-  lead_organisation: Pick<OrganisationRow, "id" | "name" | "website">[] | null;
-  project_links: ProjectLinksRow[] | null;
-  project_media: ProjectMediaRow[] | null;
-  created_by_profile: Pick<ProfileRow, "full_name" | "organisation_name" | "role">[] | null;
-};
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return "—";
-  return new Intl.DateTimeFormat("en-GB", { year: "numeric", month: "short", day: "2-digit" }).format(date);
-}
 
 function formatMoney(amount: number | null, currency: string | null) {
-  if (amount === null || amount === undefined) return "—";
+  if (typeof amount !== "number") return null;
+  const code = typeof currency === "string" && currency.trim().length > 0 ? currency : "USD";
   try {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: currency ?? "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount);
   } catch {
-    return currency ? `${currency} ${amount}` : `${amount}`;
+    return `${amount.toLocaleString()} ${code}`;
   }
 }
 
-function parseJsonLinks(value: ProjectRow["links"]) {
-  if (!value) return [] as { label?: string | null; url?: string | null }[];
-  if (Array.isArray(value)) return value as { label?: string | null; url?: string | null }[];
-  if (typeof value === "object" && value !== null) return Object.values(value) as { label?: string | null; url?: string | null }[];
-  return [];
+function formatDate(value: string | null) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+function normalizeJsonLinks(value: ProjectRow["links"]) {
+  // projects.links is Json | null (may be array or object depending on legacy data)
+  const out: Array<{ label?: string; url: string }> = [];
+
+  if (!value) return out;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (item && typeof item === "object") {
+        const url = (item as any).url;
+        const label = (item as any).label;
+        if (typeof url === "string" && url.trim()) {
+          out.push({
+            url: url.trim(),
+            label: typeof label === "string" && label.trim() ? label.trim() : undefined,
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  if (typeof value === "object") {
+    // If it's a map like { website: "https://..." }
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim()) out.push({ label: k, url: v.trim() });
+    }
+  }
+
+  return out;
+}
+
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
+
+  if (!slug || typeof slug !== "string") notFound();
 
   const supabase = await getServerSupabase();
 
-  // Rely on RLS to decide whether the current visitor can see the project.
-  // We *also* enforce approved-only content for public project pages.
-  const { data, error } = await supabase
+  // 1) Fetch the project by slug WITHOUT over-filtering.
+  // RLS is the source of truth: if user can't see it, PostgREST will return no rows or a permission error.
+  const { data: project, error: projectError } = await supabase
     .from("projects")
-    .select(
-      `*,
-       lead_organisation:organisations!projects_lead_org_id_fkey(id,name,website),
-       project_links:project_links(id,label,url,created_at),
-       project_media:project_media(id,path,caption,mime_type,created_at),
-       created_by_profile:profiles(full_name,organisation_name,role)
-      `
-    )
+    .select("*")
     .eq("slug", slug)
-    .eq("status", "approved")
     .single();
 
-  if (error || !data) {
-    // If the slug doesn't exist OR the visitor isn't allowed by RLS, we 404.
+  if (projectError || !project) {
+    // Only 404 for "not found" or "blocked by RLS"
+    if (projectError?.code === "PGRST116" || projectError?.code === "42501") notFound();
+    // Anything else is a real bug (schema mismatch, bad select, etc.) and should not masquerade as 404.
+    throw new Error(projectError?.message ?? "Failed to load project.");
+  }
+
+  // 2) Enforce public visibility for anonymous visitors (without hardcoding admin checks).
+  // If a project is not approved, we only allow rendering for signed-in users that RLS already allowed to fetch the row.
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user ?? null;
+
+  if (!user && project.status !== "approved") {
     notFound();
   }
 
-  const raw = data as RawProjectDetail;
+  // 3) Load related data with separate queries to avoid embedded-select relationship name mismatches
+  // (which can cause errors and accidental 404s).
+  let leadOrganisation: Pick<OrganisationRow, "id" | "name" | "website"> | null = null;
 
-  const project: ProjectDetail = {
-    ...raw,
-    lead_organisation: raw.lead_organisation?.[0] ?? null,
-    created_by_profile: raw.created_by_profile?.[0] ?? null,
-    project_links: raw.project_links ?? [],
-    project_media: raw.project_media ?? [],
-  };
+  if (project.lead_org_id) {
+    const { data: org, error: orgError } = await supabase
+      .from("organisations")
+      .select("id,name,website")
+      .eq("id", project.lead_org_id)
+      .maybeSingle();
 
-  // Fine-grained edit rights (owner/admin/editor share) are enforced in RLS for writes,
-  // but we use the SQL helper to conditionally show edit UI.
+    // If org is blocked by RLS or missing, we just show nothing (not a 404).
+    if (!orgError && org) leadOrganisation = org;
+  }
+
+  const { data: projectLinks } = await supabase
+    .from("project_links")
+    .select("id,label,url,created_at,project_id")
+    .eq("project_id", project.id)
+    .order("created_at", { ascending: true });
+
+  const { data: projectMedia } = await supabase
+    .from("project_media")
+    .select("id,path,caption,mime_type,created_at,project_id")
+    .eq("project_id", project.id)
+    .order("created_at", { ascending: false });
+
+  // 4) Can the current viewer edit? (used only for buttons)
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
 
-  const links = [
-    ...project.project_links.map(l => ({ label: l.label, url: l.url })),
-    ...parseJsonLinks(project.links),
-  ].filter(l => l?.url);
+  const normalizedLinks = [
+    ...(projectLinks ?? []).map(l => ({
+      label: l.label ?? undefined,
+      url: l.url,
+    })),
+    ...normalizeJsonLinks(project.links),
+  ].filter(l => typeof l.url === "string" && l.url.trim().length > 0);
+
+  const locationParts = [
+    project.place_name,
+    project.region,
+    project.country,
+  ].filter(Boolean) as string[];
+  const locationLabel = locationParts.length > 0 ? locationParts.join(", ") : null;
+
+  const start = formatDate(project.start_date);
+  const end = formatDate(project.end_date);
+
+  const donations = formatMoney(project.donations_received, project.currency);
+  const needed = formatMoney(project.amount_needed, project.currency);
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 pb-10 pt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900">{project.name}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-slate-700">
+    <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900">
+              {project.name}
+            </h1>
+            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600">
               {project.category}
             </span>
-            <span>·</span>
-            <span className="capitalize">{project.lifecycle_status}</span>
-            {project.place_name ? (
-              <>
-                <span>·</span>
-                <span>{project.place_name}</span>
-              </>
+            {project.status !== "approved" && user ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                {project.status}
+              </span>
             ) : null}
           </div>
+
+          {leadOrganisation?.name ? (
+            <p className="mt-1 text-sm text-slate-600">
+              Lead organisation:{" "}
+              {leadOrganisation.website ? (
+                <Link
+                  className="font-medium text-emerald-700 hover:underline"
+                  href={leadOrganisation.website}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {leadOrganisation.name}
+                </Link>
+              ) : (
+                <span className="font-medium text-slate-900">{leadOrganisation.name}</span>
+              )}
+            </p>
+          ) : null}
+
+          {locationLabel ? (
+            <p className="mt-1 text-sm text-slate-600">{locationLabel}</p>
+          ) : null}
         </div>
 
         {canEdit ? (
-          <div className="flex gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Link
               href={`/projects/${slug}/edit`}
-              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
               Edit
             </Link>
             <Link
               href={`/projects/${slug}/edit#sharing`}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
             >
               Share
             </Link>
           </div>
         ) : null}
-      </div>
+      </header>
 
-      <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">About</h2>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{project.description || "—"}</p>
-      </section>
+      {project.description ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Description
+          </h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-800">
+            {project.description}
+          </p>
+        </section>
+      ) : null}
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="mb-3 text-lg font-semibold text-slate-900">Organisation</h2>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Details
+        </h2>
 
-          {project.lead_organisation ? (
-            <div className="space-y-1">
-              <div className="text-sm font-medium text-slate-900">{project.lead_organisation.name}</div>
-              {project.lead_organisation.website ? (
-                <Link
-                  href={project.lead_organisation.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-emerald-700 hover:underline"
-                >
-                  {project.lead_organisation.website}
-                </Link>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Category
+            </dt>
+            <dd className="text-sm text-slate-900">{project.category}</dd>
+          </div>
+
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Timeline
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {start || end ? (
+                <span>
+                  {start ?? "—"} <span className="text-slate-400">→</span> {end ?? "—"}
+                </span>
               ) : (
-                <div className="text-sm text-slate-500">No website listed.</div>
+                "—"
               )}
-            </div>
-          ) : (
-            <div className="text-sm text-slate-500">No lead organisation listed.</div>
-          )}
+            </dd>
+          </div>
 
-          {project.created_by_profile ? (
-            <div className="mt-4 text-xs text-slate-500">
-              Submitted by{" "}
-              <span className="font-medium text-slate-700">{project.created_by_profile.full_name || "—"}</span>
-              {project.created_by_profile.organisation_name ? (
-                <>
-                  {" "}
-                  · <span>{project.created_by_profile.organisation_name}</span>
-                </>
-              ) : null}
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Funding
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {donations || needed ? (
+                <span>
+                  {donations ? <>Received: {donations}</> : null}
+                  {donations && needed ? <span className="text-slate-400"> · </span> : null}
+                  {needed ? <>Needed: {needed}</> : null}
+                </span>
+              ) : (
+                "—"
+              )}
+            </dd>
+          </div>
+
+          {project.lives_improved != null ? (
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Lives improved
+              </dt>
+              <dd className="text-sm text-slate-900">
+                {Number(project.lives_improved).toLocaleString()}
+              </dd>
             </div>
           ) : null}
-        </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="mb-3 text-lg font-semibold text-slate-900">Key details</h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          {project.type_of_intervention?.length ? (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Country</dt>
-              <dd className="mt-1 text-slate-800">{project.country || "—"}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Type of intervention
+              </dt>
+              <dd className="text-sm text-slate-900">
+                {project.type_of_intervention.join(", ")}
+              </dd>
             </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Region</dt>
-              <dd className="mt-1 text-slate-800">{project.region || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Start</dt>
-              <dd className="mt-1 text-slate-800">{formatDate(project.start_date)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">End</dt>
-              <dd className="mt-1 text-slate-800">{formatDate(project.end_date)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Funding needed</dt>
-              <dd className="mt-1 text-slate-800">{formatMoney(project.amount_needed, project.currency)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Donations received</dt>
-              <dd className="mt-1 text-slate-800">{formatMoney(project.donations_received, project.currency)}</dd>
-            </div>
-          </dl>
-        </section>
-      </div>
+          ) : null}
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Links</h2>
-        {links.length === 0 ? (
-          <p className="text-sm text-slate-500">No links provided.</p>
+          {project.target_demographics?.length ? (
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Target demographics
+              </dt>
+              <dd className="text-sm text-slate-900">
+                {project.target_demographics.join(", ")}
+              </dd>
+            </div>
+          ) : project.target_demographic ? (
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Target demographic
+              </dt>
+              <dd className="text-sm text-slate-900">{project.target_demographic}</dd>
+            </div>
+          ) : null}
+
+          {Array.isArray(project.thematic_area) && project.thematic_area.length > 0 ? (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Thematic areas
+              </dt>
+              <dd className="mt-1 flex flex-wrap gap-2">
+                {(project.thematic_area as string[]).map((item: string) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Links
+        </h2>
+
+        {normalizedLinks.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">No links added yet.</p>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {links.map((link, idx) => (
-              <li key={`${link.url}-${idx}`} className="flex items-center justify-between gap-3">
-                <span className="truncate text-slate-900">{link.label || link.url}</span>
-                <Link href={String(link.url)} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
+          <ul className="mt-3 space-y-2">
+            {normalizedLinks.map((l, idx) => (
+              <li
+                key={`${l.url}-${idx}`}
+                className="flex flex-col gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-slate-900">
+                    {l.label ?? l.url}
+                  </div>
+                  {l.label ? (
+                    <div className="truncate text-xs text-slate-500">{l.url}</div>
+                  ) : null}
+                </div>
+                <Link
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-medium text-emerald-700 hover:underline"
+                >
                   Open
                 </Link>
               </li>
@@ -226,19 +355,32 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         )}
       </section>
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Media</h2>
-        {project.project_media.length === 0 ? (
-          <p className="text-sm text-slate-500">No media uploaded.</p>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Media
+        </h2>
+
+        {(projectMedia?.length ?? 0) === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">No media uploaded yet.</p>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {project.project_media.map(item => (
-              <li key={item.id} className="flex items-center justify-between gap-3">
+          <ul className="mt-3 space-y-2">
+            {(projectMedia ?? []).map(item => (
+              <li
+                key={item.id}
+                className="flex flex-col gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div className="min-w-0">
-                  <div className="truncate font-medium text-slate-900">{item.caption || item.path}</div>
+                  <div className="truncate text-sm font-medium text-slate-900">
+                    {item.caption || item.path}
+                  </div>
                   <div className="text-xs text-slate-500">{item.mime_type || "Unknown type"}</div>
                 </div>
-                <Link href={item.path} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
+                <Link
+                  href={item.path}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-medium text-emerald-700 hover:underline"
+                >
                   View
                 </Link>
               </li>
