@@ -5,8 +5,6 @@ import type { Database } from "@/lib/database.types";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
-type ProjectLinksRow = Database["public"]["Tables"]["project_links"]["Row"];
-type ProjectMediaRow = Database["public"]["Tables"]["project_media"]["Row"];
 type OrganisationRow = Database["public"]["Tables"]["organisations"]["Row"];
 
 function formatMoney(amount: number | null, currency: string | null) {
@@ -26,31 +24,35 @@ function formatDate(value: string | null) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function normalizeJsonLinks(value: ProjectRow["links"]) {
   // projects.links is Json | null (may be array or object depending on legacy data)
   const out: Array<{ label?: string; url: string }> = [];
-
   if (!value) return out;
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      if (item && typeof item === "object") {
-        const url = (item as any).url;
-        const label = (item as any).label;
-        if (typeof url === "string" && url.trim()) {
-          out.push({
-            url: url.trim(),
-            label: typeof label === "string" && label.trim() ? label.trim() : undefined,
-          });
-        }
+      if (!isRecord(item)) continue;
+
+      const url = item["url"];
+      const label = item["label"];
+
+      if (typeof url === "string" && url.trim()) {
+        out.push({
+          url: url.trim(),
+          label: typeof label === "string" && label.trim() ? label.trim() : undefined,
+        });
       }
     }
     return out;
   }
 
-  if (typeof value === "object") {
+  if (isRecord(value)) {
     // If it's a map like { website: "https://..." }
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(value)) {
       if (typeof v === "string" && v.trim()) out.push({ label: k, url: v.trim() });
     }
   }
@@ -124,18 +126,16 @@ export default async function ProjectDetailPage({
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
 
   const normalizedLinks = [
-    ...(projectLinks ?? []).map(l => ({
+    ...(projectLinks ?? []).map((l) => ({
       label: l.label ?? undefined,
       url: l.url,
     })),
     ...normalizeJsonLinks(project.links),
-  ].filter(l => typeof l.url === "string" && l.url.trim().length > 0);
+  ].filter((l) => typeof l.url === "string" && l.url.trim().length > 0);
 
-  const locationParts = [
-    project.place_name,
-    project.region,
-    project.country,
-  ].filter(Boolean) as string[];
+  const locationParts = [project.place_name, project.region, project.country].filter(
+    Boolean
+  ) as string[];
   const locationLabel = locationParts.length > 0 ? locationParts.join(", ") : null;
 
   const start = formatDate(project.start_date);
@@ -180,9 +180,7 @@ export default async function ProjectDetailPage({
             </p>
           ) : null}
 
-          {locationLabel ? (
-            <p className="mt-1 text-sm text-slate-600">{locationLabel}</p>
-          ) : null}
+          {locationLabel ? <p className="mt-1 text-sm text-slate-600">{locationLabel}</p> : null}
         </div>
 
         {canEdit ? (
@@ -215,9 +213,7 @@ export default async function ProjectDetailPage({
       ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Details
-        </h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Details</h2>
 
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
@@ -243,9 +239,7 @@ export default async function ProjectDetailPage({
           </div>
 
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Funding
-            </dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Funding</dt>
             <dd className="text-sm text-slate-900">
               {donations || needed ? (
                 <span>
@@ -320,9 +314,7 @@ export default async function ProjectDetailPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Links
-        </h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Links</h2>
 
         {normalizedLinks.length === 0 ? (
           <p className="mt-3 text-sm text-slate-600">No links added yet.</p>
@@ -337,9 +329,7 @@ export default async function ProjectDetailPage({
                   <div className="truncate text-sm font-medium text-slate-900">
                     {l.label ?? l.url}
                   </div>
-                  {l.label ? (
-                    <div className="truncate text-xs text-slate-500">{l.url}</div>
-                  ) : null}
+                  {l.label ? <div className="truncate text-xs text-slate-500">{l.url}</div> : null}
                 </div>
                 <Link
                   href={l.url}
@@ -356,15 +346,13 @@ export default async function ProjectDetailPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Media
-        </h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Media</h2>
 
         {(projectMedia?.length ?? 0) === 0 ? (
           <p className="mt-3 text-sm text-slate-600">No media uploaded yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {(projectMedia ?? []).map(item => (
+            {(projectMedia ?? []).map((item) => (
               <li
                 key={item.id}
                 className="flex flex-col gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
