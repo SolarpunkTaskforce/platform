@@ -29,6 +29,19 @@ type PartnerRow = { organisation_id: string | null };
 type SdgRow = { sdg_id: number | null };
 type IfrcRow = { challenge_id: number | null };
 
+function asOptionalString(value: string | null | undefined) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asOptionalNumber(value: number | null | undefined) {
+  return typeof value === "number" ? value : undefined;
+}
+
+function asOptionalDateString(value: string | null | undefined) {
+  // ProjectForm commonly wants `string | undefined` for dates.
+  return typeof value === "string" && value.length ? value : undefined;
+}
+
 export default async function ProjectEditPage({
   params,
 }: {
@@ -37,7 +50,6 @@ export default async function ProjectEditPage({
   const supabase = await getServerSupabase();
   const { slug } = await params;
 
-  // Fetch by slug; RLS will prevent fetching if user cannot view.
   const { data, error } = await supabase
     .from("projects")
     .select(
@@ -78,42 +90,73 @@ export default async function ProjectEditPage({
     project_ifrc_challenges?: IfrcRow[] | null;
   };
 
-  // Now check edit permission explicitly (still relying on RLS, but makes intent clear).
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
   if (!canEdit) notFound();
 
   const normalizedCategory: "humanitarian" | "environmental" =
     project.category === "humanitarian" ? "humanitarian" : "environmental";
 
+  const hasLocation =
+    typeof project.lat === "number" &&
+    typeof project.lng === "number" &&
+    typeof project.place_name === "string" &&
+    project.place_name.length > 0;
+
   const initialValues = {
+    // Strict union expected by ProjectForm
     category: normalizedCategory,
+
+    // Strings: use empty string for required user-facing fields
     name: project.name ?? "",
     description: project.description ?? "",
-    lead_org_id: project.lead_org_id ?? undefined,
-    location:
-      typeof project.lat === "number" && typeof project.lng === "number" && project.place_name
-        ? { lat: project.lat, lng: project.lng, place_name: project.place_name }
-        : null,
-    type_of_intervention: project.type_of_intervention ?? [],
-    thematic_area: project.thematic_area ?? [],
+
+    // Optional strings should be undefined, not null
+    lead_org_id: asOptionalString(project.lead_org_id),
+
+    // ProjectForm appears to use `location: ... | null`
+    location: hasLocation
+      ? { lat: project.lat as number, lng: project.lng as number, place_name: project.place_name as string }
+      : null,
+
+    // Arrays: default to []
+    type_of_intervention: Array.isArray(project.type_of_intervention) ? project.type_of_intervention : [],
+    thematic_area: Array.isArray(project.thematic_area) ? project.thematic_area : [],
+
+    // Optional strings: undefined, not null
     target_demographic: project.target_demographic ?? "",
-    lives_improved: project.lives_improved ?? null,
-    start_date: project.start_date ?? null,
-    end_date: project.end_date ?? null,
-    donations_received: project.donations_received ?? null,
-    amount_needed: project.amount_needed ?? null,
+
+    // Optional numbers: undefined, not null
+    lives_improved: asOptionalNumber(project.lives_improved),
+    donations_received: asOptionalNumber(project.donations_received),
+    amount_needed: asOptionalNumber(project.amount_needed),
+
+    // Dates: undefined, not null (ProjectForm expects undefined)
+    start_date: asOptionalDateString(project.start_date),
+    end_date: asOptionalDateString(project.end_date),
+
     currency: project.currency ?? "USD",
+
+    // Links: keep at least one row for UI; label can be undefined
     links:
       project.project_links?.length
-        ? project.project_links.map(l => ({ url: l.url ?? "", label: l.label ?? "" }))
-        : [{ url: "", label: "" }],
+        ? project.project_links
+            .filter(l => typeof l.url === "string" && l.url.length > 0)
+            .map(l => ({ url: l.url as string, label: l.label ?? undefined }))
+        : [{ url: "", label: undefined }],
+
+    // partner_org_ids must be string[]
     partner_org_ids:
       project.project_partners
         ?.map(p => p.organisation_id)
         .filter((v): v is string => typeof v === "string" && v.length > 0) ?? [],
+
+    // sdg_ids must be number[]
     sdg_ids:
-      project.project_sdgs?.map(s => s.sdg_id).filter((v): v is number => typeof v === "number") ??
-      [],
+      project.project_sdgs
+        ?.map(s => s.sdg_id)
+        .filter((v): v is number => typeof v === "number") ?? [],
+
+    // ifrc_ids must be number[]
     ifrc_ids:
       project.project_ifrc_challenges
         ?.map(i => i.challenge_id)
