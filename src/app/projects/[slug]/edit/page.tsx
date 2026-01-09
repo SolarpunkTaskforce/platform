@@ -37,9 +37,10 @@ function asOptionalNumber(value: number | null | undefined) {
   return typeof value === "number" ? value : undefined;
 }
 
-function asOptionalDateString(value: string | null | undefined) {
-  // ProjectForm commonly wants `string | undefined` for dates.
-  return typeof value === "string" && value.length ? value : undefined;
+function asOptionalDate(value: string | null | undefined) {
+  if (typeof value !== "string" || !value.length) return undefined;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
 export default async function ProjectEditPage({
@@ -131,8 +132,8 @@ export default async function ProjectEditPage({
     amount_needed: asOptionalNumber(project.amount_needed),
 
     // Dates: undefined, not null (ProjectForm expects undefined)
-    start_date: asOptionalDateString(project.start_date),
-    end_date: asOptionalDateString(project.end_date),
+    start_date: asOptionalDate(project.start_date),
+    end_date: asOptionalDate(project.end_date),
 
     currency: project.currency ?? "USD",
 
