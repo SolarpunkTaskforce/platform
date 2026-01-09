@@ -82,8 +82,11 @@ export default async function ProjectEditPage({
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
   if (!canEdit) notFound();
 
+  const normalizedCategory: "humanitarian" | "environmental" =
+    project.category === "humanitarian" ? "humanitarian" : "environmental";
+
   const initialValues = {
-    category: project.category ?? "environmental",
+    category: normalizedCategory,
     name: project.name ?? "",
     description: project.description ?? "",
     lead_org_id: project.lead_org_id ?? undefined,
@@ -105,7 +108,9 @@ export default async function ProjectEditPage({
         ? project.project_links.map(l => ({ url: l.url ?? "", label: l.label ?? "" }))
         : [{ url: "", label: "" }],
     partner_org_ids:
-      project.project_partners?.map(p => p.organisation_id).filter(Boolean) ?? [],
+      project.project_partners
+        ?.map(p => p.organisation_id)
+        .filter((v): v is string => typeof v === "string" && v.length > 0) ?? [],
     sdg_ids:
       project.project_sdgs?.map(s => s.sdg_id).filter((v): v is number => typeof v === "number") ??
       [],
