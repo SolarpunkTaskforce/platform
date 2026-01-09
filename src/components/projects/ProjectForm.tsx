@@ -346,7 +346,13 @@ const DateDropdowns = forwardRef<HTMLDivElement, DateDropdownsProps>(
 
 DateDropdowns.displayName = "DateDropdowns";
 
-export default function ProjectForm() {
+type ProjectFormProps = {
+  mode?: "create" | "edit";
+  projectId?: string;
+  initialValues?: Partial<FormValues>;
+};
+
+export default function ProjectForm({ mode = "create", projectId, initialValues }: ProjectFormProps) {
   const router = useRouter();
   const [orgOptions, setOrgOptions] = useState<Option[]>([]);
   const [sdgOptions, setSdgOptions] = useState<Option[]>([]);
@@ -359,9 +365,17 @@ export default function ProjectForm() {
   const [thematicDraft, setThematicDraft] = useState("");
   const [showGeocoder, setShowGeocoder] = useState(false);
 
+  const defaultValues = useMemo(
+    () => ({
+      ...createDefaultValues(),
+      ...(initialValues ?? {}),
+    }),
+    [initialValues],
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
-    defaultValues: createDefaultValues(),
+    defaultValues,
     mode: "onBlur",
   });
 
@@ -392,6 +406,15 @@ export default function ProjectForm() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (initialValues) {
+      reset({
+        ...createDefaultValues(),
+        ...initialValues,
+      } as FormValues);
+    }
+  }, [initialValues, reset]);
 
   const selectedInterventions = watch("type_of_intervention");
   const selectedThemes = watch("thematic_area");
@@ -445,7 +468,10 @@ export default function ProjectForm() {
         .filter(link => link.url.trim().length > 0)
         .map(link => ({ url: link.url.trim(), label: link.label }));
 
-      const response = await fetch("/api/projects/submit", {
+      const isEditMode = mode === "edit" && Boolean(projectId);
+      const endpoint = isEditMode ? `/api/projects/${projectId}/update` : "/api/projects/submit";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -479,7 +505,8 @@ export default function ProjectForm() {
         throw new Error(message);
       }
 
-      const { id } = (await response.json()) as { id: string; status: string };
+      const returned = (await response.json()) as { id: string; status?: string; slug?: string };
+      const { id } = returned;
 
       if (files.length) {
         const initialUploads: UploadState[] = files.map(file => ({
@@ -536,7 +563,11 @@ export default function ProjectForm() {
       setUploads([]);
       setInterventionDraft("");
       setThematicDraft("");
-      router.push("/projects/new/confirmation");
+      if (isEditMode) {
+        router.push(`/projects/${returned.slug ?? returned.id}`);
+      } else {
+        router.push("/projects/new/confirmation");
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Submission failed");
     } finally {
@@ -1129,7 +1160,7 @@ export default function ProjectForm() {
         <div className="sticky bottom-4 z-10 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg sm:static sm:border-none sm:bg-transparent sm:p-0 sm:shadow-none">
           <Button type="submit" disabled={isSubmitting} className="inline-flex w-full items-center justify-center gap-2">
             {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            {isSubmitting ? "Submitting" : "Submit project"}
+            {isSubmitting ? (mode === "edit" ? "Saving" : "Submitting") : mode === "edit" ? "Save changes" : "Submit project"}
           </Button>
           <p className="mt-2 text-center text-xs text-slate-500">
             Submission goes to the Solarpunk Taskforce team for review. You can add more media after approval.
