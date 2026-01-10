@@ -1047,39 +1047,66 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
+          country_based: string | null
+          country_from: string | null
           created_at: string | null
+          date_of_birth: string | null
+          first_name: string | null
           full_name: string | null
           id: string
           is_admin: boolean | null
           kind: string
+          last_name: string | null
           nationality: string | null
+          occupation: string | null
           organisation_id: string | null
           organisation_name: string | null
           role: string
+          social_links: Json | null
           surname: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          country_based?: string | null
+          country_from?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
+          first_name?: string | null
           full_name?: string | null
           id: string
           is_admin?: boolean | null
           kind?: string
+          last_name?: string | null
           nationality?: string | null
+          occupation?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
           role?: string
+          social_links?: Json | null
           surname?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          country_based?: string | null
+          country_from?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
           kind?: string
+          last_name?: string | null
           nationality?: string | null
+          occupation?: string | null
           organisation_id?: string | null
           organisation_name?: string | null
           role?: string
+          social_links?: Json | null
           surname?: string | null
         }
         Relationships: [
