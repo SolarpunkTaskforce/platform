@@ -23,11 +23,15 @@ type Marker = {
 type MapProps = {
   markers?: Marker[];
   markerColor?: string;
+  focusSlug?: string | null;
 };
 
 type MarkerObject = {
   marker: mapboxgl.Marker;
   element: HTMLDivElement;
+  slug: string;
+  lng: number;
+  lat: number;
 };
 
 const getMarkerScale = (zoom: number) => {
@@ -36,7 +40,11 @@ const getMarkerScale = (zoom: number) => {
   return Math.min(Math.max(scale, 0.65), 1.75);
 };
 
-export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps) {
+export default function Map({
+  markers = [],
+  markerColor = "#22c55e",
+  focusSlug = null,
+}: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -53,20 +61,25 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
       zoom: 1.25,
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+    mapRef.current.addControl(
+      new mapboxgl.NavigationControl({ visualizePitch: true }),
+      "top-right"
+    );
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    markerObjs.current.forEach(obj => obj.marker.remove());
+    markerObjs.current.forEach((obj) => obj.marker.remove());
     markerObjs.current = [];
 
-    const validMarkers = markers.filter(m => Number.isFinite(m.lng) && Number.isFinite(m.lat));
+    const validMarkers = markers.filter(
+      (m) => Number.isFinite(m.lng) && Number.isFinite(m.lat)
+    );
     const scale = getMarkerScale(map.getZoom());
 
-    validMarkers.forEach(m => {
+    validMarkers.forEach((m) => {
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px" });
 
       const popupNode = document.createElement("div");
@@ -113,14 +126,24 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
         transform: `translate(-50%, -50%) scale(${scale})`,
       });
 
-      const marker = new mapboxgl.Marker({ element: el }).setLngLat([m.lng, m.lat]).setPopup(popup).addTo(map);
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([m.lng, m.lat])
+        .setPopup(popup)
+        .addTo(map);
 
-      markerObjs.current.push({ marker, element: el });
+      markerObjs.current.push({
+        marker,
+        element: el,
+        slug: m.slug,
+        lng: m.lng,
+        lat: m.lat,
+      });
     });
 
+    // Fit map to markers
     if (validMarkers.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
-      validMarkers.forEach(m => bounds.extend([m.lng, m.lat]));
+      validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
 
       if (validMarkers.length === 1) {
         map.easeTo({
@@ -132,7 +155,21 @@ export default function Map({ markers = [], markerColor = "#22c55e" }: MapProps)
         map.fitBounds(bounds, { padding: 40, duration: 1000 });
       }
     }
-  }, [markerColor, markers, router]);
+
+    // Focus a specific project marker (open popup + center map)
+    if (focusSlug) {
+      const focused = markerObjs.current.find((o) => o.slug === focusSlug);
+      if (focused) {
+        map.easeTo({
+          center: [focused.lng, focused.lat],
+          zoom: Math.max(map.getZoom(), 4),
+          duration: 800,
+        });
+
+        focused.marker.getPopup()?.addTo(map);
+      }
+    }
+  }, [focusSlug, markerColor, markers, router]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

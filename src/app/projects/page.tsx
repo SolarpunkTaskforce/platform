@@ -3,8 +3,8 @@ import Link from "next/link";
 import ProjectsFilters from "@/components/projects/ProjectsFilters";
 import ProjectsPagination from "@/components/projects/ProjectsPagination";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { fetchFindProjects, PAGE_SIZE, type ProjectListRow } from "@/lib/projects/findProjectsQuery";
+import { cn } from "@/lib/utils";
 
 const formatDate = (value: string | null) => {
   if (!value) return "—";
@@ -112,22 +112,32 @@ export default async function ProjectsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rows.map(project => {
-                const slug = getProjectSlug(project);
+              {rows.map((project) => {
+                const slugForPath = getProjectSlug(project);
                 const tags = getTagPreview(project);
+
+                // IMPORTANT: project.slug is typed as string | null in DB types.
+                // Only include focus when slug is a real string.
+                const focusSlug = project.slug ?? null;
+                const mapHref = focusSlug
+                  ? `${mapRouteByCategory(project.category)}?focus=${encodeURIComponent(focusSlug)}`
+                  : mapRouteByCategory(project.category);
+
                 return (
                   <tr key={project.id} className="align-top">
                     <td className="px-4 py-4">
                       <Link
                         className="font-semibold text-emerald-700 hover:text-emerald-800"
-                        href={`/projects/${encodeURIComponent(slug)}`}
+                        href={`/projects/${encodeURIComponent(slugForPath)}`}
                       >
                         {project.name}
                       </Link>
                     </td>
                     <td className="px-4 py-4 capitalize text-slate-700">{project.category}</td>
                     <td className="px-4 py-4 text-slate-600">{getLocationLabel(project)}</td>
-                    <td className="px-4 py-4 text-slate-600">{formatDateRange(project.start_date, project.end_date)}</td>
+                    <td className="px-4 py-4 text-slate-600">
+                      {formatDateRange(project.start_date, project.end_date)}
+                    </td>
                     <td className="px-4 py-4 text-slate-600">
                       <div>{formatCurrency(project.donations_received, project.currency)}</div>
                       <div className="text-xs text-slate-400">
@@ -137,7 +147,7 @@ export default async function ProjectsPage({
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-1">
                         {tags.length > 0 ? (
-                          tags.map(tag => (
+                          tags.map((tag) => (
                             <Badge key={tag} variant="outline" className="text-xs">
                               {tag}
                             </Badge>
@@ -150,13 +160,13 @@ export default async function ProjectsPage({
                     <td className="px-4 py-4 text-right">
                       <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
                         <Link
-                          href={`/projects/${encodeURIComponent(slug)}`}
+                          href={`/projects/${encodeURIComponent(slugForPath)}`}
                           className={cn(buttonClasses, buttonSizes.sm, buttonVariants.secondary)}
                         >
                           Open
                         </Link>
                         <Link
-                          href={`${mapRouteByCategory(project.category)}?focus=${encodeURIComponent(project.slug)}`}
+                          href={mapHref}
                           className={cn(buttonClasses, buttonSizes.sm, buttonVariants.outline)}
                         >
                           See on the map
