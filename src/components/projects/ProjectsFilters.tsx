@@ -104,12 +104,15 @@ export default function ProjectsFilters() {
 
         <label className="space-y-1 text-sm text-slate-600">
           <span className="font-medium text-slate-900">Category</span>
-          <Select value={categoryValue} onValueChange={value => updateParams({ category: value })}>
+          <Select
+            value={categoryValue || "all"}
+            onValueChange={value => updateParams({ category: value === "all" ? "" : value })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All categories</SelectItem>
+              <SelectItem value="all">All categories</SelectItem>
               <SelectItem value="humanitarian">Humanitarian</SelectItem>
               <SelectItem value="environmental">Environmental</SelectItem>
             </SelectContent>
