@@ -117,6 +117,13 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organisation_members_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organisations: {
@@ -127,6 +134,9 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
           website: string | null
         }
         Insert: {
@@ -136,6 +146,9 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
         }
         Update: {
@@ -145,6 +158,9 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
         }
         Relationships: []
@@ -192,6 +208,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
             referencedColumns: ["id"]
           },
         ]
@@ -336,6 +359,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_partners_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
             referencedColumns: ["id"]
           },
           {
@@ -601,6 +631,13 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_lead_org_id_fkey"
+            columns: ["lead_org_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sdgs: {
@@ -815,7 +852,29 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_lead_org_id_fkey"
+            columns: ["lead_org_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      verified_organisations: {
+        Row: {
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
