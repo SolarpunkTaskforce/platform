@@ -86,14 +86,8 @@ export default async function ProjectDetailPage({
     throw new Error(projectError?.message ?? "Failed to load project.");
   }
 
-  // 2) Enforce public visibility for anonymous visitors (without hardcoding admin checks).
-  // If a project is not approved, we only allow rendering for signed-in users that RLS already allowed to fetch the row.
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
-
-  if (!user && project.status !== "approved") {
-    notFound();
-  }
 
   // 3) Load related data with separate queries to avoid embedded-select relationship name mismatches
   // (which can cause errors and accidental 404s).

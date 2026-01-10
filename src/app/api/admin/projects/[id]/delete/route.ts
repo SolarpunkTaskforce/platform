@@ -43,6 +43,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     supabase.from("project_partners").delete().eq("project_id", id),
     supabase.from("project_sdgs").delete().eq("project_id", id),
     supabase.from("project_ifrc_challenges").delete().eq("project_id", id),
+    supabase.from("project_collaborators").delete().eq("project_id", id),
     // May not exist in some environments; ignore missing-table error only for this one.
     supabase.from("project_shares").delete().eq("project_id", id),
   ];
@@ -53,9 +54,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (res.error) {
       const msg = errorMessage(res.error);
       const isMissingSharesTable =
-        msg.toLowerCase().includes("project_shares") && msg.toLowerCase().includes("does not exist");
+        msg.toLowerCase().includes("project_shares") &&
+        msg.toLowerCase().includes("does not exist");
+      const isMissingCollaboratorsTable =
+        msg.toLowerCase().includes("project_collaborators") &&
+        msg.toLowerCase().includes("does not exist");
 
-      if (isMissingSharesTable) continue;
+      if (isMissingSharesTable || isMissingCollaboratorsTable) continue;
 
       redirectUrl.searchParams.set("error", `Failed to delete related records: ${msg}`);
       return NextResponse.redirect(redirectUrl);
