@@ -20,6 +20,11 @@ export default async function AdminIndexPage() {
       description: "Review pending project submissions and manage their status.",
     },
     {
+      href: "/admin/organisations",
+      title: "Organisation verification",
+      description: "Verify pending organisations and manage their status.",
+    },
+    {
       href: "/admin/registrations",
       title: "Registrations",
       description: "Check organisation and user onboarding requests.",
