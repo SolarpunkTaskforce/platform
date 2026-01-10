@@ -156,7 +156,7 @@ export default async function ProjectsPage({
                           Open
                         </Link>
                         <Link
-                          href={mapRouteByCategory(project.category)}
+                          href={`${mapRouteByCategory(project.category)}?focus=${encodeURIComponent(project.slug)}`}
                           className={cn(buttonClasses, buttonSizes.sm, buttonVariants.outline)}
                         >
                           See on the map
