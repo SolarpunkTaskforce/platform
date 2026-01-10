@@ -1,0 +1,713 @@
+"use client";
+
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useRouter } from "next/navigation";
+
+import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
+import { supabaseClient } from "@/lib/supabaseClient";
+
+let supabaseInitializationError: MissingSupabaseEnvError | null = null;
+let supabase: ReturnType<typeof supabaseClient> | null = null;
+
+try {
+  supabase = supabaseClient();
+} catch (error) {
+  if (error instanceof MissingSupabaseEnvError) {
+    supabaseInitializationError = error;
+    supabase = null;
+  } else {
+    throw error;
+  }
+}
+
+type SocialLinkType =
+  | "LinkedIn"
+  | "YouTube"
+  | "Instagram"
+  | "Facebook"
+  | "Website"
+  | "X"
+  | "Threads";
+
+type SocialLink = { type: SocialLinkType; url: string };
+
+type VerifiedOrganisation = { id: string; name: string };
+
+const socialLinkTypes: SocialLinkType[] = [
+  "LinkedIn",
+  "YouTube",
+  "Instagram",
+  "Facebook",
+  "Website",
+  "X",
+  "Threads",
+];
+
+const emptySocialLink: SocialLink = { type: "LinkedIn", url: "" };
+
+const initialIndividual = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  password: "",
+  date_of_birth: "",
+  organisation_id: "independent",
+  country_from: "",
+  country_based: "",
+  occupation: "",
+  bio: "",
+  avatar_url: "",
+};
+
+const initialOrganisation = {
+  email: "",
+  password: "",
+  name: "",
+  country_based: "",
+  what_we_do: "",
+  existing_since: "",
+  website: "",
+  logo_url: "",
+};
+
+export default function SignupTabs() {
+  if (!supabase) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        {supabaseInitializationError?.message}
+      </div>
+    );
+  }
+
+  return <SignupTabsContent client={supabase} />;
+}
+
+type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
+
+function SignupTabsContent({ client }: { client: SupabaseClient }) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"individual" | "organisation">(
+    "individual"
+  );
+  const [individual, setIndividual] = useState(initialIndividual);
+  const [organisation, setOrganisation] = useState(initialOrganisation);
+  const [individualLinks, setIndividualLinks] = useState<SocialLink[]>([emptySocialLink]);
+  const [organisationLinks, setOrganisationLinks] = useState<SocialLink[]>([emptySocialLink]);
+  const [verifiedOrgs, setVerifiedOrgs] = useState<VerifiedOrganisation[]>([]);
+  const [orgsError, setOrgsError] = useState<string | null>(null);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState<{ text: string; tone: "error" | "success" } | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+  const siteUrl = useMemo(() => process.env.NEXT_PUBLIC_SITE_URL || "", []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadVerifiedOrgs() {
+      setOrgsLoading(true);
+      setOrgsError(null);
+      const { data, error } = await client
+        .from("verified_organisations")
+        .select("id, name")
+        .order("name");
+
+      if (!isActive) return;
+
+      if (error) {
+        setOrgsError(error.message);
+      } else {
+        setVerifiedOrgs(data ?? []);
+      }
+      setOrgsLoading(false);
+    }
+
+    loadVerifiedOrgs();
+
+    return () => {
+      isActive = false;
+    };
+  }, [client]);
+
+  function updateIndividualField(field: keyof typeof individual, value: string) {
+    setIndividual((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function updateOrganisationField(field: keyof typeof organisation, value: string) {
+    setOrganisation((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function updateSocialLinks(
+    updater: Dispatch<SetStateAction<SocialLink[]>>,
+    index: number,
+    field: keyof SocialLink,
+    value: string
+  ) {
+    updater((prev) =>
+      prev.map((link, idx) => (idx === index ? { ...link, [field]: value } : link))
+    );
+  }
+
+  function addSocialLink(updater: Dispatch<SetStateAction<SocialLink[]>>) {
+    updater((prev) => [...prev, { ...emptySocialLink }]);
+  }
+
+  function removeSocialLink(
+    updater: Dispatch<SetStateAction<SocialLink[]>>,
+    index: number
+  ) {
+    updater((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
+  function normalizeLinks(links: SocialLink[]) {
+    return links
+      .map((link) => ({ ...link, url: link.url.trim() }))
+      .filter((link) => link.url.length > 0);
+  }
+
+  function validateIndividual() {
+    const nextErrors: Record<string, string> = {};
+    if (!individual.first_name.trim()) nextErrors.first_name = "First name is required.";
+    if (!individual.last_name.trim()) nextErrors.last_name = "Last name is required.";
+    if (!individual.email.trim()) nextErrors.email = "Email is required.";
+    if (!individual.password.trim()) nextErrors.password = "Password is required.";
+    if (!individual.date_of_birth) nextErrors.date_of_birth = "Date of birth is required.";
+    if (!individual.organisation_id) {
+      nextErrors.organisation_id = "Organisation selection is required.";
+    }
+    if (!individual.country_based.trim()) {
+      nextErrors.country_based = "Country based is required.";
+    }
+
+    return nextErrors;
+  }
+
+  function validateOrganisation() {
+    const nextErrors: Record<string, string> = {};
+    if (!organisation.email.trim()) nextErrors.email = "Email is required.";
+    if (!organisation.password.trim()) nextErrors.password = "Password is required.";
+    if (!organisation.name.trim()) nextErrors.name = "Organisation name is required.";
+    if (!organisation.country_based.trim()) {
+      nextErrors.country_based = "Country based is required.";
+    }
+    if (!organisation.what_we_do.trim()) nextErrors.what_we_do = "What we do is required.";
+    return nextErrors;
+  }
+
+  async function handleIndividualSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    const nextErrors = validateIndividual();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors({});
+    setLoading(true);
+
+    try {
+      const { data, error } = await client.auth.signUp({
+        email: individual.email,
+        password: individual.password,
+        options: {
+          emailRedirectTo: siteUrl ? `${siteUrl}/auth` : undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data.user?.id) throw new Error("Unable to create user profile.");
+
+      const organisationId =
+        individual.organisation_id === "independent" ? null : individual.organisation_id;
+
+      const { error: profileError } = await client.from("profiles").upsert({
+        id: data.user.id,
+        first_name: individual.first_name.trim(),
+        last_name: individual.last_name.trim(),
+        date_of_birth: individual.date_of_birth,
+        organisation_id: organisationId,
+        country_from: individual.country_from.trim() || null,
+        country_based: individual.country_based.trim(),
+        occupation: individual.occupation.trim() || null,
+        bio: individual.bio.trim() || null,
+        social_links: normalizeLinks(individualLinks),
+        avatar_url: individual.avatar_url.trim() || null,
+      });
+      if (profileError) throw profileError;
+
+      setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
+      setTimeout(() => {
+        router.replace("/projects");
+        router.refresh();
+      }, 400);
+    } catch (err: unknown) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Unable to sign up.",
+        tone: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOrganisationSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    const nextErrors = validateOrganisation();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors({});
+    setLoading(true);
+
+    try {
+      const { data, error } = await client.auth.signUp({
+        email: organisation.email,
+        password: organisation.password,
+        options: {
+          emailRedirectTo: siteUrl ? `${siteUrl}/auth` : undefined,
+        },
+      });
+      if (error) throw error;
+      if (!data.user?.id) throw new Error("Unable to create organisation account.");
+
+      const { error: organisationError } = await client.from("organisations").insert({
+        name: organisation.name.trim(),
+        country_based: organisation.country_based.trim(),
+        what_we_do: organisation.what_we_do.trim(),
+        existing_since: organisation.existing_since || null,
+        website: organisation.website.trim() || null,
+        social_links: normalizeLinks(organisationLinks),
+        logo_url: organisation.logo_url.trim() || null,
+        verification_status: "pending",
+        created_by: data.user.id,
+      });
+      if (organisationError) throw organisationError;
+
+      setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
+      setTimeout(() => {
+        router.replace("/projects");
+        router.refresh();
+      }, 400);
+    } catch (err: unknown) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Unable to sign up.",
+        tone: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("individual")}
+          className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "individual" ? "bg-white shadow" : "text-slate-600"
+          }`}
+        >
+          Individual
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("organisation")}
+          className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "organisation" ? "bg-white shadow" : "text-slate-600"
+          }`}
+        >
+          Organisation
+        </button>
+      </div>
+
+      {activeTab === "individual" ? (
+        <form onSubmit={handleIndividualSubmit} className="mt-6 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="First name"
+              value={individual.first_name}
+              onChange={(value) => updateIndividualField("first_name", value)}
+              error={errors.first_name}
+              required
+            />
+            <Field
+              label="Last name"
+              value={individual.last_name}
+              onChange={(value) => updateIndividualField("last_name", value)}
+              error={errors.last_name}
+              required
+            />
+            <Field
+              label="Email"
+              type="email"
+              value={individual.email}
+              onChange={(value) => updateIndividualField("email", value)}
+              error={errors.email}
+              required
+            />
+            <Field
+              label="Password"
+              type="password"
+              value={individual.password}
+              onChange={(value) => updateIndividualField("password", value)}
+              error={errors.password}
+              required
+            />
+            <Field
+              label="Date of birth"
+              type="date"
+              value={individual.date_of_birth}
+              onChange={(value) => updateIndividualField("date_of_birth", value)}
+              error={errors.date_of_birth}
+              required
+            />
+            <SelectField
+              label="Organisation"
+              value={individual.organisation_id}
+              onChange={(value) => updateIndividualField("organisation_id", value)}
+              error={errors.organisation_id}
+              required
+              options={[
+                { value: "independent", label: "Independent / No organisation" },
+                ...verifiedOrgs.map((org) => ({ value: org.id, label: org.name })),
+              ]}
+              helperText={
+                orgsLoading
+                  ? "Loading verified organisations..."
+                  : orgsError
+                    ? orgsError
+                    : "Only verified organisations are shown."
+              }
+            />
+            <Field
+              label="Country from"
+              value={individual.country_from}
+              onChange={(value) => updateIndividualField("country_from", value)}
+            />
+            <Field
+              label="Country based"
+              value={individual.country_based}
+              onChange={(value) => updateIndividualField("country_based", value)}
+              error={errors.country_based}
+              required
+            />
+            <Field
+              label="Occupation"
+              value={individual.occupation}
+              onChange={(value) => updateIndividualField("occupation", value)}
+            />
+            <Field
+              label="Avatar URL"
+              value={individual.avatar_url}
+              onChange={(value) => updateIndividualField("avatar_url", value)}
+              helperText="Upload support will be added later."
+            />
+          </div>
+
+          <TextAreaField
+            label="Bio"
+            value={individual.bio}
+            onChange={(value) => updateIndividualField("bio", value)}
+          />
+
+          <SocialLinksField
+            title="Social links"
+            links={individualLinks}
+            onChange={(index, field, value) =>
+              updateSocialLinks(setIndividualLinks, index, field, value)
+            }
+            onAdd={() => addSocialLink(setIndividualLinks)}
+            onRemove={(index) => removeSocialLink(setIndividualLinks, index)}
+          />
+
+          <SubmitRow loading={loading} message={message} />
+        </form>
+      ) : (
+        <form onSubmit={handleOrganisationSubmit} className="mt-6 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="Email"
+              type="email"
+              value={organisation.email}
+              onChange={(value) => updateOrganisationField("email", value)}
+              error={errors.email}
+              required
+            />
+            <Field
+              label="Password"
+              type="password"
+              value={organisation.password}
+              onChange={(value) => updateOrganisationField("password", value)}
+              error={errors.password}
+              required
+            />
+            <Field
+              label="Organisation name"
+              value={organisation.name}
+              onChange={(value) => updateOrganisationField("name", value)}
+              error={errors.name}
+              required
+            />
+            <Field
+              label="Country based"
+              value={organisation.country_based}
+              onChange={(value) => updateOrganisationField("country_based", value)}
+              error={errors.country_based}
+              required
+            />
+            <Field
+              label="Existing since"
+              type="date"
+              value={organisation.existing_since}
+              onChange={(value) => updateOrganisationField("existing_since", value)}
+              helperText="Optional"
+            />
+            <Field
+              label="Website"
+              value={organisation.website}
+              onChange={(value) => updateOrganisationField("website", value)}
+            />
+            <Field
+              label="Logo URL"
+              value={organisation.logo_url}
+              onChange={(value) => updateOrganisationField("logo_url", value)}
+              helperText="Upload support will be added later."
+            />
+          </div>
+
+          <TextAreaField
+            label="What we do"
+            value={organisation.what_we_do}
+            onChange={(value) => updateOrganisationField("what_we_do", value)}
+            error={errors.what_we_do}
+            required
+          />
+
+          <SocialLinksField
+            title="Social links"
+            links={organisationLinks}
+            onChange={(index, field, value) =>
+              updateSocialLinks(setOrganisationLinks, index, field, value)
+            }
+            onAdd={() => addSocialLink(setOrganisationLinks)}
+            onRemove={(index) => removeSocialLink(setOrganisationLinks, index)}
+          />
+
+          <SubmitRow loading={loading} message={message} />
+        </form>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  required,
+  error,
+  helperText,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+  error?: string;
+  helperText?: string;
+}) {
+  return (
+    <label className="space-y-1 text-sm text-slate-700">
+      <span className="font-medium">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+          error
+            ? "border-red-400 focus:ring-red-200"
+            : "border-slate-200 focus:ring-slate-200"
+        }`}
+      />
+      {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
+      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  required,
+  error,
+  helperText,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  error?: string;
+  helperText?: string;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="space-y-1 text-sm text-slate-700">
+      <span className="font-medium">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+          error
+            ? "border-red-400 focus:ring-red-200"
+            : "border-slate-200 focus:ring-slate-200"
+        }`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
+      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  error,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="space-y-1 text-sm text-slate-700">
+      <span className="font-medium">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={4}
+        className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+          error
+            ? "border-red-400 focus:ring-red-200"
+            : "border-slate-200 focus:ring-slate-200"
+        }`}
+      />
+      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+    </label>
+  );
+}
+
+function SocialLinksField({
+  title,
+  links,
+  onChange,
+  onAdd,
+  onRemove,
+}: {
+  title: string;
+  links: SocialLink[];
+  onChange: (index: number, field: keyof SocialLink, value: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-slate-700">{title}</h3>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600"
+        >
+          Add link
+        </button>
+      </div>
+      <div className="space-y-3">
+        {links.map((link, index) => (
+          <div key={`${link.type}-${index}`} className="grid gap-3 md:grid-cols-[160px,1fr,auto]">
+            <select
+              value={link.type}
+              onChange={(event) => onChange(index, "type", event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            >
+              {socialLinkTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <input
+              type="url"
+              placeholder="https://"
+              value={link.url}
+              onChange={(event) => onChange(index, "url", event.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubmitRow({
+  loading,
+  message,
+}: {
+  loading: boolean;
+  message: { text: string; tone: "error" | "success" } | null;
+}) {
+  return (
+    <div className="space-y-3">
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loading ? "Creating account..." : "Create account"}
+      </button>
+      {message && (
+        <p
+          className={`text-sm font-medium ${
+            message.tone === "success" ? "text-emerald-600" : "text-red-600"
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
+    </div>
+  );
+}
