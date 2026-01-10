@@ -15,7 +15,7 @@
     "sb:version": "supabase --version",
     "sb:login": "supabase login --token $SUPABASE_ACCESS_TOKEN",
     "sb:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
-    "sb:types": "supabase gen types typescript --linked > src/lib/database.types.ts",
+    "sb:types": "npx -y supabase@latest gen types typescript --linked > src/lib/database.types.ts",
     "sb:diff": "supabase db diff --use-migra --linked",
     "sb:commit": "supabase db remote commit --dry-run",
     "sb:sync": "bash scripts/sb-sync.sh"
