@@ -970,6 +970,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          href: string | null
+          id: string
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          href?: string | null
+          id?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organisation_members: {
         Row: {
           created_at: string | null
@@ -1830,6 +1866,17 @@ export type Database = {
       }
       approve_project: { Args: { p_project_id: string }; Returns: undefined }
       can_admin_projects: { Args: never; Returns: boolean }
+      create_notification: {
+        Args: {
+          body: string
+          href: string
+          metadata: Json
+          title: string
+          type: string
+          user_id: string
+        }
+        Returns: string
+      }
       create_project_submission: {
         Args: {
           p_amount_needed: number
@@ -1873,6 +1920,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_unread_notification_count: { Args: never; Returns: number }
       grant_admin: { Args: { p_email: string }; Returns: undefined }
       is_admin:
         | { Args: never; Returns: boolean }
@@ -1881,7 +1929,13 @@ export type Database = {
       is_moderator: { Args: never; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
       is_superadmin_email: { Args: { e: string }; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
+      mark_notification_read: { Args: { nid: string }; Returns: undefined }
       reject_project: { Args: { p_project_id: string }; Returns: undefined }
+      remove_project_collaborator: {
+        Args: { pid: string; target_id: string }
+        Returns: string
+      }
       revoke_admin: { Args: { p_email: string }; Returns: undefined }
       slugify_project_name: { Args: { project_name: string }; Returns: string }
       user_can_edit_project: { Args: { pid: string }; Returns: boolean }
