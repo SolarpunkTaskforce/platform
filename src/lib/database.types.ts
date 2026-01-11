@@ -1126,6 +1126,45 @@ export type Database = {
           },
         ]
       }
+      project_collaborators: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_ifrc_challenges: {
         Row: {
           challenge_id: number
@@ -1402,45 +1441,6 @@ export type Database = {
           },
           {
             foreignKeyName: "project_shares_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "rejected_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_collaborators: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          project_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          project_id: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          project_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_collaborators_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_collaborators_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "rejected_projects"
@@ -1825,7 +1825,7 @@ export type Database = {
     }
     Functions: {
       add_project_collaborator_by_email: {
-        Args: { pid: string; email: string; role: string }
+        Args: { email: string; pid: string; role: string }
         Returns: string
       }
       approve_project: { Args: { p_project_id: string }; Returns: undefined }
@@ -1861,19 +1861,19 @@ export type Database = {
         Args: { project_id: string; project_name: string }
         Returns: string
       }
-      grant_admin: { Args: { p_email: string }; Returns: undefined }
       get_project_collaborators: {
         Args: { pid: string }
         Returns: {
-          user_id: string
-          role: string
           created_at: string
-          created_by: string | null
-          full_name: string | null
-          organisation_name: string | null
-          email: string | null
+          created_by: string
+          email: string
+          full_name: string
+          organisation_name: string
+          role: string
+          user_id: string
         }[]
       }
+      grant_admin: { Args: { p_email: string }; Returns: undefined }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { uid: string }; Returns: boolean }
@@ -2550,3 +2550,4 @@ export const Constants = {
     },
   },
 } as const
+
