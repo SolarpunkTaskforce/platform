@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Plus } from "lucide-react";
+import { Bell, Plus, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UserMenu from "@/components/UserMenu";
 
@@ -24,6 +24,7 @@ function initials(p: Profile | null) {
 export default function Header() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const router = useRouter();
@@ -55,6 +56,33 @@ export default function Header() {
       .then(({ data }) => {
         setProfile((data ?? null) as Profile | null);
       });
+  }, [sessionUserId]);
+
+  useEffect(() => {
+    if (!sessionUserId) {
+      setUnreadCount(0);
+      return;
+    }
+
+    let active = true;
+    const loadUnreadCount = async () => {
+      const { data, error } = await supabase.rpc("get_unread_notification_count");
+      if (active && !error) {
+        setUnreadCount(typeof data === "number" ? data : 0);
+      }
+    };
+
+    loadUnreadCount();
+
+    const handleUpdate = () => {
+      loadUnreadCount();
+    };
+
+    window.addEventListener("notifications:updated", handleUpdate);
+    return () => {
+      active = false;
+      window.removeEventListener("notifications:updated", handleUpdate);
+    };
   }, [sessionUserId]);
 
   const projectLinks = useMemo(
@@ -161,6 +189,21 @@ export default function Header() {
     </div>
   );
 
+  const notificationsButton = (
+    <Link
+      href="/notifications"
+      className="relative grid h-9 w-9 place-items-center rounded-full border"
+      aria-label="Notifications"
+    >
+      <Bell className="h-4 w-4" />
+      {unreadCount > 0 ? (
+        <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+          {unreadCount}
+        </span>
+      ) : null}
+    </Link>
+  );
+
   return (
     <header className="relative z-10 flex h-14 items-center justify-between px-6">
       <div className="flex items-center gap-6">
@@ -188,6 +231,7 @@ export default function Header() {
         {sessionUserId ? (
           <>
             {addButton}
+            {notificationsButton}
             {profileControls}
           </>
         ) : (
