@@ -1409,6 +1409,45 @@ export type Database = {
           },
         ]
       }
+      project_collaborators: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           amount_needed: number | null
@@ -1785,6 +1824,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_project_collaborator_by_email: {
+        Args: { pid: string; email: string; role: string }
+        Returns: string
+      }
       approve_project: { Args: { p_project_id: string }; Returns: undefined }
       can_admin_projects: { Args: never; Returns: boolean }
       create_project_submission: {
@@ -1819,6 +1862,18 @@ export type Database = {
         Returns: string
       }
       grant_admin: { Args: { p_email: string }; Returns: undefined }
+      get_project_collaborators: {
+        Args: { pid: string }
+        Returns: {
+          user_id: string
+          role: string
+          created_at: string
+          created_by: string | null
+          full_name: string | null
+          organisation_name: string | null
+          email: string | null
+        }[]
+      }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { uid: string }; Returns: boolean }
@@ -2495,4 +2550,3 @@ export const Constants = {
     },
   },
 } as const
-

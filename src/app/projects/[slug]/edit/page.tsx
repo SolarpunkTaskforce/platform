@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { notFound, redirect } from "next/navigation";
 
 import ProjectForm from "@/components/projects/ProjectForm";
 import { getServerSupabase } from "@/lib/supabaseServer";
@@ -45,11 +46,14 @@ function asOptionalDate(value: string | null | undefined) {
 
 export default async function ProjectEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const supabase = await getServerSupabase();
   const { slug } = await params;
+  const query = searchParams ? await searchParams : {};
 
   const { data, error } = await supabase
     .from("projects")
@@ -93,6 +97,71 @@ export default async function ProjectEditPage({
 
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
   if (!canEdit) notFound();
+
+  const { data: collaborators } = await supabase.rpc("get_project_collaborators", {
+    pid: project.id,
+  });
+
+  const shareStatus = typeof query.share === "string" ? query.share : null;
+  const shareMessage =
+    shareStatus === "ok"
+      ? "Collaborator added."
+      : shareStatus === "removed"
+        ? "Collaborator removed."
+        : shareStatus === "not_found"
+          ? "User not found."
+          : shareStatus === "not_allowed"
+            ? "You are not allowed to share this project."
+            : shareStatus === "invalid"
+              ? "Please enter an email address."
+              : null;
+
+  async function inviteCollaborator(formData: FormData) {
+    "use server";
+
+    const email = String(formData.get("email") ?? "").trim();
+    const role = String(formData.get("role") ?? "viewer").trim();
+    const projectId = String(formData.get("project_id") ?? "").trim();
+
+    if (!email) {
+      redirect(`/projects/${slug}/edit?share=invalid#sharing`);
+    }
+
+    const supabase = await getServerSupabase();
+    const { data: result, error: inviteError } = await supabase.rpc(
+      "add_project_collaborator_by_email",
+      {
+        pid: projectId,
+        email,
+        role,
+      },
+    );
+
+    const status = inviteError ? "not_allowed" : result ?? "not_allowed";
+    revalidatePath(`/projects/${slug}/edit`);
+    redirect(`/projects/${slug}/edit?share=${encodeURIComponent(status)}#sharing`);
+  }
+
+  async function removeCollaborator(formData: FormData) {
+    "use server";
+
+    const projectId = String(formData.get("project_id") ?? "").trim();
+    const userId = String(formData.get("user_id") ?? "").trim();
+
+    if (!projectId || !userId) {
+      redirect(`/projects/${slug}/edit?share=not_allowed#sharing`);
+    }
+
+    const supabase = await getServerSupabase();
+    await supabase
+      .from("project_collaborators")
+      .delete()
+      .eq("project_id", projectId)
+      .eq("user_id", userId);
+
+    revalidatePath(`/projects/${slug}/edit`);
+    redirect(`/projects/${slug}/edit?share=removed#sharing`);
+  }
 
   const normalizedCategory: "humanitarian" | "environmental" =
     project.category === "humanitarian" ? "humanitarian" : "environmental";
@@ -174,6 +243,101 @@ export default async function ProjectEditPage({
       </div>
 
       <ProjectForm mode="edit" projectId={project.id} initialValues={initialValues} />
+
+      <section id="sharing" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Sharing
+          </h2>
+          <p className="text-sm text-slate-600">
+            Invite collaborators by email. Editors can update this project; viewers can
+            view it.
+          </p>
+        </div>
+
+        {shareMessage ? (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            {shareMessage}
+          </p>
+        ) : null}
+
+        <form action={inviteCollaborator} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+          <input type="hidden" name="project_id" value={project.id} />
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Email address
+            <input
+              name="email"
+              type="email"
+              placeholder="name@example.com"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+              required
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            Role
+            <select
+              name="role"
+              defaultValue="viewer"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="mt-auto inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Invite
+          </button>
+        </form>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-slate-700">Collaborators</h3>
+          {collaborators?.length ? (
+            <ul className="space-y-2">
+              {collaborators.map((collaborator) => {
+                const name =
+                  collaborator.full_name ??
+                  collaborator.organisation_name ??
+                  collaborator.email ??
+                  "Collaborator";
+
+                return (
+                  <li
+                    key={collaborator.user_id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{name}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        {collaborator.email ?? "Email not available"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        {collaborator.role}
+                      </span>
+                      <form action={removeCollaborator}>
+                        <input type="hidden" name="project_id" value={project.id} />
+                        <input type="hidden" name="user_id" value={collaborator.user_id} />
+                        <button
+                          type="submit"
+                          className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate-600">No collaborators yet.</p>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
