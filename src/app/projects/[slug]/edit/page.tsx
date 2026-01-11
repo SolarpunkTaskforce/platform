@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 
 import ProjectForm from "@/components/projects/ProjectForm";
 import { getServerSupabase } from "@/lib/supabaseServer";
@@ -30,10 +31,11 @@ type PartnerRow = { organisation_id: string | null };
 type SdgRow = { sdg_id: number | null };
 type IfrcRow = { challenge_id: number | null };
 
-// ✅ This is the missing type that fixes the implicit-any build error
+type CollaboratorRole = "viewer" | "editor";
+
 type Collaborator = {
   user_id: string;
-  role: "viewer" | "editor";
+  role: CollaboratorRole;
   email: string | null;
   full_name: string | null;
   organisation_name: string | null;
@@ -51,6 +53,10 @@ function asOptionalDate(value: string | null | undefined) {
   if (typeof value !== "string" || !value.length) return undefined;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function normalizeRole(value: unknown): CollaboratorRole {
+  return value === "editor" ? "editor" : "viewer";
 }
 
 export default async function ProjectEditPage({
@@ -104,12 +110,72 @@ export default async function ProjectEditPage({
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
   if (!canEdit) notFound();
 
-  // Collaborators (for Sharing UI). This RPC should already exist from your collaboration work.
-  // If your RPC is named differently, rename it here.
+  // ---------- Server Actions ----------
+  async function inviteCollaborator(formData: FormData) {
+    "use server";
+    const supabase = await getServerSupabase();
+
+    const email = String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const role = normalizeRole(formData.get("role"));
+
+    if (!email) throw new Error("Email is required.");
+
+    const { error } = await supabase.rpc("add_project_collaborator_by_email", {
+      pid: project.id,
+      email,
+      role,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/projects/${slug}/edit`);
+  }
+
+  async function updateCollaboratorRole(formData: FormData) {
+    "use server";
+    const supabase = await getServerSupabase();
+
+    const userId = String(formData.get("user_id") ?? "").trim();
+    const role = normalizeRole(formData.get("role"));
+
+    if (!userId) throw new Error("Missing user id.");
+
+    const { error } = await supabase
+      .from("project_collaborators")
+      .update({ role })
+      .eq("project_id", project.id)
+      .eq("user_id", userId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/projects/${slug}/edit`);
+  }
+
+  async function removeCollaborator(formData: FormData) {
+    "use server";
+    const supabase = await getServerSupabase();
+
+    const userId = String(formData.get("user_id") ?? "").trim();
+    if (!userId) throw new Error("Missing user id.");
+
+    const { error } = await supabase
+      .from("project_collaborators")
+      .delete()
+      .eq("project_id", project.id)
+      .eq("user_id", userId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/projects/${slug}/edit`);
+  }
+  // ---------- /Server Actions ----------
+
+  // Collaborators list (Sharing UI)
   const { data: collaboratorsData } = await supabase.rpc("get_project_collaborators", {
     pid: project.id,
   });
-
   const collaborators = (collaboratorsData ?? []) as Collaborator[];
 
   const normalizedCategory: "humanitarian" | "environmental" =
@@ -189,28 +255,91 @@ export default async function ProjectEditPage({
           </Link>
         </div>
 
+        {/* Invite */}
+        <form
+          action={inviteCollaborator}
+          className="mt-5 flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-end"
+        >
+          <div className="flex-1">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Invite by email
+            </label>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="person@example.com"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="sm:w-44">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">Role</label>
+            <select
+              name="role"
+              defaultValue="viewer"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Invite
+          </button>
+        </form>
+
+        {/* List */}
         <div className="mt-5 space-y-3">
           <h3 className="text-sm font-semibold text-slate-900">Collaborators</h3>
 
           {collaborators.length ? (
             <ul className="space-y-2">
-              {collaborators.map((collaborator: Collaborator) => {
-                const name =
-                  collaborator.full_name ??
-                  collaborator.organisation_name ??
-                  collaborator.email ??
-                  collaborator.user_id;
+              {collaborators.map((c: Collaborator) => {
+                const display = c.full_name ?? c.organisation_name ?? c.email ?? c.user_id;
 
                 return (
                   <li
-                    key={collaborator.user_id}
-                    className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    key={c.user_id}
+                    className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-900">{name}</div>
-                      <div className="truncate text-xs text-slate-500">
-                        {collaborator.email ?? "—"} · {collaborator.role}
-                      </div>
+                      <div className="truncate text-sm font-medium text-slate-900">{display}</div>
+                      <div className="truncate text-xs text-slate-500">{c.email ?? "—"}</div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <form action={updateCollaboratorRole} className="flex items-center gap-2">
+                        <input type="hidden" name="user_id" value={c.user_id} />
+                        <select
+                          name="role"
+                          defaultValue={c.role}
+                          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                        >
+                          <option value="viewer">viewer</option>
+                          <option value="editor">editor</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                        >
+                          Update
+                        </button>
+                      </form>
+
+                      <form action={removeCollaborator}>
+                        <input type="hidden" name="user_id" value={c.user_id} />
+                        <button
+                          type="submit"
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100"
+                        >
+                          Remove
+                        </button>
+                      </form>
                     </div>
                   </li>
                 );
@@ -221,8 +350,8 @@ export default async function ProjectEditPage({
           )}
 
           <p className="text-xs text-slate-500">
-            To invite/remove collaborators, use the invite controls implemented in your collaboration UI (this section
-            only fixes the typing error causing Vercel to fail).
+            Notifications are generated automatically when collaborators change. Ask the collaborator to check the bell
+            icon or visit <span className="font-medium text-slate-700">/notifications</span>.
           </p>
         </div>
       </section>
