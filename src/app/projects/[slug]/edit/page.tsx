@@ -3,6 +3,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 
 import ProjectForm from "@/components/projects/ProjectForm";
+import { sendEmail } from "@/lib/email/sendEmail";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectRow = {
@@ -41,6 +42,8 @@ type Collaborator = {
   organisation_name: string | null;
 };
 
+type CollaborationEmailType = "invited" | "role_changed" | "removed";
+
 function asOptionalString(value: string | null | undefined) {
   return typeof value === "string" ? value : undefined;
 }
@@ -57,6 +60,100 @@ function asOptionalDate(value: string | null | undefined) {
 
 function normalizeRole(value: unknown): CollaboratorRole {
   return value === "editor" ? "editor" : "viewer";
+}
+
+function getSiteUrl() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) throw new Error("Missing NEXT_PUBLIC_SITE_URL.");
+  return siteUrl.replace(/\/$/, "");
+}
+
+function buildProjectLink(slug: string, role: CollaboratorRole) {
+  const path = role === "editor" ? `/projects/${slug}/edit#sharing` : `/projects/${slug}`;
+  return `${getSiteUrl()}${path}`;
+}
+
+function buildCollaborationEmail({
+  type,
+  projectName,
+  projectUrl,
+  role,
+}: {
+  type: CollaborationEmailType;
+  projectName: string;
+  projectUrl: string;
+  role: CollaboratorRole;
+}) {
+  const subjectMap: Record<CollaborationEmailType, string> = {
+    invited: `You were added to ${projectName}`,
+    role_changed: `Your access changed for ${projectName}`,
+    removed: `You were removed from ${projectName}`,
+  };
+
+  const roleLine =
+    type === "removed" ? "" : `<p style=\"margin: 0 0 12px;\">Role: <strong>${role}</strong></p>`;
+  const textRoleLine = type === "removed" ? "" : `Role: ${role}\n`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
+      <h2 style="margin: 0 0 12px;">${subjectMap[type]}</h2>
+      <p style="margin: 0 0 12px;">Project: <strong>${projectName}</strong></p>
+      ${roleLine}
+      <p style="margin: 0 0 16px;">
+        <a href="${projectUrl}" style="display:inline-block;background:#111;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">
+          Open project
+        </a>
+      </p>
+      <p style="margin: 0; font-size: 13px; color: #555;">If you did not expect this, please contact the project owner.</p>
+    </div>
+  `;
+
+  const text = `${subjectMap[type]}
+Project: ${projectName}
+${textRoleLine}Link: ${projectUrl}
+`;
+
+  return { subject: subjectMap[type], html, text };
+}
+
+async function fetchCollaborators(supabase: Awaited<ReturnType<typeof getServerSupabase>>, pid: string) {
+  const { data } = await supabase.rpc("get_project_collaborators", { pid });
+  return (data ?? []) as Collaborator[];
+}
+
+async function maybeSendCollaborationEmail({
+  supabase,
+  collaborator,
+  projectName,
+  slug,
+  type,
+}: {
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>;
+  collaborator: Collaborator;
+  projectName: string;
+  slug: string;
+  type: CollaborationEmailType;
+}) {
+  if (!collaborator.email) return;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("email_notifications_enabled")
+    .eq("id", collaborator.user_id)
+    .maybeSingle();
+
+  if (profileError) throw new Error(profileError.message);
+  if (!profile?.email_notifications_enabled) return;
+
+  const projectUrl = buildProjectLink(slug, collaborator.role);
+  const { subject, html, text } = buildCollaborationEmail({
+    type,
+    projectName,
+    projectUrl,
+    role: collaborator.role,
+  });
+
+  await sendEmail({ to: collaborator.email, subject, html, text });
 }
 
 export default async function ProjectEditPage({
@@ -130,6 +227,18 @@ export default async function ProjectEditPage({
 
     if (error) throw new Error(error.message);
 
+    const collaborators = await fetchCollaborators(supabase, project.id);
+    const target = collaborators.find((collaborator) => collaborator.email?.toLowerCase() === email);
+    if (target) {
+      await maybeSendCollaborationEmail({
+        supabase,
+        collaborator: target,
+        projectName: project.name ?? "this project",
+        slug,
+        type: "invited",
+      });
+    }
+
     revalidatePath(`/projects/${slug}/edit`);
   }
 
@@ -150,6 +259,18 @@ export default async function ProjectEditPage({
 
     if (error) throw new Error(error.message);
 
+    const collaborators = await fetchCollaborators(supabase, project.id);
+    const target = collaborators.find((collaborator) => collaborator.user_id === userId);
+    if (target) {
+      await maybeSendCollaborationEmail({
+        supabase,
+        collaborator: target,
+        projectName: project.name ?? "this project",
+        slug,
+        type: "role_changed",
+      });
+    }
+
     revalidatePath(`/projects/${slug}/edit`);
   }
 
@@ -160,6 +281,8 @@ export default async function ProjectEditPage({
     const userId = String(formData.get("user_id") ?? "").trim();
     if (!userId) throw new Error("Missing user id.");
 
+    const beforeDelete = await fetchCollaborators(supabase, project.id);
+
     const { error } = await supabase
       .from("project_collaborators")
       .delete()
@@ -167,6 +290,20 @@ export default async function ProjectEditPage({
       .eq("user_id", userId);
 
     if (error) throw new Error(error.message);
+
+    const collaborators = await fetchCollaborators(supabase, project.id);
+    const target =
+      collaborators.find((collaborator) => collaborator.user_id === userId) ??
+      beforeDelete.find((collaborator) => collaborator.user_id === userId);
+    if (target) {
+      await maybeSendCollaborationEmail({
+        supabase,
+        collaborator: target,
+        projectName: project.name ?? "this project",
+        slug,
+        type: "removed",
+      });
+    }
 
     revalidatePath(`/projects/${slug}/edit`);
   }

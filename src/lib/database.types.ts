@@ -1089,6 +1089,7 @@ export type Database = {
           country_from: string | null
           created_at: string | null
           date_of_birth: string | null
+          email_notifications_enabled: boolean
           first_name: string | null
           full_name: string | null
           id: string
@@ -1110,6 +1111,7 @@ export type Database = {
           country_from?: string | null
           created_at?: string | null
           date_of_birth?: string | null
+          email_notifications_enabled?: boolean
           first_name?: string | null
           full_name?: string | null
           id: string
@@ -1131,6 +1133,7 @@ export type Database = {
           country_from?: string | null
           created_at?: string | null
           date_of_birth?: string | null
+          email_notifications_enabled?: boolean
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -2604,4 +2607,3 @@ export const Constants = {
     },
   },
 } as const
-
