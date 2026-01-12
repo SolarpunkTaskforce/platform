@@ -1,0 +1,99 @@
+import Link from "next/link";
+
+const buildSearchParams = (
+  searchParams: Record<string, string | string[] | undefined>,
+  page: number,
+) => {
+  const params = new URLSearchParams();
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (key === "page") return;
+    if (Array.isArray(value)) {
+      const joined = value.join(",");
+      if (joined) params.set(key, joined);
+      return;
+    }
+    if (typeof value === "string" && value.length > 0) {
+      params.set(key, value);
+    }
+  });
+
+  params.set("page", page.toString());
+  const query = params.toString();
+  return query ? `/find-organisations?${query}` : "/find-organisations";
+};
+
+const buildPageNumbers = (page: number, pageCount: number) => {
+  const pages = new Set<number>();
+  pages.add(1);
+  pages.add(pageCount);
+  for (let index = page - 2; index <= page + 2; index += 1) {
+    if (index >= 1 && index <= pageCount) {
+      pages.add(index);
+    }
+  }
+  return Array.from(pages).sort((a, b) => a - b);
+};
+
+type OrganisationsPaginationProps = {
+  page: number;
+  pageCount: number;
+  searchParams: Record<string, string | string[] | undefined>;
+};
+
+export default function OrganisationsPagination({
+  page,
+  pageCount,
+  searchParams,
+}: OrganisationsPaginationProps) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  const safePage = Math.min(Math.max(page, 1), pageCount);
+  const pages = buildPageNumbers(safePage, pageCount);
+
+  return (
+    <nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Pagination">
+      <div className="text-sm text-slate-600">
+        Page {safePage} of {pageCount}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={buildSearchParams(searchParams, Math.max(safePage - 1, 1))}
+          aria-disabled={safePage === 1}
+          className={`rounded border px-3 py-1 text-sm ${
+            safePage === 1
+              ? "pointer-events-none border-slate-200 text-slate-400"
+              : "border-slate-300 text-slate-700 hover:border-slate-400"
+          }`}
+        >
+          Prev
+        </Link>
+        {pages.map(value => (
+          <Link
+            key={value}
+            href={buildSearchParams(searchParams, value)}
+            className={`rounded border px-3 py-1 text-sm ${
+              value === safePage
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                : "border-slate-300 text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            {value}
+          </Link>
+        ))}
+        <Link
+          href={buildSearchParams(searchParams, Math.min(safePage + 1, pageCount))}
+          aria-disabled={safePage === pageCount}
+          className={`rounded border px-3 py-1 text-sm ${
+            safePage === pageCount
+              ? "pointer-events-none border-slate-200 text-slate-400"
+              : "border-slate-300 text-slate-700 hover:border-slate-400"
+          }`}
+        >
+          Next
+        </Link>
+      </div>
+    </nav>
+  );
+}

@@ -1110,40 +1110,82 @@ export type Database = {
       }
       organisations: {
         Row: {
+          based_in_country: string | null
+          based_in_region: string | null
           country: string | null
+          country_based: string | null
           created_at: string | null
           created_by: string | null
+          demographic_tags: string[] | null
           description: string | null
+          existing_since: string | null
+          founded_at: string | null
+          funding_needed: number | null
           id: string
+          intervention_tags: string[] | null
+          lat: number | null
+          lng: number | null
+          logo_url: string | null
           name: string
+          social_links: Json | null
+          thematic_tags: string[] | null
           verification_status: string
           verified_at: string | null
           verified_by: string | null
           website: string | null
+          what_we_do: string | null
         }
         Insert: {
+          based_in_country?: string | null
+          based_in_region?: string | null
           country?: string | null
+          country_based?: string | null
           created_at?: string | null
           created_by?: string | null
+          demographic_tags?: string[] | null
           description?: string | null
+          existing_since?: string | null
+          founded_at?: string | null
+          funding_needed?: number | null
           id?: string
+          intervention_tags?: string[] | null
+          lat?: number | null
+          lng?: number | null
+          logo_url?: string | null
           name: string
+          social_links?: Json | null
+          thematic_tags?: string[] | null
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
           website?: string | null
+          what_we_do?: string | null
         }
         Update: {
+          based_in_country?: string | null
+          based_in_region?: string | null
           country?: string | null
+          country_based?: string | null
           created_at?: string | null
           created_by?: string | null
+          demographic_tags?: string[] | null
           description?: string | null
+          existing_since?: string | null
+          founded_at?: string | null
+          funding_needed?: number | null
           id?: string
+          intervention_tags?: string[] | null
+          lat?: number | null
+          lng?: number | null
+          logo_url?: string | null
           name?: string
+          social_links?: Json | null
+          thematic_tags?: string[] | null
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
           website?: string | null
+          what_we_do?: string | null
         }
         Relationships: []
       }
@@ -1840,6 +1882,66 @@ export type Database = {
           summary: string | null
           title: string | null
           update_id: string | null
+        }
+        Relationships: []
+      }
+      organisations_directory_v1: {
+        Row: {
+          age_years: number | null
+          based_in_country: string | null
+          based_in_region: string | null
+          demographic_tags: string[] | null
+          description: string | null
+          followers_count: number | null
+          founded_at: string | null
+          funding_needed: number | null
+          id: string | null
+          intervention_tags: string[] | null
+          lat: number | null
+          lng: number | null
+          name: string | null
+          projects_ongoing_count: number | null
+          projects_total_count: number | null
+          thematic_tags: string[] | null
+          website: string | null
+        }
+        Insert: {
+          age_years?: number | null
+          based_in_country?: string | null
+          based_in_region?: string | null
+          demographic_tags?: string[] | null
+          description?: string | null
+          followers_count?: number | null
+          founded_at?: string | null
+          funding_needed?: number | null
+          id?: string | null
+          intervention_tags?: string[] | null
+          lat?: number | null
+          lng?: number | null
+          name?: string | null
+          projects_ongoing_count?: number | null
+          projects_total_count?: number | null
+          thematic_tags?: string[] | null
+          website?: string | null
+        }
+        Update: {
+          age_years?: number | null
+          based_in_country?: string | null
+          based_in_region?: string | null
+          demographic_tags?: string[] | null
+          description?: string | null
+          followers_count?: number | null
+          founded_at?: string | null
+          funding_needed?: number | null
+          id?: string | null
+          intervention_tags?: string[] | null
+          lat?: number | null
+          lng?: number | null
+          name?: string | null
+          projects_ongoing_count?: number | null
+          projects_total_count?: number | null
+          thematic_tags?: string[] | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -2757,4 +2859,3 @@ export const Constants = {
     },
   },
 } as const
-
