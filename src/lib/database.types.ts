@@ -992,6 +992,13 @@ export type Database = {
             foreignKeyName: "follow_edges_target_org_id_fkey"
             columns: ["target_org_id"]
             isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_edges_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
             referencedRelation: "verified_organisations"
             referencedColumns: ["id"]
           },
@@ -1097,6 +1104,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_members_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
             referencedColumns: ["id"]
           },
           {
@@ -1262,6 +1276,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
             referencedColumns: ["id"]
           },
           {
@@ -1452,6 +1473,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_partners_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
             referencedColumns: ["id"]
           },
           {
@@ -1776,6 +1804,13 @@ export type Database = {
             foreignKeyName: "projects_lead_org_id_fkey"
             columns: ["lead_org_id"]
             isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_lead_org_id_fkey"
+            columns: ["lead_org_id"]
+            isOneToOne: false
             referencedRelation: "verified_organisations"
             referencedColumns: ["id"]
           },
@@ -1906,40 +1941,40 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          age_years?: number | null
-          based_in_country?: string | null
+          age_years?: never
+          based_in_country?: never
           based_in_region?: string | null
           demographic_tags?: string[] | null
-          description?: string | null
-          followers_count?: number | null
-          founded_at?: string | null
+          description?: never
+          followers_count?: never
+          founded_at?: never
           funding_needed?: number | null
           id?: string | null
           intervention_tags?: string[] | null
           lat?: number | null
           lng?: number | null
           name?: string | null
-          projects_ongoing_count?: number | null
-          projects_total_count?: number | null
+          projects_ongoing_count?: never
+          projects_total_count?: never
           thematic_tags?: string[] | null
           website?: string | null
         }
         Update: {
-          age_years?: number | null
-          based_in_country?: string | null
+          age_years?: never
+          based_in_country?: never
           based_in_region?: string | null
           demographic_tags?: string[] | null
-          description?: string | null
-          followers_count?: number | null
-          founded_at?: string | null
+          description?: never
+          followers_count?: never
+          founded_at?: never
           funding_needed?: number | null
           id?: string | null
           intervention_tags?: string[] | null
           lat?: number | null
           lng?: number | null
           name?: string | null
-          projects_ongoing_count?: number | null
-          projects_total_count?: number | null
+          projects_ongoing_count?: never
+          projects_total_count?: never
           thematic_tags?: string[] | null
           website?: string | null
         }
@@ -2066,6 +2101,13 @@ export type Database = {
             columns: ["lead_org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_lead_org_id_fkey"
+            columns: ["lead_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
             referencedColumns: ["id"]
           },
           {
@@ -2859,3 +2901,4 @@ export const Constants = {
     },
   },
 } as const
+
