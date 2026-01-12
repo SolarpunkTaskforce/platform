@@ -1,27 +1,25 @@
-type SendEmailParams = {
+type SendEmailArgs = {
   to: string;
   subject: string;
   html: string;
   text?: string;
 };
 
-const RESEND_API_URL = "https://api.resend.com/emails";
-
-export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
+export async function sendEmail({ to, subject, html, text }: SendEmailArgs) {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const from = process.env.RESEND_FROM_EMAIL;
 
-  if (!apiKey) throw new Error("Missing RESEND_API_KEY.");
-  if (!fromEmail) throw new Error("Missing RESEND_FROM_EMAIL.");
+  if (!apiKey) throw new Error("Missing RESEND_API_KEY");
+  if (!from) throw new Error("Missing RESEND_FROM_EMAIL");
 
-  const response = await fetch(RESEND_API_URL, {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: fromEmail,
+      from,
       to,
       subject,
       html,
@@ -29,8 +27,8 @@ export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
     }),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Resend error (${response.status}): ${errorText}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Resend error ${res.status}: ${body}`);
   }
 }

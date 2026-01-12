@@ -73,6 +73,15 @@ function buildProjectLink(slug: string, role: CollaboratorRole) {
   return `${getSiteUrl()}${path}`;
 }
 
+function escapeHtml(input: string) {
+  return input
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function buildCollaborationEmail({
   type,
   projectName,
@@ -84,27 +93,33 @@ function buildCollaborationEmail({
   projectUrl: string;
   role: CollaboratorRole;
 }) {
+  const safeProjectName = escapeHtml(projectName);
   const subjectMap: Record<CollaborationEmailType, string> = {
-    invited: `You were added to ${projectName}`,
-    role_changed: `Your access changed for ${projectName}`,
-    removed: `You were removed from ${projectName}`,
+    invited: `You were added to ${safeProjectName}`,
+    role_changed: `Your access changed for ${safeProjectName}`,
+    removed: `You were removed from ${safeProjectName}`,
   };
 
+  const safeRole = escapeHtml(role);
   const roleLine =
-    type === "removed" ? "" : `<p style=\"margin: 0 0 12px;\">Role: <strong>${role}</strong></p>`;
+    type === "removed"
+      ? ""
+      : `<p style="margin: 0 0 12px;">Role: <strong>${safeRole}</strong></p>`;
   const textRoleLine = type === "removed" ? "" : `Role: ${role}\n`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
       <h2 style="margin: 0 0 12px;">${subjectMap[type]}</h2>
-      <p style="margin: 0 0 12px;">Project: <strong>${projectName}</strong></p>
+      <p style="margin: 0 0 12px;">Project: <strong>${safeProjectName}</strong></p>
       ${roleLine}
       <p style="margin: 0 0 16px;">
         <a href="${projectUrl}" style="display:inline-block;background:#111;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">
           Open project
         </a>
       </p>
-      <p style="margin: 0; font-size: 13px; color: #555;">If you did not expect this, please contact the project owner.</p>
+      <p style="margin: 0; font-size: 13px; color: #555;">
+        If you did not expect this, please contact the project owner.
+      </p>
     </div>
   `;
 
@@ -116,8 +131,12 @@ ${textRoleLine}Link: ${projectUrl}
   return { subject: subjectMap[type], html, text };
 }
 
-async function fetchCollaborators(supabase: Awaited<ReturnType<typeof getServerSupabase>>, pid: string) {
-  const { data } = await supabase.rpc("get_project_collaborators", { pid });
+async function fetchCollaborators(
+  supabase: Awaited<ReturnType<typeof getServerSupabase>>,
+  pid: string,
+) {
+  const { data, error } = await supabase.rpc("get_project_collaborators", { pid });
+  if (error) throw new Error(error.message);
   return (data ?? []) as Collaborator[];
 }
 
@@ -125,13 +144,13 @@ async function maybeSendCollaborationEmail({
   supabase,
   collaborator,
   projectName,
-  slug,
+  projectSlugOrId,
   type,
 }: {
   supabase: Awaited<ReturnType<typeof getServerSupabase>>;
   collaborator: Collaborator;
   projectName: string;
-  slug: string;
+  projectSlugOrId: string;
   type: CollaborationEmailType;
 }) {
   if (!collaborator.email) return;
@@ -143,9 +162,9 @@ async function maybeSendCollaborationEmail({
     .maybeSingle();
 
   if (profileError) throw new Error(profileError.message);
-  if (!profile?.email_notifications_enabled) return;
+  if (profile?.email_notifications_enabled === false) return;
 
-  const projectUrl = buildProjectLink(slug, collaborator.role);
+  const projectUrl = buildProjectLink(projectSlugOrId, collaborator.role);
   const { subject, html, text } = buildCollaborationEmail({
     type,
     projectName,
@@ -207,6 +226,9 @@ export default async function ProjectEditPage({
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
   if (!canEdit) notFound();
 
+  const projectSlugOrId = project.slug ?? project.id;
+  const projectName = project.name ?? "this project";
+
   // ---------- Server Actions ----------
   async function inviteCollaborator(formData: FormData) {
     "use server";
@@ -228,13 +250,14 @@ export default async function ProjectEditPage({
     if (error) throw new Error(error.message);
 
     const collaborators = await fetchCollaborators(supabase, project.id);
-    const target = collaborators.find((collaborator) => collaborator.email?.toLowerCase() === email);
+    const target = collaborators.find(c => (c.email ?? "").toLowerCase() === email);
+
     if (target) {
       await maybeSendCollaborationEmail({
         supabase,
         collaborator: target,
-        projectName: project.name ?? "this project",
-        slug,
+        projectName,
+        projectSlugOrId,
         type: "invited",
       });
     }
@@ -260,13 +283,14 @@ export default async function ProjectEditPage({
     if (error) throw new Error(error.message);
 
     const collaborators = await fetchCollaborators(supabase, project.id);
-    const target = collaborators.find((collaborator) => collaborator.user_id === userId);
+    const target = collaborators.find(c => c.user_id === userId);
+
     if (target) {
       await maybeSendCollaborationEmail({
         supabase,
         collaborator: target,
-        projectName: project.name ?? "this project",
-        slug,
+        projectName,
+        projectSlugOrId,
         type: "role_changed",
       });
     }
@@ -282,6 +306,7 @@ export default async function ProjectEditPage({
     if (!userId) throw new Error("Missing user id.");
 
     const beforeDelete = await fetchCollaborators(supabase, project.id);
+    const beforeTarget = beforeDelete.find(c => c.user_id === userId) ?? null;
 
     const { error } = await supabase
       .from("project_collaborators")
@@ -291,16 +316,13 @@ export default async function ProjectEditPage({
 
     if (error) throw new Error(error.message);
 
-    const collaborators = await fetchCollaborators(supabase, project.id);
-    const target =
-      collaborators.find((collaborator) => collaborator.user_id === userId) ??
-      beforeDelete.find((collaborator) => collaborator.user_id === userId);
-    if (target) {
+    // after delete, the collaborator won't exist in list; use beforeTarget
+    if (beforeTarget) {
       await maybeSendCollaborationEmail({
         supabase,
-        collaborator: target,
-        projectName: project.name ?? "this project",
-        slug,
+        collaborator: beforeTarget,
+        projectName,
+        projectSlugOrId,
         type: "removed",
       });
     }
@@ -310,9 +332,14 @@ export default async function ProjectEditPage({
   // ---------- /Server Actions ----------
 
   // Collaborators list (Sharing UI)
-  const { data: collaboratorsData } = await supabase.rpc("get_project_collaborators", {
-    pid: project.id,
-  });
+  const { data: collaboratorsData, error: collaboratorsError } = await supabase.rpc(
+    "get_project_collaborators",
+    {
+      pid: project.id,
+    },
+  );
+  if (collaboratorsError) throw new Error(collaboratorsError.message);
+
   const collaborators = (collaboratorsData ?? []) as Collaborator[];
 
   const normalizedCategory: "humanitarian" | "environmental" =
@@ -385,7 +412,7 @@ export default async function ProjectEditPage({
           </div>
 
           <Link
-            href={`/projects/${encodeURIComponent(project.slug ?? project.id)}`}
+            href={`/projects/${encodeURIComponent(projectSlugOrId)}`}
             className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
             View public page
@@ -487,8 +514,8 @@ export default async function ProjectEditPage({
           )}
 
           <p className="text-xs text-slate-500">
-            Notifications are generated automatically when collaborators change. Ask the collaborator to check the bell
-            icon or visit <span className="font-medium text-slate-700">/notifications</span>.
+            Notifications are generated automatically when collaborators change. Collaborators can check the bell icon or
+            visit <span className="font-medium text-slate-700">/notifications</span>.
           </p>
         </div>
       </section>
