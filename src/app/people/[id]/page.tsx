@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import FollowButton from "@/components/FollowButton";
 import { SocialLinks } from "@/components/profiles/SocialLinks";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
@@ -40,6 +41,25 @@ export default async function ProfilePage({
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
   const isOwner = user?.id === profile.id;
+
+  const { count: followerCount, error: followerCountError } = await supabase
+    .from("follow_edges")
+    .select("id", { count: "exact", head: true })
+    .eq("target_type", "person")
+    .eq("target_person_id", profile.id);
+
+  const { data: followEdge, error: followEdgeError } = user
+    ? await supabase
+        .from("follow_edges")
+        .select("id")
+        .eq("target_type", "person")
+        .eq("target_person_id", profile.id)
+        .eq("follower_user_id", user.id)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  const resolvedFollowerCount = followerCountError ? null : followerCount ?? 0;
+  const isFollowing = Boolean(followEdge && !followEdgeError);
 
   let organisation: { id: string; name: string } | null = null;
   if (profile.organisation_id) {
@@ -91,14 +111,24 @@ export default async function ProfilePage({
           </div>
         </div>
 
-        {isOwner ? (
-          <Link
-            href={`/people/${profile.id}/edit`}
-            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Edit Profile
-          </Link>
-        ) : null}
+        <div className="flex flex-col gap-2 sm:items-end">
+          {isOwner ? (
+            <Link
+              href={`/people/${profile.id}/edit`}
+              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Edit Profile
+            </Link>
+          ) : (
+            <FollowButton
+              targetType="person"
+              targetId={profile.id}
+              initialIsFollowing={isFollowing}
+              initialFollowerCount={resolvedFollowerCount}
+              isAuthenticated={Boolean(user)}
+            />
+          )}
+        </div>
       </header>
 
       {profile.bio ? (
@@ -130,6 +160,14 @@ export default async function ProfilePage({
               Occupation
             </dt>
             <dd className="text-sm text-slate-900">{profile.occupation ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Followers
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {resolvedFollowerCount === null ? "—" : resolvedFollowerCount}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">

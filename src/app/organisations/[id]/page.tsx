@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import FollowButton from "@/components/FollowButton";
 import { SocialLinks } from "@/components/profiles/SocialLinks";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
@@ -44,6 +45,22 @@ export default async function OrganisationPage({
   const { data: isAdmin } = await supabase.rpc("is_admin");
   const canEdit = Boolean(user && (organisation.created_by === user.id || isAdmin));
 
+  const { count: followerCount, error: followerCountError } = await supabase
+    .from("follow_edges")
+    .select("id", { count: "exact", head: true })
+    .eq("target_type", "org")
+    .eq("target_org_id", organisation.id);
+
+  const { data: followEdge, error: followEdgeError } = user
+    ? await supabase
+        .from("follow_edges")
+        .select("id")
+        .eq("target_type", "org")
+        .eq("target_org_id", organisation.id)
+        .eq("follower_user_id", user.id)
+        .maybeSingle()
+    : { data: null, error: null };
+
   const { count: memberCount, error: memberError } = await supabase
     .from("organisation_members")
     .select("user_id", { count: "exact", head: true })
@@ -56,6 +73,8 @@ export default async function OrganisationPage({
 
   const resolvedMemberCount = memberError ? null : memberCount ?? 0;
   const resolvedProjectCount = projectError ? null : projectCount ?? 0;
+  const resolvedFollowerCount = followerCountError ? null : followerCount ?? 0;
+  const isFollowing = Boolean(followEdge && !followEdgeError);
   const isVerified = organisation.verification_status === "verified";
 
   return (
@@ -93,14 +112,24 @@ export default async function OrganisationPage({
           </div>
         </div>
 
-        {canEdit ? (
-          <Link
-            href={`/organisations/${organisation.id}/edit`}
-            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Edit Organisation
-          </Link>
-        ) : null}
+        <div className="flex flex-col gap-2 sm:items-end">
+          {canEdit ? (
+            <Link
+              href={`/organisations/${organisation.id}/edit`}
+              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Edit Organisation
+            </Link>
+          ) : (
+            <FollowButton
+              targetType="org"
+              targetId={organisation.id}
+              initialIsFollowing={isFollowing}
+              initialFollowerCount={resolvedFollowerCount}
+              isAuthenticated={Boolean(user)}
+            />
+          )}
+        </div>
       </header>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -167,6 +196,14 @@ export default async function OrganisationPage({
             </dt>
             <dd className="text-sm text-slate-900">
               {resolvedProjectCount === null ? "—" : resolvedProjectCount}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Followers
+            </dt>
+            <dd className="text-sm text-slate-900">
+              {resolvedFollowerCount === null ? "—" : resolvedFollowerCount}
             </dd>
           </div>
         </dl>

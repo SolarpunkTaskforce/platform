@@ -62,6 +62,13 @@ function normalizeRole(value: unknown): CollaboratorRole {
   return value === "editor" ? "editor" : "viewer";
 }
 
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
 function getSiteUrl() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) throw new Error("Missing NEXT_PUBLIC_SITE_URL.");
@@ -329,6 +336,36 @@ export default async function ProjectEditPage({
 
     revalidatePath(`/projects/${slug}/edit`);
   }
+
+  async function createProjectUpdate(formData: FormData) {
+    "use server";
+    const supabase = await getServerSupabase();
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth?.user ?? null;
+
+    if (!user) throw new Error("You must be signed in to publish updates.");
+
+    const title = String(formData.get("title") ?? "").trim();
+    const body = String(formData.get("body") ?? "").trim();
+    const visibility = String(formData.get("visibility") ?? "project");
+
+    if (!title || !body) throw new Error("Title and body are required.");
+    if (!["public", "project"].includes(visibility)) throw new Error("Invalid visibility.");
+
+    const { error } = await supabase.from("project_updates").insert({
+      project_id: project.id,
+      author_user_id: user.id,
+      title,
+      body,
+      visibility,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/projects/${slug}`);
+    revalidatePath(`/projects/${slug}/edit`);
+    revalidatePath(`/feed`);
+  }
   // ---------- /Server Actions ----------
 
   // Collaborators list (Sharing UI)
@@ -341,6 +378,14 @@ export default async function ProjectEditPage({
   if (collaboratorsError) throw new Error(collaboratorsError.message);
 
   const collaborators = (collaboratorsData ?? []) as Collaborator[];
+
+  const { data: projectUpdates, error: updatesError } = await supabase
+    .from("project_updates")
+    .select("id,title,body,visibility,published_at,created_at,author_user_id")
+    .eq("project_id", project.id)
+    .order("published_at", { ascending: false });
+
+  if (updatesError) throw new Error(updatesError.message);
 
   const normalizedCategory: "humanitarian" | "environmental" =
     project.category === "humanitarian" ? "humanitarian" : "environmental";
@@ -517,6 +562,100 @@ export default async function ProjectEditPage({
             Notifications are generated automatically when collaborators change. Collaborators can check the bell icon or
             visit <span className="font-medium text-slate-700">/notifications</span>.
           </p>
+        </div>
+      </section>
+
+      <section id="updates" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Updates
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Publish short project updates for followers. Public updates appear on the project page.
+            </p>
+          </div>
+          <Link
+            href={`/projects/${encodeURIComponent(projectSlugOrId)}#updates`}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+          >
+            View public updates
+          </Link>
+        </div>
+
+        <form
+          action={createProjectUpdate}
+          className="mt-5 space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4"
+        >
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Title
+            </label>
+            <input
+              name="title"
+              required
+              placeholder="What changed since the last update?"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Update details
+            </label>
+            <textarea
+              name="body"
+              required
+              rows={4}
+              placeholder="Share progress, milestones, or needs."
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="sm:w-56">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Visibility
+            </label>
+            <select
+              name="visibility"
+              defaultValue="project"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="project">Project members</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Publish update
+          </button>
+        </form>
+
+        <div className="mt-5 space-y-3">
+          <h3 className="text-sm font-semibold text-slate-900">Recent updates</h3>
+          {projectUpdates && projectUpdates.length > 0 ? (
+            <ul className="space-y-3">
+              {projectUpdates.map((update) => (
+                <li
+                  key={update.id}
+                  className="rounded-xl border border-slate-100 bg-white px-4 py-3"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm font-medium text-slate-900">{update.title}</div>
+                    <span className="text-xs text-slate-500">
+                      {formatDate(update.published_at)}
+                    </span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{update.body}</p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Visibility: {update.visibility}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate-600">No updates yet.</p>
+          )}
         </div>
       </section>
     </main>
