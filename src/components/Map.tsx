@@ -24,6 +24,8 @@ type MapProps = {
   markers?: Marker[];
   markerColor?: string;
   focusSlug?: string | null;
+  ctaLabel?: string;
+  getCtaHref?: (marker: Marker) => string;
 };
 
 type MarkerObject = {
@@ -44,6 +46,8 @@ export default function Map({
   markers = [],
   markerColor = "#22c55e",
   focusSlug = null,
+  ctaLabel = "View project",
+  getCtaHref,
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -108,9 +112,10 @@ export default function Map({
       cta.type = "button";
       cta.className =
         "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
-      cta.textContent = "View project";
+      cta.textContent = ctaLabel;
       cta.addEventListener("click", () => {
-        router.push(`/projects/${m.slug}`);
+        const href = getCtaHref ? getCtaHref(m) : `/projects/${m.slug}`;
+        router.push(href);
       });
       popupNode.appendChild(cta);
 
@@ -169,7 +174,7 @@ export default function Map({
         focused.marker.getPopup()?.addTo(map);
       }
     }
-  }, [focusSlug, markerColor, markers, router]);
+  }, [ctaLabel, focusSlug, getCtaHref, markerColor, markers, router]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
