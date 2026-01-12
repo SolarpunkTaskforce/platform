@@ -110,12 +110,8 @@ export default async function FeedPage({
     organisationsPromise,
   ]);
 
-  const profilesMap = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, profile])
-  );
-  const projectsMap = new Map(
-    (projectsResult.data ?? []).map((project) => [project.id, project])
-  );
+  const profilesMap = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
+  const projectsMap = new Map((projectsResult.data ?? []).map((project) => [project.id, project]));
   const organisationsMap = new Map(
     (organisationsResult.data ?? []).map((org) => [org.id, org])
   );
@@ -188,9 +184,12 @@ export default async function FeedPage({
           {items.map((item) => {
             const actor = profilesMap.get(item.actor_user_id ?? "") ?? null;
             const actorName = getProfileName(actor);
-            const targetPerson = item.person_profile_id
-              ? profilesMap.get(item.person_profile_id)
+
+            // ✅ FIX: ensure this is ProfileSummary | null (never undefined)
+            const targetPerson: ProfileSummary | null = item.person_profile_id
+              ? profilesMap.get(item.person_profile_id) ?? null
               : null;
+
             const project = item.project_id ? projectsMap.get(item.project_id) : null;
             const organisation = item.org_id ? organisationsMap.get(item.org_id) : null;
 
@@ -230,12 +229,8 @@ export default async function FeedPage({
                         title
                       )}
                     </h2>
-                    {item.summary ? (
-                      <p className="text-sm text-slate-700">{item.summary}</p>
-                    ) : null}
-                    <p className="text-xs text-slate-500">
-                      {formatDateTime(item.created_at)}
-                    </p>
+                    {item.summary ? <p className="text-sm text-slate-700">{item.summary}</p> : null}
+                    <p className="text-xs text-slate-500">{formatDateTime(item.created_at)}</p>
                   </div>
                   {actor?.avatar_url ? (
                     <img
@@ -296,6 +291,7 @@ export default async function FeedPage({
             ))}
           </ul>
         </div>
+
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Discover organisations
@@ -310,6 +306,7 @@ export default async function FeedPage({
             ))}
           </ul>
         </div>
+
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Discover projects
