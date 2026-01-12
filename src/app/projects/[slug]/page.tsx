@@ -2,10 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import type { Database } from "@/lib/database.types";
+import FollowButton from "@/components/FollowButton";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type OrganisationRow = Database["public"]["Tables"]["organisations"]["Row"];
+type ProjectUpdateRow = {
+  id: string;
+  project_id: string;
+  author_user_id: string;
+  title: string;
+  body: string;
+  visibility: string;
+  published_at: string;
+  created_at: string;
+};
 
 function formatMoney(amount: number | null, currency: string | null) {
   if (typeof amount !== "number") return null;
@@ -119,6 +130,34 @@ export default async function ProjectDetailPage({
   // 4) Can the current viewer edit? (used only for buttons)
   const { data: canEdit } = await supabase.rpc("user_can_edit_project", { pid: project.id });
 
+  const { count: followerCount, error: followerCountError } = await supabase
+    .from("follow_edges")
+    .select("id", { count: "exact", head: true })
+    .eq("target_type", "project")
+    .eq("target_project_id", project.id);
+
+  const { data: followEdge, error: followEdgeError } = user
+    ? await supabase
+        .from("follow_edges")
+        .select("id")
+        .eq("target_type", "project")
+        .eq("target_project_id", project.id)
+        .eq("follower_user_id", user.id)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  const { data: projectUpdates, error: updatesError } = await supabase
+    .from("project_updates")
+    .select("id,project_id,author_user_id,title,body,visibility,published_at,created_at")
+    .eq("project_id", project.id)
+    .eq("visibility", "public")
+    .order("published_at", { ascending: false });
+
+  if (updatesError) throw new Error(updatesError.message);
+
+  const resolvedFollowerCount = followerCountError ? null : followerCount ?? 0;
+  const isFollowing = Boolean(followEdge && !followEdgeError);
+
   const normalizedLinks = [
     ...(projectLinks ?? []).map((l) => ({
       label: l.label ?? undefined,
@@ -177,22 +216,31 @@ export default async function ProjectDetailPage({
           {locationLabel ? <p className="mt-1 text-sm text-slate-600">{locationLabel}</p> : null}
         </div>
 
-        {canEdit ? (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Link
-              href={`/projects/${slug}/edit`}
-              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Edit
-            </Link>
-            <Link
-              href={`/projects/${slug}/edit#sharing`}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-            >
-              Share
-            </Link>
-          </div>
-        ) : null}
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          {canEdit ? (
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/projects/${slug}/edit`}
+                className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Edit
+              </Link>
+              <Link
+                href={`/projects/${slug}/edit#sharing`}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+              >
+                Share
+              </Link>
+            </div>
+          ) : null}
+          <FollowButton
+            targetType="project"
+            targetId={project.id}
+            initialIsFollowing={isFollowing}
+            initialFollowerCount={resolvedFollowerCount}
+            isAuthenticated={Boolean(user)}
+          />
+        </div>
       </header>
 
       {project.description ? (
@@ -205,6 +253,31 @@ export default async function ProjectDetailPage({
           </p>
         </section>
       ) : null}
+
+      <section id="updates" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Updates
+        </h2>
+        {projectUpdates && projectUpdates.length > 0 ? (
+          <div className="mt-4 space-y-4">
+            {(projectUpdates as ProjectUpdateRow[]).map((update) => (
+              <article key={update.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="text-base font-semibold text-slate-900">{update.title}</h3>
+                  <span className="text-xs text-slate-500">
+                    {formatDate(update.published_at)}
+                  </span>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                  {update.body}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-600">No public updates yet.</p>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Details</h2>

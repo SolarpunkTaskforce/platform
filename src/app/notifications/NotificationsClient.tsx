@@ -63,12 +63,29 @@ export default function NotificationsClient({
     });
   };
 
+  const getFallbackBody = (type: string) => {
+    switch (type) {
+      case "project_update_published":
+        return "A project you follow shared an update.";
+      case "followed_you":
+        return "Someone followed you.";
+      case "followed_your_org":
+        return "Someone followed your organisation.";
+      case "followed_your_project":
+        return "Someone followed your project.";
+      default:
+        return null;
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Notifications</h1>
-          <p className="text-sm text-slate-600">Updates about your projects and collaborations.</p>
+          <p className="text-sm text-slate-600">
+            Updates about your projects, follows, and collaborations.
+          </p>
         </div>
         <button
           type="button"
@@ -84,11 +101,13 @@ export default function NotificationsClient({
         <ul className="space-y-3">
           {notifications.map((notification) => {
             const isUnread = !notification.read_at;
+            const fallbackBody = getFallbackBody(notification.type);
+            const body = notification.body ?? fallbackBody;
             const content = (
               <div className="min-w-0 space-y-1">
                 <div className="truncate text-sm font-semibold text-slate-900">{notification.title}</div>
-                {notification.body ? (
-                  <div className="truncate text-xs text-slate-600">{notification.body}</div>
+                {body ? (
+                  <div className="truncate text-xs text-slate-600">{body}</div>
                 ) : null}
                 <div className="text-xs text-slate-500">{formatDateTime(notification.created_at)}</div>
               </div>
