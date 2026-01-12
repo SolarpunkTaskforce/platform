@@ -952,6 +952,72 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_edges: {
+        Row: {
+          created_at: string
+          follower_user_id: string
+          id: string
+          target_org_id: string | null
+          target_person_id: string | null
+          target_project_id: string | null
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          follower_user_id: string
+          id?: string
+          target_org_id?: string | null
+          target_person_id?: string | null
+          target_project_id?: string | null
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          follower_user_id?: string
+          id?: string
+          target_org_id?: string | null
+          target_person_id?: string | null
+          target_project_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_edges_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_edges_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_edges_target_person_id_fkey"
+            columns: ["target_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_edges_target_project_id_fkey"
+            columns: ["target_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_edges_target_project_id_fkey"
+            columns: ["target_project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ifrc_challenges: {
         Row: {
           code: string | null
@@ -1487,6 +1553,54 @@ export type Database = {
           },
         ]
       }
+      project_updates: {
+        Row: {
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          project_id: string
+          published_at: string
+          title: string
+          visibility: string
+        }
+        Insert: {
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          project_id: string
+          published_at?: string
+          title: string
+          visibility?: string
+        }
+        Update: {
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          published_at?: string
+          title?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "rejected_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           amount_needed: number | null
@@ -1714,6 +1828,21 @@ export type Database = {
       }
     }
     Views: {
+      activity_feed_items: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string | null
+          org_id: string | null
+          person_profile_id: string | null
+          project_id: string | null
+          summary: string | null
+          title: string | null
+          update_id: string | null
+        }
+        Relationships: []
+      }
       rejected_projects: {
         Row: {
           amount_needed: number | null
@@ -1911,6 +2040,26 @@ export type Database = {
         Args: { project_id: string; project_name: string }
         Returns: string
       }
+      get_activity_feed_items: {
+        Args: {
+          cursor_created_at?: string
+          cursor_id?: string
+          page_size?: number
+          scope: string
+        }
+        Returns: {
+          actor_user_id: string
+          created_at: string
+          event_type: string
+          id: string
+          org_id: string
+          person_profile_id: string
+          project_id: string
+          summary: string
+          title: string
+          update_id: string
+        }[]
+      }
       get_project_collaborators: {
         Args: { pid: string }
         Returns: {
@@ -1943,6 +2092,7 @@ export type Database = {
       slugify_project_name: { Args: { project_name: string }; Returns: string }
       user_can_edit_project: { Args: { pid: string }; Returns: boolean }
       user_can_view_project: { Args: { pid: string }; Returns: boolean }
+      user_can_view_project_private: { Args: { pid: string }; Returns: boolean }
     }
     Enums: {
       project_approval_status: "pending" | "approved" | "rejected"
