@@ -80,7 +80,7 @@ export default async function FindOrganisationsPage({
   }
 
   return (
-    <main className="space-y-6 px-6 py-8">
+    <main className="min-h-screen px-6 py-8 flex flex-col gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold text-slate-900">Find Organisations</h1>
