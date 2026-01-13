@@ -1052,9 +1052,9 @@ export type Database = {
           open_date: string | null
           project_type: string
           remote_ok: boolean
+          sdgs: number[] | null
           slug: string
           source: string | null
-          sdgs: number[] | null
           start_date: string | null
           status: string
           summary: string | null
@@ -1088,9 +1088,9 @@ export type Database = {
           open_date?: string | null
           project_type: string
           remote_ok?: boolean
+          sdgs?: number[] | null
           slug: string
           source?: string | null
-          sdgs?: number[] | null
           start_date?: string | null
           status?: string
           summary?: string | null
@@ -1124,9 +1124,9 @@ export type Database = {
           open_date?: string | null
           project_type?: string
           remote_ok?: boolean
+          sdgs?: number[] | null
           slug?: string
           source?: string | null
-          sdgs?: number[] | null
           start_date?: string | null
           status?: string
           summary?: string | null
@@ -3012,3 +3012,4 @@ export const Constants = {
     },
   },
 } as const
+
