@@ -90,6 +90,7 @@ export default function Header() {
       { href: "/", label: "Home" },
       { href: "/about", label: "About" },
       { href: "/find-projects", label: "Find Projects" },
+      { href: "/find-grants", label: "Find Grants" },
       { href: "/find-organisations", label: "Find Organisations" },
       { href: "/feed", label: "Feed" },
       { href: "/note-empathy", label: "Note Empathy" },
