@@ -109,7 +109,6 @@ export default async function FindOrganisationsPage({
               markerColor="#10b981"
               focusSlug={focus}
               ctaLabel="See more"
-              getCtaHref={(marker) => `/organisations/${marker.slug}`}
             />
           </div>
         </section>

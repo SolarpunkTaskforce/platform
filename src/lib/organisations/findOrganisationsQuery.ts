@@ -34,6 +34,8 @@ export type OrganisationMarker = {
   lng: number;
   placeName?: string | null;
   description?: string | null;
+  /** Precomputed CTA href so we don't pass functions to Client Components */
+  ctaHref: string;
 };
 
 type SortColumn =
@@ -88,7 +90,7 @@ const isNonEmptyString = (value: string | undefined): value is string =>
 
 const parseString = (value: string | string[] | undefined): string | undefined => {
   if (Array.isArray(value)) {
-    return value.find(item => item.trim().length > 0)?.trim();
+    return value.find((item) => item.trim().length > 0)?.trim();
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -99,7 +101,7 @@ const parseString = (value: string | string[] | undefined): string | undefined =
 
 const parseStringList = (value: string | string[] | undefined): string[] => {
   const raw = Array.isArray(value) ? value : value ? value.split(",") : [];
-  return raw.map(item => item.trim()).filter(isNonEmptyString);
+  return raw.map((item) => item.trim()).filter(isNonEmptyString);
 };
 
 const parseNumber = (value: string | string[] | undefined): number | undefined => {
@@ -185,19 +187,19 @@ export async function fetchFindOrganisations({
   }
 
   if (params.thematic_tags.length) {
-    params.thematic_tags.forEach(value => {
+    params.thematic_tags.forEach((value) => {
       query = query.contains("thematic_tags", [value]);
     });
   }
 
   if (params.intervention_tags.length) {
-    params.intervention_tags.forEach(value => {
+    params.intervention_tags.forEach((value) => {
       query = query.contains("intervention_tags", [value]);
     });
   }
 
   if (params.demographic_tags.length) {
-    params.demographic_tags.forEach(value => {
+    params.demographic_tags.forEach((value) => {
       query = query.contains("demographic_tags", [value]);
     });
   }
@@ -225,6 +227,7 @@ export async function fetchFindOrganisations({
   if (typeof params.max_funding === "number") {
     query = query.lte("funding_needed", params.max_funding);
   }
+
   query = query.order(params.sort, { ascending: params.dir === "asc", nullsFirst: false });
 
   const offset = (params.page - 1) * PAGE_SIZE;
@@ -308,7 +311,7 @@ export async function fetchOrganisationMarkers({
 
   let query = supabase
     .from("organisations_directory_v1")
-    .select("id,name,description,based_in_country,based_in_region,lat,lng");
+    .select("id,name,description,based_in_country,based_in_region,lat,lng,thematic_tags,intervention_tags,demographic_tags,age_years,projects_total_count,projects_ongoing_count,funding_needed");
 
   if (params.q) {
     const escaped = params.q.replace(/%/g, "\\%").replace(/_/g, "\\_");
@@ -324,19 +327,19 @@ export async function fetchOrganisationMarkers({
   }
 
   if (params.thematic_tags.length) {
-    params.thematic_tags.forEach(value => {
+    params.thematic_tags.forEach((value) => {
       query = query.contains("thematic_tags", [value]);
     });
   }
 
   if (params.intervention_tags.length) {
-    params.intervention_tags.forEach(value => {
+    params.intervention_tags.forEach((value) => {
       query = query.contains("intervention_tags", [value]);
     });
   }
 
   if (params.demographic_tags.length) {
-    params.demographic_tags.forEach(value => {
+    params.demographic_tags.forEach((value) => {
       query = query.contains("demographic_tags", [value]);
     });
   }
@@ -364,6 +367,7 @@ export async function fetchOrganisationMarkers({
   if (typeof params.max_funding === "number") {
     query = query.lte("funding_needed", params.max_funding);
   }
+
   query = query.limit(limit);
 
   const { data, error } = await query;
@@ -376,7 +380,7 @@ export async function fetchOrganisationMarkers({
   const uniqueLocations: string[] = [];
   const seenLocations = new Set<string>();
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     if (Number.isFinite(row.lat) && Number.isFinite(row.lng)) return;
     const place = [row.based_in_region, row.based_in_country].filter(Boolean).join(", ");
     if (!place || seenLocations.has(place)) return;
@@ -385,9 +389,9 @@ export async function fetchOrganisationMarkers({
   });
 
   const geocodeTargets = uniqueLocations.slice(0, 50);
-  await Promise.all(geocodeTargets.map(place => geocodeLocation(place)));
+  await Promise.all(geocodeTargets.map((place) => geocodeLocation(place)));
 
-  return rows.flatMap(row => {
+  return rows.flatMap((row) => {
     if (!row.id) return [];
     const placeName = [row.based_in_region, row.based_in_country].filter(Boolean).join(", ");
     let lat = row.lat;
@@ -414,6 +418,8 @@ export async function fetchOrganisationMarkers({
         lng,
         placeName: placeName || null,
         description: row.description ?? null,
+        // IMPORTANT: precompute so we don't pass functions to Client Components (Next.js restriction)
+        ctaHref: `/organisations/${row.id}`,
       },
     ];
   });
@@ -444,7 +450,7 @@ export async function fetchOrganisationFilterOptions(): Promise<OrganisationFilt
   const interventionSet = new Set<string>();
   const demographicSet = new Set<string>();
 
-  (data ?? []).forEach(row => {
+  (data ?? []).forEach((row) => {
     if (row.based_in_country) countrySet.add(row.based_in_country);
     if (row.based_in_region) regionSet.add(row.based_in_region);
     (row.thematic_tags ?? []).forEach((tag: string) => thematicSet.add(tag));
@@ -455,7 +461,7 @@ export async function fetchOrganisationFilterOptions(): Promise<OrganisationFilt
   const toOptions = (values: Set<string>) =>
     Array.from(values)
       .sort((a, b) => a.localeCompare(b))
-      .map(value => ({ value, label: value }));
+      .map((value) => ({ value, label: value }));
 
   return {
     countries: toOptions(countrySet),

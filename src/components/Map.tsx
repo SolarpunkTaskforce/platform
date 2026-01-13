@@ -18,6 +18,8 @@ type Marker = {
   title: string;
   placeName?: string | null;
   description?: string | null;
+  /** Precomputed CTA href from the server (required to avoid passing functions from Server Components). */
+  ctaHref?: string;
 };
 
 type MapProps = {
@@ -25,7 +27,6 @@ type MapProps = {
   markerColor?: string;
   focusSlug?: string | null;
   ctaLabel?: string;
-  getCtaHref?: (marker: Marker) => string;
 };
 
 type MarkerObject = {
@@ -47,7 +48,6 @@ export default function Map({
   markerColor = "#22c55e",
   focusSlug = null,
   ctaLabel = "View project",
-  getCtaHref,
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -65,10 +65,7 @@ export default function Map({
       zoom: 1.25,
     });
 
-    mapRef.current.addControl(
-      new mapboxgl.NavigationControl({ visualizePitch: true }),
-      "top-right"
-    );
+    mapRef.current.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
   }, []);
 
   useEffect(() => {
@@ -78,9 +75,7 @@ export default function Map({
     markerObjs.current.forEach((obj) => obj.marker.remove());
     markerObjs.current = [];
 
-    const validMarkers = markers.filter(
-      (m) => Number.isFinite(m.lng) && Number.isFinite(m.lat)
-    );
+    const validMarkers = markers.filter((m) => Number.isFinite(m.lng) && Number.isFinite(m.lat));
     const scale = getMarkerScale(map.getZoom());
 
     validMarkers.forEach((m) => {
@@ -114,7 +109,7 @@ export default function Map({
         "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
       cta.textContent = ctaLabel;
       cta.addEventListener("click", () => {
-        const href = getCtaHref ? getCtaHref(m) : `/projects/${m.slug}`;
+        const href = m.ctaHref ?? `/projects/${m.slug}`;
         router.push(href);
       });
       popupNode.appendChild(cta);
@@ -161,7 +156,7 @@ export default function Map({
       }
     }
 
-    // Focus a specific project marker (open popup + center map)
+    // Focus a specific marker (open popup + center map)
     if (focusSlug) {
       const focused = markerObjs.current.find((o) => o.slug === focusSlug);
       if (focused) {
@@ -174,7 +169,7 @@ export default function Map({
         focused.marker.getPopup()?.addTo(map);
       }
     }
-  }, [ctaLabel, focusSlug, getCtaHref, markerColor, markers, router]);
+  }, [ctaLabel, focusSlug, markerColor, markers, router]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
