@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 
-import MultiSelect, { type Option } from "@/components/ui/MultiSelect";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,383 +18,515 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const FUNDING_TYPE_OPTIONS: Option[] = [
-  { value: "grant", label: "Grant" },
-  { value: "prize", label: "Prize" },
-  { value: "fellowship", label: "Fellowship" },
-  { value: "loan", label: "Loan" },
-  { value: "equity", label: "Equity" },
-  { value: "in-kind", label: "In-kind" },
-  { value: "other", label: "Other" },
-];
+import { createClient } from "@/utils/supabase/client";
+import type { Database } from "@/types/supabase";
 
-const PROJECT_TYPE_OPTIONS: Option[] = [
-  { value: "environmental", label: "Environmental" },
-  { value: "humanitarian", label: "Humanitarian" },
-  { value: "both", label: "Both / cross-cutting" },
-];
+type GrantRow = Database["public"]["Tables"]["grants"]["Row"];
 
-const SDG_OPTIONS: Option[] = Array.from({ length: 17 }, (_, index) => {
-  const value = String(index + 1);
-  return { value, label: `SDG ${value}` };
+const projectTypes = ["environmental", "humanitarian", "both"] as const;
+const fundingTypes = [
+  "grant",
+  "prize",
+  "fellowship",
+  "loan",
+  "equity",
+  "in-kind",
+  "other",
+] as const;
+
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title is too long"),
+  summary: z
+    .string()
+    .max(500, "Summary is too long")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  description: z
+    .string()
+    .max(5000, "Description is too long")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+
+  project_type: z.enum(projectTypes),
+  funding_type: z.enum(fundingTypes),
+
+  application_url: z
+    .string()
+    .min(1, "Application URL is required")
+    .url("Please enter a valid URL"),
+
+  currency: z
+    .string()
+    .min(1, "Currency is required")
+    .max(10, "Currency is too long"),
+  amount_min: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
+    .refine((v) => v === undefined || Number.isFinite(v), {
+      message: "Min amount must be a number",
+    }),
+  amount_max: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
+    .refine((v) => v === undefined || Number.isFinite(v), {
+      message: "Max amount must be a number",
+    }),
+
+  open_date: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v : undefined)),
+  deadline: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v : undefined)),
+  decision_date: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v : undefined)),
+  start_date: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v : undefined)),
+
+  eligible_countries: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v : undefined)),
+  remote_ok: z.boolean().default(false),
+
+  location_name: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  latitude: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
+    .refine((v) => v === undefined || Number.isFinite(v), {
+      message: "Latitude must be a number",
+    }),
+  longitude: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
+    .refine((v) => v === undefined || Number.isFinite(v), {
+      message: "Longitude must be a number",
+    }),
+
+  themes: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .transform((v) => v ?? []),
+  sdgs: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .transform((v) => v ?? []),
+  keywords: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+
+  funder_name: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  funder_website: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined))
+    .refine((v) => v === undefined || /^https?:\/\//i.test(v), {
+      message: "Funder website must be a valid URL (include http/https)",
+    }),
+  contact_email: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined))
+    .refine((v) => v === undefined || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      message: "Please enter a valid email address",
+    }),
 });
 
-const COUNTRY_OPTIONS: Option[] = [
-  { value: "AR", label: "Argentina" },
-  { value: "AU", label: "Australia" },
-  { value: "AT", label: "Austria" },
-  { value: "BE", label: "Belgium" },
-  { value: "BR", label: "Brazil" },
-  { value: "CA", label: "Canada" },
-  { value: "CL", label: "Chile" },
-  { value: "CN", label: "China" },
-  { value: "CO", label: "Colombia" },
-  { value: "DK", label: "Denmark" },
-  { value: "EG", label: "Egypt" },
-  { value: "FI", label: "Finland" },
-  { value: "FR", label: "France" },
-  { value: "DE", label: "Germany" },
-  { value: "GH", label: "Ghana" },
-  { value: "GR", label: "Greece" },
-  { value: "IN", label: "India" },
-  { value: "ID", label: "Indonesia" },
-  { value: "IE", label: "Ireland" },
-  { value: "IL", label: "Israel" },
-  { value: "IT", label: "Italy" },
-  { value: "JP", label: "Japan" },
-  { value: "KE", label: "Kenya" },
-  { value: "MX", label: "Mexico" },
-  { value: "NL", label: "Netherlands" },
-  { value: "NG", label: "Nigeria" },
-  { value: "NO", label: "Norway" },
-  { value: "NZ", label: "New Zealand" },
-  { value: "PK", label: "Pakistan" },
-  { value: "PE", label: "Peru" },
-  { value: "PH", label: "Philippines" },
-  { value: "PL", label: "Poland" },
-  { value: "PT", label: "Portugal" },
-  { value: "RO", label: "Romania" },
-  { value: "ZA", label: "South Africa" },
-  { value: "KR", label: "South Korea" },
-  { value: "ES", label: "Spain" },
-  { value: "SE", label: "Sweden" },
-  { value: "CH", label: "Switzerland" },
-  { value: "TR", label: "Turkey" },
-  { value: "UA", label: "Ukraine" },
-  { value: "AE", label: "United Arab Emirates" },
-  { value: "GB", label: "United Kingdom" },
-  { value: "US", label: "United States" },
-  { value: "VN", label: "Vietnam" },
-];
+type FormInput = z.input<typeof formSchema>;
+// Values after Zod transforms (what you get in onSubmit)
+type FormValues = z.output<typeof formSchema>;
 
-const CURRENCY_CODES = [
-  "USD",
-  "EUR",
-  "GBP",
-  "CHF",
-  "AUD",
-  "CAD",
-  "NZD",
-  "JPY",
-  "CNY",
-  "INR",
-  "SEK",
-  "NOK",
-  "DKK",
-  "BRL",
-  "MXN",
-  "ZAR",
-  "KES",
-  "NGN",
-  "GHS",
-  "IDR",
-  "SGD",
-  "HKD",
-  "KRW",
-  "TRY",
-  "PLN",
-  "CZK",
-  "HUF",
-  "ILS",
-  "SAR",
-];
+type GrantFormProps = {
+  grant?: GrantRow | null;
+  mode?: "create" | "edit";
+};
 
-const optionalNumber = z.preprocess(
-  value => (value === "" || value === null || value === undefined ? undefined : Number(value)),
-  z.number().nonnegative().optional(),
-);
+const SDG_OPTIONS = [
+  { id: "1", label: "No Poverty" },
+  { id: "2", label: "Zero Hunger" },
+  { id: "3", label: "Good Health and Well-being" },
+  { id: "4", label: "Quality Education" },
+  { id: "5", label: "Gender Equality" },
+  { id: "6", label: "Clean Water and Sanitation" },
+  { id: "7", label: "Affordable and Clean Energy" },
+  { id: "8", label: "Decent Work and Economic Growth" },
+  { id: "9", label: "Industry, Innovation and Infrastructure" },
+  { id: "10", label: "Reduced Inequalities" },
+  { id: "11", label: "Sustainable Cities and Communities" },
+  { id: "12", label: "Responsible Consumption and Production" },
+  { id: "13", label: "Climate Action" },
+  { id: "14", label: "Life Below Water" },
+  { id: "15", label: "Life on Land" },
+  { id: "16", label: "Peace, Justice and Strong Institutions" },
+  { id: "17", label: "Partnerships for the Goals" },
+] as const;
 
-const formSchema = z
-  .object({
-    title: z.string().trim().min(1, "Title is required"),
-    summary: z
-      .string()
-      .trim()
-      .max(280, "Keep summaries under 280 characters")
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined)),
-    description: z
-      .string()
-      .trim()
-      .max(4000, "Keep descriptions under 4000 characters")
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined)),
-    project_type: z.enum(["environmental", "humanitarian", "both"] as const, {
-      message: "Select a project type",
-    }),
-    funding_type: z.enum(["grant", "prize", "fellowship", "loan", "equity", "in-kind", "other"] as const, {
-      message: "Select a funding type",
-    }),
-    application_url: z.string().trim().url("Enter a valid application URL"),
-    funder_name: z
-      .string()
-      .trim()
-      .max(200, "Keep funder names under 200 characters")
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined)),
-    funder_website: z
-      .string()
-      .trim()
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined))
-      .refine(value => !value || /^https?:\/\//i.test(value), "Enter a valid URL"),
-    contact_email: z
-      .string()
-      .trim()
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined))
-      .refine(value => !value || /.+@.+\..+/.test(value), "Enter a valid email"),
-    currency: z
-      .string()
-      .trim()
-      .length(3, "Use a three-letter currency code")
-      .transform(value => value.toUpperCase()),
-    amount_min: optionalNumber,
-    amount_max: optionalNumber,
-    open_date: z.string().optional(),
-    deadline: z.string().optional(),
-    decision_date: z.string().optional(),
-    start_date: z.string().optional(),
-    eligible_countries: z.array(z.string()).default([]),
-    remote_ok: z.boolean().default(true),
-    location_name: z
-      .string()
-      .trim()
-      .max(255, "Location name should be concise")
-      .optional()
-      .or(z.literal(""))
-      .transform(value => (value ? value.trim() : undefined)),
-    latitude: optionalNumber,
-    longitude: optionalNumber,
-    themes: z.string().optional(),
-    sdgs: z.array(z.string()).default([]),
-    keywords: z.string().optional(),
-  })
-  .superRefine((values, ctx) => {
-    if (
-      typeof values.amount_min === "number" &&
-      typeof values.amount_max === "number" &&
-      values.amount_min > values.amount_max
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["amount_max"],
-        message: "Maximum amount must be greater than minimum amount",
-      });
+const THEME_OPTIONS = [
+  "Biodiversity",
+  "Climate",
+  "Oceans",
+  "Forests",
+  "Agriculture",
+  "Energy",
+  "Education",
+  "Health",
+  "Human rights",
+  "Refugees",
+  "Water",
+  "Women & girls",
+  "Economic development",
+] as const;
+
+function toDateInputValue(value: string | null | undefined) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function joinArrayForEdit(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+    } catch {
+      // fallback: comma-separated string
+      return value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
-  });
+  }
+  return [];
+}
 
-type FormValues = z.infer<typeof formSchema>;
+function keywordsToString(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.filter(Boolean).map(String).join(", ");
+  return "";
+}
 
-const createDefaultValues = (): FormValues => ({
-  title: "",
-  summary: undefined,
-  description: undefined,
-  project_type: "environmental",
-  funding_type: "grant",
-  application_url: "",
-  funder_name: undefined,
-  funder_website: undefined,
-  contact_email: undefined,
-  currency: "EUR",
-  amount_min: undefined,
-  amount_max: undefined,
-  open_date: "",
-  deadline: "",
-  decision_date: "",
-  start_date: "",
-  eligible_countries: [],
-  remote_ok: true,
-  location_name: undefined,
-  latitude: undefined,
-  longitude: undefined,
-  themes: "",
-  sdgs: [],
-  keywords: "",
-});
-
-const parseCommaList = (value?: string) =>
-  (value ?? "")
-    .split(",")
-    .map(item => item.trim())
-    .filter(Boolean);
-
-export default function GrantForm() {
+export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
   const router = useRouter();
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabase = createClient();
+  const [submitting, setSubmitting] = useState(false);
 
-  const form = useForm<FormValues>({
+  const createDefaultValues = (): FormInput => {
+    if (!grant) {
+      return {
+        title: "",
+        summary: "",
+        description: "",
+        project_type: "both",
+        funding_type: "grant",
+        application_url: "",
+        currency: "USD",
+        amount_min: "",
+        amount_max: "",
+        open_date: "",
+        deadline: "",
+        decision_date: "",
+        start_date: "",
+        eligible_countries: "",
+        remote_ok: false,
+        location_name: "",
+        latitude: "",
+        longitude: "",
+        themes: [],
+        sdgs: [],
+        keywords: "",
+        funder_name: "",
+        funder_website: "",
+        contact_email: "",
+      };
+    }
+
+    return {
+      title: grant.title ?? "",
+      summary: grant.summary ?? "",
+      description: grant.description ?? "",
+      project_type: (grant.project_type as FormInput["project_type"]) ?? "both",
+      funding_type: (grant.funding_type as FormInput["funding_type"]) ?? "grant",
+      application_url: grant.application_url ?? "",
+      currency: grant.currency ?? "USD",
+      amount_min: grant.amount_min != null ? String(grant.amount_min) : "",
+      amount_max: grant.amount_max != null ? String(grant.amount_max) : "",
+      open_date: toDateInputValue(grant.open_date),
+      deadline: toDateInputValue(grant.deadline),
+      decision_date: toDateInputValue(grant.decision_date),
+      start_date: toDateInputValue(grant.start_date),
+      eligible_countries: grant.eligible_countries ?? "",
+      remote_ok: !!grant.remote_ok,
+      location_name: grant.location_name ?? "",
+      latitude: grant.latitude != null ? String(grant.latitude) : "",
+      longitude: grant.longitude != null ? String(grant.longitude) : "",
+      themes: joinArrayForEdit(grant.themes),
+      sdgs: joinArrayForEdit(grant.sdgs),
+      keywords: keywordsToString(grant.keywords),
+      funder_name: grant.funder_name ?? "",
+      funder_website: grant.funder_website ?? "",
+      contact_email: grant.contact_email ?? "",
+    };
+  };
+
+  const form = useForm<FormInput, any, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: createDefaultValues(),
+    mode: "onChange",
   });
 
-  const { control, handleSubmit, reset } = form;
-
   const onSubmit = async (values: FormValues) => {
-    setSubmitError(null);
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
-      const response = await fetch("/api/grants/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: values.title,
-          summary: values.summary ?? null,
-          description: values.description ?? null,
-          project_type: values.project_type,
-          funding_type: values.funding_type,
-          application_url: values.application_url,
-          funder_name: values.funder_name ?? null,
-          funder_website: values.funder_website ?? null,
-          contact_email: values.contact_email ?? null,
-          currency: values.currency,
-          amount_min: values.amount_min ?? null,
-          amount_max: values.amount_max ?? null,
-          open_date: values.open_date || null,
-          deadline: values.deadline || null,
-          decision_date: values.decision_date || null,
-          start_date: values.start_date || null,
-          eligible_countries: values.eligible_countries,
-          remote_ok: values.remote_ok,
-          location_name: values.location_name ?? null,
-          latitude: values.latitude ?? null,
-          longitude: values.longitude ?? null,
-          themes: parseCommaList(values.themes),
-          sdgs: values.sdgs.map(item => Number(item)).filter(item => Number.isFinite(item)),
-          keywords: parseCommaList(values.keywords),
-        }),
-      });
+      // Convert keywords string -> array (store as text[] or json depending on your schema)
+      const keywordsArray = values.keywords
+        ? values.keywords
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message =
-          typeof errorBody?.error === "string"
-            ? errorBody.error
-            : errorBody?.error?.message ?? "Unable to submit grant";
-        throw new Error(message);
+      const payload = {
+        title: values.title,
+        summary: values.summary ?? null,
+        description: values.description ?? null,
+
+        project_type: values.project_type,
+        funding_type: values.funding_type,
+
+        application_url: values.application_url,
+
+        currency: values.currency,
+        amount_min: values.amount_min ?? null,
+        amount_max: values.amount_max ?? null,
+
+        open_date: values.open_date ?? null,
+        deadline: values.deadline ?? null,
+        decision_date: values.decision_date ?? null,
+        start_date: values.start_date ?? null,
+
+        eligible_countries: values.eligible_countries ?? null,
+        remote_ok: values.remote_ok ?? false,
+
+        location_name: values.location_name ?? null,
+        latitude: values.latitude ?? null,
+        longitude: values.longitude ?? null,
+
+        themes: values.themes ?? [],
+        sdgs: values.sdgs ?? [],
+        keywords: keywordsArray,
+
+        funder_name: values.funder_name ?? null,
+        funder_website: values.funder_website ?? null,
+        contact_email: values.contact_email ?? null,
+      } satisfies Partial<GrantRow>;
+
+      if (mode === "edit") {
+        if (!grant?.id) throw new Error("Missing grant id");
+        const { error } = await supabase
+          .from("grants")
+          .update(payload)
+          .eq("id", grant.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Grant updated",
+          description: "Your changes have been saved.",
+        });
+      } else {
+        const { error } = await supabase.from("grants").insert(payload);
+        if (error) throw error;
+
+        toast({
+          title: "Grant created",
+          description: "Your grant has been created.",
+        });
       }
 
-      const returned = (await response.json()) as { id: string; slug?: string };
-      reset(createDefaultValues());
-      router.push(`/grants/${encodeURIComponent(returned.slug ?? returned.id)}`);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Submission failed");
+      router.refresh();
+      router.push("/grants");
+    } catch (err: any) {
+      toast({
+        title: "Something went wrong",
+        description: err?.message ?? "Failed to save grant.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
+  };
+
+  const selectedThemes = form.watch("themes") ?? [];
+  const selectedSdgs = form.watch("sdgs") ?? [];
+
+  const toggleTheme = (theme: string) => {
+    const current = form.getValues("themes") ?? [];
+    const next = current.includes(theme)
+      ? current.filter((t) => t !== theme)
+      : [...current, theme];
+    form.setValue("themes", next, { shouldDirty: true, shouldValidate: true });
+  };
+
+  const toggleSdg = (sdgId: string) => {
+    const current = form.getValues("sdgs") ?? [];
+    const next = current.includes(sdgId)
+      ? current.filter((t) => t !== sdgId)
+      : [...current, sdgId];
+    form.setValue("sdgs", next, { shouldDirty: true, shouldValidate: true });
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Grant overview</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Share the essentials so funders and project teams can understand this opportunity.
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Basic info */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Basic information</h2>
+            <p className="text-sm text-muted-foreground">
+              Provide the main details about the funding opportunity.
             </p>
           </div>
 
-          <div className="mt-6 space-y-6">
-            <FormField
-              control={control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Grant or funding opportunity name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title *</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Climate Innovation Grant" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={control}
-              name="summary"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Summary</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} placeholder="A short summary for the directory" />
-                  </FormControl>
-                  <FormDescription>Keep it short and focused (max 280 characters).</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="summary"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Summary</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Short summary (max 500 chars)"
+                    rows={3}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  A short summary shown in search results.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={6} placeholder="Provide the full grant details." />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Full description (max 5000 chars)"
+                    rows={7}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  More detail about the grant, criteria, and how to apply.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Funding & type */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Funding details</h2>
+            <p className="text-sm text-muted-foreground">
+              Help users understand what type of support this is.
+            </p>
           </div>
-        </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Funding details</h2>
-            <p className="mt-1 text-sm text-slate-600">Specify funding type, amounts, and key dates.</p>
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <FormField
-              control={control}
+              control={form.control}
               name="project_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project type</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <FormLabel>Project type *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a type" />
+                        <SelectValue placeholder="Select a project type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {PROJECT_TYPE_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="environmental">Environmental</SelectItem>
+                      <SelectItem value="humanitarian">Humanitarian</SelectItem>
+                      <SelectItem value="both">Both</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -403,109 +535,108 @@ export default function GrantForm() {
             />
 
             <FormField
-              control={control}
+              control={form.control}
               name="funding_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Funding type</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <FormLabel>Funding type *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select funding type" />
+                        <SelectValue placeholder="Select a funding type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {FUNDING_TYPE_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="grant">Grant</SelectItem>
+                      <SelectItem value="prize">Prize</SelectItem>
+                      <SelectItem value="fellowship">Fellowship</SelectItem>
+                      <SelectItem value="loan">Loan</SelectItem>
+                      <SelectItem value="equity">Equity</SelectItem>
+                      <SelectItem value="in-kind">In-kind</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="application_url"
-              render={({ field }) => (
-                <FormItem className="lg:col-span-2">
-                  <FormLabel>Application URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="https://..." />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Currency</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a currency" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {CURRENCY_CODES.map(code => (
-                        <SelectItem key={code} value={code}>
-                          {code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="amount_min"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount min</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value ?? ""}
-                      onChange={event => field.onChange(event.target.value === "" ? undefined : Number(event.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="amount_max"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount max</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value ?? ""}
-                      onChange={event => field.onChange(event.target.value === "" ? undefined : Number(event.target.value))}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="application_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Application URL *</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid gap-6 md:grid-cols-3">
             <FormField
-              control={control}
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Currency *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="USD" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount_min"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Min amount</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. 10000" inputMode="numeric" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="amount_max"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max amount</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. 50000" inputMode="numeric" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Dates */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Timeline</h2>
+            <p className="text-sm text-muted-foreground">
+              Dates help applicants plan. Leave blank if unknown.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
               name="open_date"
               render={({ field }) => (
                 <FormItem>
@@ -513,12 +644,13 @@ export default function GrantForm() {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
             <FormField
-              control={control}
+              control={form.control}
               name="deadline"
               render={({ field }) => (
                 <FormItem>
@@ -526,12 +658,15 @@ export default function GrantForm() {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
 
+          <div className="grid gap-6 md:grid-cols-2">
             <FormField
-              control={control}
+              control={form.control}
               name="decision_date"
               render={({ field }) => (
                 <FormItem>
@@ -539,12 +674,13 @@ export default function GrantForm() {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
             <FormField
-              control={control}
+              control={form.control}
               name="start_date"
               render={({ field }) => (
                 <FormItem>
@@ -552,203 +688,194 @@ export default function GrantForm() {
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Eligibility & reach</h2>
-            <p className="mt-1 text-sm text-slate-600">Who can apply and where does this grant apply?</p>
+        {/* Eligibility & location */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Eligibility & location</h2>
+            <p className="text-sm text-muted-foreground">
+              Where can applicants apply from? Is remote participation allowed?
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="eligible_countries"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Eligible countries</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Global, EU, USA, Kenya"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Free text is ok (e.g. “Global” or “EU + UK”).
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-1">
+              <FormLabel className="text-base">Remote OK</FormLabel>
+              <FormDescription>
+                Applicants can participate without being on-site.
+              </FormDescription>
+            </div>
             <FormField
-              control={control}
-              name="eligible_countries"
+              control={form.control}
+              name="remote_ok"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2">
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            <FormField
+              control={form.control}
+              name="location_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Eligible countries</FormLabel>
-                  <FormDescription>Select all countries that can apply.</FormDescription>
-                  <MultiSelect
-                    options={COUNTRY_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Search countries"
-                    emptyMessage="No matching countries"
-                    ariaLabel="Eligible countries"
-                  />
+                  <FormLabel>Location name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Vienna, Austria" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="space-y-4">
-              <FormField
-                control={control}
-                name="remote_ok"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remote friendly</FormLabel>
-                    <FormDescription>Toggle if teams can apply without a physical location.</FormDescription>
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={event => field.onChange(event.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                      Remote or distributed applicants are welcome
-                    </label>
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="latitude"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Latitude</FormLabel>
+                  <FormControl>
+                    <Input placeholder="48.2082" inputMode="decimal" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={control}
-                name="location_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g. Berlin, Kenya, Global" />
-                    </FormControl>
-                    <FormDescription>Visible in listings and the map popup.</FormDescription>
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="longitude"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Longitude</FormLabel>
+                  <FormControl>
+                    <Input placeholder="16.3738" inputMode="decimal" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  control={control}
-                  name="latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitude</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          value={field.value ?? ""}
-                          onChange={event =>
-                            field.onChange(event.target.value === "" ? undefined : Number(event.target.value))
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+        {/* Classification */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Classification</h2>
+            <p className="text-sm text-muted-foreground">
+              Themes and SDGs help filter and match opportunities.
+            </p>
+          </div>
 
-                <FormField
-                  control={control}
-                  name="longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitude</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          value={field.value ?? ""}
-                          onChange={event =>
-                            field.onChange(event.target.value === "" ? undefined : Number(event.target.value))
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <p className="text-xs text-slate-500">
-                Map markers appear only when latitude and longitude are provided.
-              </p>
+          <FormItem>
+            <FormLabel>Themes</FormLabel>
+            <div className="flex flex-wrap gap-2">
+              {THEME_OPTIONS.map((t) => {
+                const active = selectedThemes.includes(t);
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    className="rounded-full"
+                    onClick={() => toggleTheme(t)}
+                  >
+                    <Badge variant={active ? "default" : "outline"}>{t}</Badge>
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </section>
+            <FormMessage />
+          </FormItem>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Tags & themes</h2>
-            <p className="mt-1 text-sm text-slate-600">Help teams find the right opportunities.</p>
-          </div>
+          <FormItem>
+            <FormLabel>SDGs</FormLabel>
+            <div className="flex flex-wrap gap-2">
+              {SDG_OPTIONS.map((s) => {
+                const active = selectedSdgs.includes(s.id);
+                return (
+                  <button
+                    type="button"
+                    key={s.id}
+                    className="rounded-full"
+                    onClick={() => toggleSdg(s.id)}
+                  >
+                    <Badge variant={active ? "default" : "outline"}>
+                      {s.id}. {s.label}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+            <FormMessage />
+          </FormItem>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <FormField
-              control={control}
-              name="themes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Themes</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g. reforestation, WASH" />
-                  </FormControl>
-                  <FormDescription>Comma-separated themes used for filtering.</FormDescription>
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="keywords"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Keywords</FormLabel>
+                <FormControl>
+                  <Input placeholder="comma, separated, keywords" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Used for search. Separate with commas.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-            <FormField
-              control={control}
-              name="sdgs"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SDGs</FormLabel>
-                  <MultiSelect
-                    options={SDG_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Search SDGs"
-                    emptyMessage="No SDGs available"
-                    ariaLabel="SDG selection"
-                  />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="keywords"
-              render={({ field }) => (
-                <FormItem className="lg:col-span-2">
-                  <FormLabel>Keywords</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Comma-separated keywords" />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Funder contact</h2>
-            <p className="mt-1 text-sm text-slate-600">Where should applicants go for more info?</p>
+        {/* Funder */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Funder information</h2>
+            <p className="text-sm text-muted-foreground">
+              Optional details about the organization offering the funding.
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <FormField
-              control={control}
+              control={form.control}
               name="funder_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Funder name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Organisation or program" />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="funder_website"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Funder website</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="https://..." />
+                    <Input placeholder="e.g. Example Foundation" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -756,26 +883,54 @@ export default function GrantForm() {
             />
 
             <FormField
-              control={control}
-              name="contact_email"
+              control={form.control}
+              name="funder_website"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact email</FormLabel>
+                  <FormLabel>Funder website</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="email@example.org" />
+                    <Input placeholder="https://..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-        </section>
 
-        {submitError ? <p className="text-sm font-medium text-red-600">{submitError}</p> : null}
+          <FormField
+            control={form.control}
+            name="contact_email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact email</FormLabel>
+                <FormControl>
+                  <Input placeholder="name@org.org" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit grant"}
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={submitting}>
+            {submitting
+              ? mode === "edit"
+                ? "Saving..."
+                : "Creating..."
+              : mode === "edit"
+                ? "Save changes"
+                : "Create grant"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={() => router.back()}
+          >
+            Cancel
           </Button>
         </div>
       </form>
