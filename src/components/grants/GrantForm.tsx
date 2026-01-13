@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,111 +47,6 @@ const fundingTypes = [
   "other",
 ] as const;
 
-// Keep RHF values as strings/booleans (no Zod transforms), and convert for DB in onSubmit.
-// This avoids resolver/control generic mismatches and the cascade of TS errors.
-const formSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title is too long"),
-
-  summary: z
-    .string()
-    .max(500, "Summary is too long")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : "")),
-
-  description: z
-    .string()
-    .max(5000, "Description is too long")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : "")),
-
-  project_type: z.enum(projectTypes),
-  funding_type: z.enum(fundingTypes),
-
-  application_url: z
-    .string()
-    .min(1, "Application URL is required")
-    .url("Please enter a valid URL"),
-
-  currency: z.string().min(1, "Currency is required").max(10, "Currency is too long"),
-
-  amount_min: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .refine((v) => v === "" || Number.isFinite(Number(v)), {
-      message: "Min amount must be a number",
-    }),
-
-  amount_max: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .refine((v) => v === "" || Number.isFinite(Number(v)), {
-      message: "Max amount must be a number",
-    }),
-
-  open_date: z.string().optional().or(z.literal("")),
-  deadline: z.string().optional().or(z.literal("")),
-  decision_date: z.string().optional().or(z.literal("")),
-  start_date: z.string().optional().or(z.literal("")),
-
-  eligible_countries: z.string().optional().or(z.literal("")),
-
-  // Make it non-optional in the form type; defaultValues always provides false.
-  remote_ok: z.boolean(),
-
-  location_name: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
-
-  latitude: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .refine((v) => v === "" || Number.isFinite(Number(v)), {
-      message: "Latitude must be a number",
-    }),
-
-  longitude: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .refine((v) => v === "" || Number.isFinite(Number(v)), {
-      message: "Longitude must be a number",
-    }),
-
-  themes: z.array(z.string()).optional().default([]),
-  sdgs: z.array(z.string()).optional().default([]),
-
-  keywords: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
-
-  funder_name: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
-  funder_website: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : ""))
-    .refine((v) => v === "" || /^https?:\/\//i.test(v), {
-      message: "Funder website must be a valid URL (include http/https)",
-    }),
-
-  contact_email: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : ""))
-    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
-      message: "Please enter a valid email address",
-    }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-type GrantFormProps = {
-  grant?: GrantRow | null;
-  mode?: "create" | "edit";
-};
-
 const SDG_OPTIONS = [
   { id: "1", label: "No Poverty" },
   { id: "2", label: "Zero Hunger" },
@@ -188,6 +83,75 @@ const THEME_OPTIONS = [
   "Economic development",
 ] as const;
 
+// ✅ IMPORTANT: keep the schema types aligned with form values (strings stay strings)
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title is too long"),
+
+  summary: z.string().max(500, "Summary is too long").optional().default(""),
+  description: z
+    .string()
+    .max(5000, "Description is too long")
+    .optional()
+    .default(""),
+
+  project_type: z.enum(projectTypes),
+  funding_type: z.enum(fundingTypes),
+
+  application_url: z
+    .string()
+    .min(1, "Application URL is required")
+    .url("Please enter a valid URL"),
+
+  currency: z.string().min(1, "Currency is required").max(10, "Currency is too long"),
+
+  // ✅ strings in the form (parse in submit)
+  amount_min: z.string().optional().default(""),
+  amount_max: z.string().optional().default(""),
+
+  // ✅ strings in the form (date input gives yyyy-mm-dd)
+  open_date: z.string().optional().default(""),
+  deadline: z.string().optional().default(""),
+  decision_date: z.string().optional().default(""),
+  start_date: z.string().optional().default(""),
+
+  eligible_countries: z.string().optional().default(""),
+
+  // ✅ always boolean
+  remote_ok: z.boolean().default(false),
+
+  location_name: z.string().optional().default(""),
+  latitude: z.string().optional().default(""),
+  longitude: z.string().optional().default(""),
+
+  themes: z.array(z.string()).default([]),
+  sdgs: z.array(z.string()).default([]),
+
+  keywords: z.string().optional().default(""),
+
+  funder_name: z.string().optional().default(""),
+  funder_website: z
+    .string()
+    .optional()
+    .default("")
+    .refine((v) => !v || /^https?:\/\//i.test(v), {
+      message: "Funder website must be a valid URL (include http/https)",
+    }),
+  contact_email: z
+    .string()
+    .optional()
+    .default("")
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+      message: "Please enter a valid email address",
+    }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+type GrantFormProps = {
+  grant?: GrantRow | null;
+  mode?: "create" | "edit";
+};
+
 function toDateInputValue(value: string | null | undefined) {
   if (!value) return "";
   const d = new Date(value);
@@ -222,38 +186,35 @@ function keywordsToString(value: unknown): string {
   return "";
 }
 
-function slugify(input: string): string {
+function parseNumberOrNull(s: string | undefined) {
+  const trimmed = (s ?? "").trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseDateOrNull(s: string | undefined) {
+  const trimmed = (s ?? "").trim();
+  return trimmed ? trimmed : null; // stored as date/text, OK
+}
+
+function slugify(input: string) {
   return input
     .toLowerCase()
     .trim()
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function toNullableNumber(v: string | undefined): number | null {
-  if (!v) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function toNullableString(v: string | undefined): string | null {
-  const s = (v ?? "").trim();
-  return s.length ? s : null;
-}
-
-function toNullableDateString(v: string | undefined): string | null {
-  const s = (v ?? "").trim();
-  return s.length ? s : null;
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
 }
 
 export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
 
-  const createDefaultValues = (): FormValues => {
+  const defaultValues: FormValues = React.useMemo(() => {
     if (!grant) {
       return {
         title: "",
@@ -297,10 +258,10 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       deadline: toDateInputValue(grant.deadline),
       decision_date: toDateInputValue(grant.decision_date),
       start_date: toDateInputValue(grant.start_date),
-      eligible_countries: (Array.isArray(grant.eligible_countries)
+      eligible_countries: Array.isArray(grant.eligible_countries)
         ? grant.eligible_countries.join(", ")
-        : (grant.eligible_countries as unknown as string)) ?? "",
-      remote_ok: !!grant.remote_ok,
+        : (grant.eligible_countries as unknown as string) ?? "",
+      remote_ok: Boolean(grant.remote_ok),
       location_name: grant.location_name ?? "",
       latitude: grant.latitude != null ? String(grant.latitude) : "",
       longitude: grant.longitude != null ? String(grant.longitude) : "",
@@ -311,11 +272,11 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       funder_website: grant.funder_website ?? "",
       contact_email: grant.contact_email ?? "",
     };
-  };
+  }, [grant]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: createDefaultValues(),
+    defaultValues,
     mode: "onChange",
   });
 
@@ -329,108 +290,88 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
             .filter(Boolean)
         : [];
 
-      const eligibleCountriesArray =
-        values.eligible_countries && values.eligible_countries.trim().length
+      const eligibleCountries =
+        values.eligible_countries.trim().length > 0
           ? values.eligible_countries
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean)
           : null;
 
-      const themesArray = (values.themes ?? []).filter(Boolean);
-      const sdgNumbers = (values.sdgs ?? [])
+      const sdgsNumeric = (values.sdgs ?? [])
         .map((s) => Number(s))
         .filter((n) => Number.isFinite(n));
 
-      const basePayload: Omit<GrantInsert, "created_by" | "slug"> & GrantUpdate = {
+      const payloadBase = {
         title: values.title,
-        summary: toNullableString(values.summary),
-        description: toNullableString(values.description),
+        summary: values.summary.trim() ? values.summary.trim() : null,
+        description: values.description.trim() ? values.description.trim() : null,
 
         project_type: values.project_type,
         funding_type: values.funding_type,
 
         application_url: values.application_url,
-
         currency: values.currency,
-        amount_min: toNullableNumber(values.amount_min),
-        amount_max: toNullableNumber(values.amount_max),
 
-        open_date: toNullableDateString(values.open_date),
-        deadline: toNullableDateString(values.deadline),
-        decision_date: toNullableDateString(values.decision_date),
-        start_date: toNullableDateString(values.start_date),
+        amount_min: parseNumberOrNull(values.amount_min),
+        amount_max: parseNumberOrNull(values.amount_max),
 
-        eligible_countries: eligibleCountriesArray,
+        open_date: parseDateOrNull(values.open_date),
+        deadline: parseDateOrNull(values.deadline),
+        decision_date: parseDateOrNull(values.decision_date),
+        start_date: parseDateOrNull(values.start_date),
 
-        remote_ok: !!values.remote_ok,
+        eligible_countries: eligibleCountries,
+        remote_ok: values.remote_ok,
 
-        location_name: toNullableString(values.location_name),
-        latitude: toNullableNumber(values.latitude),
-        longitude: toNullableNumber(values.longitude),
+        location_name: values.location_name.trim() ? values.location_name.trim() : null,
+        latitude: parseNumberOrNull(values.latitude),
+        longitude: parseNumberOrNull(values.longitude),
 
-        themes: themesArray.length ? themesArray : [],
-
-        // if your DB column is number[] | null, this matches:
-        sdgs: sdgNumbers.length ? sdgNumbers : [],
-
+        themes: values.themes ?? [],
+        sdgs: sdgsNumeric,
         keywords: keywordsArray,
 
-        funder_name: toNullableString(values.funder_name),
-        funder_website: toNullableString(values.funder_website),
-        contact_email: toNullableString(values.contact_email),
+        funder_name: values.funder_name.trim() ? values.funder_name.trim() : null,
+        funder_website: values.funder_website.trim() ? values.funder_website.trim() : null,
+        contact_email: values.contact_email.trim() ? values.contact_email.trim() : null,
       };
 
       if (mode === "edit") {
         if (!grant?.id) throw new Error("Missing grant id");
 
-        // Optional: keep slug stable unless you want it updated on title change.
-        // If you DO want it updated, uncomment:
-        // const slug = slugify(values.title);
+        const payload: GrantUpdate = payloadBase;
 
-        const updatePayload: GrantUpdate = {
-          ...basePayload,
-          // slug,
-        };
-
-        const { error } = await supabase.from("grants").update(updatePayload).eq("id", grant.id);
+        const { error } = await supabase.from("grants").update(payload).eq("id", grant.id);
         if (error) throw error;
 
-        toast({
-          title: "Grant updated",
-          description: "Your changes have been saved.",
-        });
+        toast({ title: "Grant updated", description: "Your changes have been saved." });
       } else {
+        // ✅ Fix insert missing required DB fields (created_by, slug)
         const {
           data: { user },
-          error: userError,
+          error: userErr,
         } = await supabase.auth.getUser();
+        if (userErr) throw userErr;
+        if (!user) throw new Error("You must be signed in to create a grant.");
 
-        if (userError || !user) throw userError ?? new Error("Not authenticated");
-
-        const insertPayload: GrantInsert = {
-          ...basePayload,
+        const payload: GrantInsert = {
+          ...(payloadBase as Omit<GrantInsert, "created_by" | "slug">),
           created_by: user.id,
-          slug: slugify(values.title),
+          slug: slugify(values.title) || `grant-${Date.now()}`,
         };
 
-        const { error } = await supabase.from("grants").insert(insertPayload);
+        const { error } = await supabase.from("grants").insert(payload);
         if (error) throw error;
 
-        toast({
-          title: "Grant created",
-          description: "Your grant has been created.",
-        });
+        toast({ title: "Grant created", description: "Your grant has been created." });
       }
 
       router.refresh();
       router.push("/grants");
-    } catch (err: any) {
-      toast({
-        title: "Something went wrong",
-        description: err?.message ?? "Failed to save grant.",
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save grant.";
+      toast({ title: "Something went wrong", description: message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -737,6 +678,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               <FormLabel className="text-base">Remote OK</FormLabel>
               <FormDescription>Applicants can participate without being on-site.</FormDescription>
             </div>
+
             <FormField
               control={form.control}
               name="remote_ok"
@@ -821,7 +763,6 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 );
               })}
             </div>
-            <FormMessage />
           </FormItem>
 
           <FormItem>
@@ -843,7 +784,6 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 );
               })}
             </div>
-            <FormMessage />
           </FormItem>
 
           <FormField
