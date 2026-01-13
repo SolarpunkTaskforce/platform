@@ -7,6 +7,8 @@ import "react-day-picker/dist/style.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
 import Header from "@/components/Header";
+import { ToastProvider } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Solarpunk Taskforce",
@@ -17,11 +19,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="h-full">
       <body className="h-[100dvh] flex flex-col">
-        <Header />
-        {/* This is the critical container that provides a real height */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          {children}
-        </div>
+        <ToastProvider>
+          <Header />
+          {/* This is the critical container that provides a real height */}
+          <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+          <Toaster />
+        </ToastProvider>
       </body>
     </html>
   );

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-export type ToastVariant = "default" | "destructive";
+type ToastVariant = "default" | "destructive";
 
 export type Toast = {
   id: string;
@@ -22,33 +22,27 @@ type ToastContextValue = {
 const ToastContext = React.createContext<ToastContextValue | null>(null);
 
 function generateId() {
-  // Stable enough for UI toasts
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
-  const timersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-
-  const clearTimer = React.useCallback((id: string) => {
-    const timer = timersRef.current.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      timersRef.current.delete(id);
-    }
-  }, []);
-
-  const dismiss = React.useCallback(
-    (id: string) => {
-      clearTimer(id);
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    },
-    [clearTimer],
+  const timersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {}
   );
 
+  const dismiss = React.useCallback((id: string) => {
+    const timer = timersRef.current[id];
+    if (timer) {
+      clearTimeout(timer);
+      delete timersRef.current[id];
+    }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const dismissAll = React.useCallback(() => {
-    timersRef.current.forEach((timer) => clearTimeout(timer));
-    timersRef.current.clear();
+    Object.values(timersRef.current).forEach((t) => clearTimeout(t));
+    timersRef.current = {};
     setToasts([]);
   }, []);
 
@@ -60,11 +54,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       setToasts((prev) => [{ ...t, id }, ...prev]);
 
       if (duration > 0) {
-        const timer = setTimeout(() => {
-          // remove after duration
-          dismiss(id);
-        }, duration);
-        timersRef.current.set(id, timer);
+        const timer = setTimeout(() => dismiss(id), duration);
+        timersRef.current[id] = timer;
       }
 
       return {
@@ -72,20 +63,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         dismiss: () => dismiss(id),
       };
     },
-    [dismiss],
+    [dismiss]
   );
 
-  // Cleanup timers if provider unmounts
+  // ✅ Fixes the warning by snapshotting the ref value in the effect
   React.useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
-      timersRef.current.clear();
+      Object.values(timers).forEach((t) => clearTimeout(t));
     };
   }, []);
 
   const value = React.useMemo<ToastContextValue>(
     () => ({ toasts, toast, dismiss, dismissAll }),
-    [toasts, toast, dismiss, dismissAll],
+    [toasts, toast, dismiss, dismissAll]
   );
 
   return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
