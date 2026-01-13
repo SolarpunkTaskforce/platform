@@ -13,8 +13,6 @@ import {
   type OrganisationListRow,
 } from "@/lib/organisations/findOrganisationsQuery";
 
-/* ---------- format helpers ---------- */
-
 const formatLocation = (organisation: OrganisationListRow) => {
   if (organisation.based_in_region && organisation.based_in_country) {
     return `${organisation.based_in_region}, ${organisation.based_in_country}`;
@@ -43,8 +41,6 @@ const formatAge = (value: number | null) => {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-/* ---------- page ---------- */
-
 export default async function FindOrganisationsPage({
   searchParams,
 }: {
@@ -57,8 +53,6 @@ export default async function FindOrganisationsPage({
   const focus = typeof params.focus === "string" ? params.focus : null;
 
   const filterOptions = await fetchOrganisationFilterOptions();
-
-  /* ---------- list query (never crash page) ---------- */
 
   let rows: OrganisationListRow[] = [];
   let count = 0;
@@ -75,8 +69,6 @@ export default async function FindOrganisationsPage({
     console.error("Find organisations: list query failed", e);
   }
 
-  /* ---------- markers (globe view only) ---------- */
-
   let markers: Awaited<ReturnType<typeof fetchOrganisationMarkers>> = [];
   if (view === "globe") {
     try {
@@ -86,11 +78,9 @@ export default async function FindOrganisationsPage({
     }
   }
 
-  /* ---------- render ---------- */
-
   return (
-    <main className="h-full px-6 py-8 flex flex-col gap-6">
-      {/* Header */}
+    // CRITICAL: this must be a flex child that can grow
+    <main className="flex-1 min-h-0 px-6 py-8 flex flex-col gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold text-slate-900">Find Organisations</h1>
@@ -104,8 +94,8 @@ export default async function FindOrganisationsPage({
         <OrganisationsViewToggle view={view} />
       </header>
 
-      {/* Content */}
       {view === "globe" ? (
+        // CRITICAL: allow the split view to fill remaining height under header
         <div className="flex-1 min-h-0">
           <OrganisationsGlobeSplitView
             options={filterOptions}
@@ -146,8 +136,8 @@ export default async function FindOrganisationsPage({
                     <tr key={organisation.id} className="align-top">
                       <td className="px-4 py-4">
                         <Link
-                          href={`/organisations/${organisation.id}`}
                           className="font-semibold text-emerald-700 hover:text-emerald-800"
+                          href={`/organisations/${organisation.id}`}
                         >
                           {organisation.name ?? "Untitled organisation"}
                         </Link>
@@ -156,24 +146,12 @@ export default async function FindOrganisationsPage({
                         </p>
                       </td>
 
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatLocation(organisation)}
-                      </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatNumber(organisation.projects_total_count)}
-                      </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatNumber(organisation.projects_ongoing_count)}
-                      </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatNumber(organisation.followers_count)}
-                      </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatFunding(organisation.funding_needed)}
-                      </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {formatAge(organisation.age_years)}
-                      </td>
+                      <td className="px-4 py-4 text-slate-600">{formatLocation(organisation)}</td>
+                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_total_count)}</td>
+                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_ongoing_count)}</td>
+                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.followers_count)}</td>
+                      <td className="px-4 py-4 text-slate-600">{formatFunding(organisation.funding_needed)}</td>
+                      <td className="px-4 py-4 text-slate-600">{formatAge(organisation.age_years)}</td>
 
                       <td className="px-4 py-4 text-right">
                         <Link
@@ -189,11 +167,11 @@ export default async function FindOrganisationsPage({
               </table>
             </div>
 
-            {rows.length === 0 && (
+            {rows.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
                 No organisations match the selected filters.
               </div>
-            )}
+            ) : null}
 
             <OrganisationsPagination page={page} pageCount={pageCount} searchParams={params} />
           </section>
