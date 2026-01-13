@@ -51,8 +51,7 @@ export default async function FindOrganisationsPage({
   const view: "globe" | "table" = viewParam === "table" ? "table" : "globe";
   const focus = typeof params.focus === "string" ? params.focus : null;
 
-  // Filter options (should be stable; still safe if it fails)
-  let filterOptions = await fetchOrganisationFilterOptions();
+  const filterOptions = await fetchOrganisationFilterOptions();
 
   // List query (must never crash the page)
   let rows: OrganisationListRow[] = [];
