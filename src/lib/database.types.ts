@@ -1025,6 +1025,117 @@ export type Database = {
           },
         ]
       }
+      grants: {
+        Row: {
+          amount_max: number | null
+          amount_min: number | null
+          application_url: string
+          contact_email: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          deadline: string | null
+          decision_date: string | null
+          description: string | null
+          eligible_countries: string[] | null
+          eligible_regions: string[] | null
+          funder_name: string | null
+          funder_website: string | null
+          funding_type: string
+          id: string
+          is_published: boolean
+          keywords: string[] | null
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
+          notes_internal: string | null
+          open_date: string | null
+          project_type: string
+          remote_ok: boolean
+          slug: string
+          source: string | null
+          sdgs: number[] | null
+          start_date: string | null
+          status: string
+          summary: string | null
+          themes: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount_max?: number | null
+          amount_min?: number | null
+          application_url: string
+          contact_email?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          deadline?: string | null
+          decision_date?: string | null
+          description?: string | null
+          eligible_countries?: string[] | null
+          eligible_regions?: string[] | null
+          funder_name?: string | null
+          funder_website?: string | null
+          funding_type: string
+          id?: string
+          is_published?: boolean
+          keywords?: string[] | null
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          notes_internal?: string | null
+          open_date?: string | null
+          project_type: string
+          remote_ok?: boolean
+          slug: string
+          source?: string | null
+          sdgs?: number[] | null
+          start_date?: string | null
+          status?: string
+          summary?: string | null
+          themes?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount_max?: number | null
+          amount_min?: number | null
+          application_url?: string
+          contact_email?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          deadline?: string | null
+          decision_date?: string | null
+          description?: string | null
+          eligible_countries?: string[] | null
+          eligible_regions?: string[] | null
+          funder_name?: string | null
+          funder_website?: string | null
+          funding_type?: string
+          id?: string
+          is_published?: boolean
+          keywords?: string[] | null
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          notes_internal?: string | null
+          open_date?: string | null
+          project_type?: string
+          remote_ok?: boolean
+          slug?: string
+          source?: string | null
+          sdgs?: number[] | null
+          start_date?: string | null
+          status?: string
+          summary?: string | null
+          themes?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ifrc_challenges: {
         Row: {
           code: string | null
@@ -2901,4 +3012,3 @@ export const Constants = {
     },
   },
 } as const
-
