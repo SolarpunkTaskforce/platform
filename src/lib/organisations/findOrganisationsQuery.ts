@@ -232,7 +232,13 @@ export async function fetchFindOrganisations({
 
   const { data, count, error } = await query;
   if (error) {
-    throw error;
+    console.error("Failed to load organisations directory", error);
+    return {
+      rows: [],
+      count: 0,
+      page: params.page,
+      pageCount: 1,
+    };
   }
 
   const rows = (data ?? []) as OrganisationListRow[];
