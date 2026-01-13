@@ -36,9 +36,11 @@ export default function OrganisationsGlobeSplitView({
 
   const limits = useMemo(
     () => ({
-      // prevents sidebar content from breaking/overlapping
+      // Prevent sidebar from becoming too narrow and causing layout issues
       absoluteMin: 360,
-      absoluteMax: 1100,
+      // Prevent sidebar from swallowing huge screens
+      absoluteMax: 1200,
+      // Handle width in px
       handle: 24,
     }),
     [],
@@ -53,12 +55,14 @@ export default function OrganisationsGlobeSplitView({
       const min = Math.max(limits.absoluteMin, minByRatio);
       const max = Math.min(limits.absoluteMax, maxByRatio);
 
-      // Ensure max never dips below min (very small screens)
-      return { min: Math.min(min, max), max };
+      // If screen is too small and max ends up < min, pin both to min
+      const safeMax = Math.max(min, max);
+      return { min, max: safeMax };
     },
     [limits.absoluteMax, limits.absoluteMin],
   );
 
+  // Initialize width ONCE to ~1/3, then only clamp on container resizes.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -72,16 +76,13 @@ export default function OrganisationsGlobeSplitView({
       setPanelWidth((current) => {
         if (!initializedRef.current) {
           initializedRef.current = true;
-          const initial = clamp(Math.floor(w / 3), min, max); // initial = ~1/3
-          return initial;
+          return clamp(Math.floor(w / 3), min, max); // initial ~ 1/3
         }
-        // clamp only (no reset) so dragging never snaps back
         return clamp(current, min, max);
       });
     };
 
     apply();
-
     const ro = new ResizeObserver(() => apply());
     ro.observe(el);
     return () => ro.disconnect();

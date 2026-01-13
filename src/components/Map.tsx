@@ -45,32 +45,45 @@ export default function Map({
   markers = [],
   markerColor = "#22c55e",
   focusSlug = null,
-  ctaLabel = "View project",
+  ctaLabel = "View",
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
 
+  // Track if the user has interacted recently, so resize doesn't "fight" them.
+  const userInteractedRef = useRef(false);
+  const userInteractTimerRef = useRef<number | null>(null);
+
   const validMarkers = useMemo(
     () => markers.filter((m) => Number.isFinite(m.lng) && Number.isFinite(m.lat)),
     [markers],
   );
 
-  const fitToMarkers = (map: mapboxgl.Map) => {
-    if (validMarkers.length === 0) return;
+  const fitToMarkers = (map: mapboxgl.Map, animate: boolean) => {
+    if (validMarkers.length === 0) {
+      // Default globe view
+      if (animate) {
+        map.easeTo({ center: [0, 0], zoom: 1.25, duration: 350 });
+      } else {
+        map.jumpTo({ center: [0, 0], zoom: 1.25 });
+      }
+      return;
+    }
 
     const bounds = new mapboxgl.LngLatBounds();
     validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
 
     if (validMarkers.length === 1) {
-      map.easeTo({
-        center: [validMarkers[0].lng, validMarkers[0].lat],
-        zoom: 2.5, // keep it globe-friendly (not too zoomed in)
-        duration: 350,
-      });
+      const [lng, lat] = [validMarkers[0].lng, validMarkers[0].lat];
+      if (animate) {
+        map.easeTo({ center: [lng, lat], zoom: 3, duration: 350 });
+      } else {
+        map.jumpTo({ center: [lng, lat], zoom: 3 });
+      }
     } else {
-      map.fitBounds(bounds, { padding: 60, duration: 350 });
+      map.fitBounds(bounds, { padding: 60, duration: animate ? 350 : 0 });
     }
   };
 
@@ -78,17 +91,43 @@ export default function Map({
     if (!containerRef.current) return;
     if (mapRef.current) return;
 
-    mapRef.current = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: [0, 0],
       zoom: 1.25,
     });
 
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+
+    const markInteracted = () => {
+      userInteractedRef.current = true;
+      if (userInteractTimerRef.current != null) {
+        window.clearTimeout(userInteractTimerRef.current);
+      }
+      userInteractTimerRef.current = window.setTimeout(() => {
+        userInteractedRef.current = false;
+        userInteractTimerRef.current = null;
+      }, 1500);
+    };
+
+    map.on("dragstart", markInteracted);
+    map.on("zoomstart", markInteracted);
+    map.on("rotatestart", markInteracted);
+    map.on("pitchstart", markInteracted);
+
+    mapRef.current = map;
+
+    return () => {
+      if (userInteractTimerRef.current != null) {
+        window.clearTimeout(userInteractTimerRef.current);
+      }
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
-  // IMPORTANT: ResizeObserver so the map always reflows when the split panel is dragged.
+  // Resize observer: always resize map; only auto-fit if user hasn't just interacted.
   useEffect(() => {
     const map = mapRef.current;
     const el = containerRef.current;
@@ -96,8 +135,10 @@ export default function Map({
 
     const ro = new ResizeObserver(() => {
       map.resize();
-      // keep the globe centered after resize
-      fitToMarkers(map);
+      // Keep centered as container changes, but don't fight user pan/zoom.
+      if (!userInteractedRef.current) {
+        fitToMarkers(map, false);
+      }
     });
 
     ro.observe(el);
@@ -105,11 +146,11 @@ export default function Map({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validMarkers]);
 
+  // Render markers + initial fit when marker set changes.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove old markers
     markerObjs.current.forEach((obj) => obj.marker.remove());
     markerObjs.current = [];
 
@@ -177,10 +218,10 @@ export default function Map({
       });
     });
 
-    // Fit map to markers (keeps centered in current container size)
-    fitToMarkers(map);
+    // When marker set changes, it's OK to re-center.
+    userInteractedRef.current = false;
+    fitToMarkers(map, true);
 
-    // Focus a specific marker (open popup + center map)
     if (focusSlug) {
       const focused = markerObjs.current.find((o) => o.slug === focusSlug);
       if (focused) {
