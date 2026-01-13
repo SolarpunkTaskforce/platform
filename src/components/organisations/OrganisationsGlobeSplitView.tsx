@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Map from "@/components/Map";
 import OrganisationsFilters from "@/components/organisations/OrganisationsFilters";
@@ -25,9 +25,9 @@ export default function OrganisationsGlobeSplitView({
   focusSlug,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const handleRef = useRef<HTMLButtonElement | null>(null);
 
   const draggingRef = useRef(false);
+  const dragPointerIdRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastClientXRef = useRef<number | null>(null);
   const initializedRef = useRef(false);
@@ -37,11 +37,13 @@ export default function OrganisationsGlobeSplitView({
 
   const limits = useMemo(() => ({ min: 300, hardMax: 760 }), []);
 
-  // Compute max based on container width (so panel can’t eat the entire map).
-  const computeMax = (containerWidth: number) => {
-    // allow up to 60% of container width, but cap to hardMax
-    return Math.min(limits.hardMax, Math.floor(containerWidth * 0.6));
-  };
+  const computeMax = useCallback(
+    (containerWidth: number) => {
+      // allow up to 60% of container width, but cap to hardMax
+      return Math.min(limits.hardMax, Math.floor(containerWidth * 0.6));
+    },
+    [limits.hardMax],
+  );
 
   // Initialize width ONCE to ~1/3 of container, then only clamp on future resizes.
   useEffect(() => {
@@ -71,8 +73,7 @@ export default function OrganisationsGlobeSplitView({
     const ro = new ResizeObserver(() => apply());
     ro.observe(el);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [computeMax, limits.min]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -103,13 +104,14 @@ export default function OrganisationsGlobeSplitView({
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
 
-      // release pointer capture if we still have it
-      const handle = handleRef.current;
-      if (handle) {
+      // Release pointer capture on the active element if possible
+      const pointerId = dragPointerIdRef.current;
+      dragPointerIdRef.current = null;
+
+      const active = document.activeElement;
+      if (pointerId != null && active instanceof HTMLElement && active.releasePointerCapture) {
         try {
-          // no-op if not captured
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          handle.releasePointerCapture?.(1 as any);
+          active.releasePointerCapture(pointerId);
         } catch {
           // ignore
         }
@@ -128,14 +130,17 @@ export default function OrganisationsGlobeSplitView({
         rafRef.current = null;
       }
     };
-  }, [limits.min]);
+  }, [computeMax, limits.min]);
 
   const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
-    handleRef.current = e.currentTarget;
+    dragPointerIdRef.current = e.pointerId;
 
     // Capture pointer so it keeps tracking even if cursor leaves the handle.
     e.currentTarget.setPointerCapture(e.pointerId);
+
+    // Focus the handle so document.activeElement is stable for releasePointerCapture()
+    e.currentTarget.focus();
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
@@ -146,10 +151,7 @@ export default function OrganisationsGlobeSplitView({
       ref={containerRef}
       className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
-      <div
-        className="grid h-full w-full"
-        style={{ gridTemplateColumns: `${panelWidth}px 12px 1fr` }}
-      >
+      <div className="grid h-full w-full" style={{ gridTemplateColumns: `${panelWidth}px 12px 1fr` }}>
         {/* Left panel */}
         <div className="min-w-0 border-r border-slate-200 bg-white">
           <div className="h-full overflow-y-auto p-4">
@@ -164,7 +166,6 @@ export default function OrganisationsGlobeSplitView({
 
         {/* Drag handle */}
         <button
-          ref={handleRef}
           type="button"
           aria-label="Resize panel"
           onPointerDown={startDrag}
@@ -174,7 +175,6 @@ export default function OrganisationsGlobeSplitView({
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
             <div className="flex flex-col items-center gap-2">
               <div className="h-24 w-[2px] rounded-full bg-slate-300 group-hover:bg-slate-400" />
-              {/* Drag hint icon */}
               <div className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
                 {"<>"}
               </div>
@@ -185,12 +185,7 @@ export default function OrganisationsGlobeSplitView({
         {/* Map */}
         <div className="min-w-0">
           <div className="h-full w-full">
-            <Map
-              markers={markers}
-              markerColor="#10b981"
-              focusSlug={focusSlug}
-              ctaLabel="See more"
-            />
+            <Map markers={markers} markerColor="#10b981" focusSlug={focusSlug} ctaLabel="See more" />
           </div>
         </div>
       </div>
