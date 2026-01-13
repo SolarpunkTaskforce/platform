@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import Map from "@/components/Map";
+import OrganisationsGlobeSplitView from "@/components/organisations/OrganisationsGlobeSplitView";
 import OrganisationsFilters from "@/components/organisations/OrganisationsFilters";
 import OrganisationsPagination from "@/components/organisations/OrganisationsPagination";
 import OrganisationsViewToggle from "@/components/organisations/OrganisationsViewToggle";
@@ -95,23 +95,12 @@ export default async function FindOrganisationsPage({
       </header>
 
       {view === "globe" ? (
-        <section className="grid gap-6 lg:grid-cols-[320px_1fr]">
-          <div className="space-y-4">
-            <OrganisationsFilters options={filterOptions} />
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              {markers.length} organisations mapped · {count} total matching filters
-            </div>
-          </div>
-
-          <div className="min-h-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <Map
-              markers={markers}
-              markerColor="#10b981"
-              focusSlug={focus}
-              ctaLabel="See more"
-            />
-          </div>
-        </section>
+        <OrganisationsGlobeSplitView
+          options={filterOptions}
+          markers={markers}
+          totalCount={count}
+          focusSlug={focus}
+        />
       ) : (
         <>
           <OrganisationsFilters options={filterOptions} showSorting variant="panel" />
