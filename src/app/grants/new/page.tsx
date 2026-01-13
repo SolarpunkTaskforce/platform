@@ -1,14 +1,7 @@
-// src/app/grants/new/page.tsx
-import nextDynamic from "next/dynamic";
+import ClientGrantForm from "./ClientGrantForm";
 
-// Ensure this page is not statically prerendered during `next build`
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-// Load GrantForm on the client only
-const GrantForm = nextDynamic(() => import("@/components/grants/GrantForm"), {
-  ssr: false,
-});
 
 export default function NewGrantPage() {
   return (
@@ -23,7 +16,7 @@ export default function NewGrantPage() {
         </p>
       </div>
 
-      <GrantForm />
+      <ClientGrantForm />
     </main>
   );
 }
