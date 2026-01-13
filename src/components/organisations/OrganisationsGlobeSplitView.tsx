@@ -33,14 +33,24 @@ export default function OrganisationsGlobeSplitView({
   const initializedRef = useRef(false);
 
   // Panel width in px.
-  const [panelWidth, setPanelWidth] = useState<number>(360);
+  const [panelWidth, setPanelWidth] = useState<number>(420);
 
-  const limits = useMemo(() => ({ min: 300, hardMax: 760 }), []);
+  const limits = useMemo(
+    () => ({
+      // Prevent cramped sidebar that causes overlaps.
+      min: 360,
+      // Hard cap so it can’t take over ultra-wide screens.
+      hardMax: 920,
+      // Handle width in px (bigger hit-area).
+      handle: 24,
+    }),
+    [],
+  );
 
   const computeMax = useCallback(
     (containerWidth: number) => {
-      // allow up to 60% of container width, but cap to hardMax
-      return Math.min(limits.hardMax, Math.floor(containerWidth * 0.6));
+      // Allow up to HALF the screen (50%), capped by hardMax.
+      return Math.min(limits.hardMax, Math.floor(containerWidth * 0.5));
     },
     [limits.hardMax],
   );
@@ -57,13 +67,11 @@ export default function OrganisationsGlobeSplitView({
       const max = computeMax(w);
 
       setPanelWidth((current) => {
-        // First time: set to 1/3 of container
         if (!initializedRef.current) {
           initializedRef.current = true;
           const initial = clamp(Math.floor(w / 3), limits.min, max);
           return initial;
         }
-        // After init: only clamp (do NOT reset), to avoid “snap back” jitter.
         return clamp(current, limits.min, max);
       });
     };
@@ -80,7 +88,6 @@ export default function OrganisationsGlobeSplitView({
       if (!draggingRef.current) return;
       lastClientXRef.current = e.clientX;
 
-      // Throttle to animation frames for smoothness.
       if (rafRef.current != null) return;
       rafRef.current = window.requestAnimationFrame(() => {
         rafRef.current = null;
@@ -97,14 +104,13 @@ export default function OrganisationsGlobeSplitView({
       });
     };
 
-    const onUp = () => {
+    const stopDrag = () => {
       if (!draggingRef.current) return;
       draggingRef.current = false;
 
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
 
-      // Release pointer capture on the active element if possible
       const pointerId = dragPointerIdRef.current;
       dragPointerIdRef.current = null;
 
@@ -119,12 +125,12 @@ export default function OrganisationsGlobeSplitView({
     };
 
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
       if (rafRef.current != null) {
         window.cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -136,10 +142,7 @@ export default function OrganisationsGlobeSplitView({
     draggingRef.current = true;
     dragPointerIdRef.current = e.pointerId;
 
-    // Capture pointer so it keeps tracking even if cursor leaves the handle.
     e.currentTarget.setPointerCapture(e.pointerId);
-
-    // Focus the handle so document.activeElement is stable for releasePointerCapture()
     e.currentTarget.focus();
 
     document.body.style.cursor = "col-resize";
@@ -149,11 +152,14 @@ export default function OrganisationsGlobeSplitView({
   return (
     <section
       ref={containerRef}
-      className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="flex-1 min-h-0 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
-      <div className="grid h-full w-full" style={{ gridTemplateColumns: `${panelWidth}px 12px 1fr` }}>
+      <div
+        className="grid h-full w-full"
+        style={{ gridTemplateColumns: `${panelWidth}px ${limits.handle}px 1fr` }}
+      >
         {/* Left panel */}
-        <div className="min-w-0 border-r border-slate-200 bg-white">
+        <div className="min-w-0 h-full border-r border-slate-200 bg-white">
           <div className="h-full overflow-y-auto p-4">
             <div className="space-y-4">
               <OrganisationsFilters options={options} />
@@ -164,29 +170,27 @@ export default function OrganisationsGlobeSplitView({
           </div>
         </div>
 
-        {/* Drag handle */}
+        {/* Drag handle (bigger hit area + clear icon) */}
         <button
           type="button"
           aria-label="Resize panel"
           onPointerDown={startDrag}
-          className="group relative h-full w-[12px] bg-slate-50 hover:bg-slate-100 active:bg-slate-100"
+          className="relative h-full w-full bg-slate-50 hover:bg-slate-100 active:bg-slate-100 focus:outline-none"
         >
-          {/* Center grip */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-24 w-[2px] rounded-full bg-slate-300 group-hover:bg-slate-400" />
-              <div className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
-                {"<>"}
-              </div>
+          {/* full-height grip line */}
+          <div className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-slate-200" />
+
+          {/* icon on top, centered, with padding so it's easy to hit */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+              {"<>"}
             </div>
           </div>
         </button>
 
         {/* Map */}
-        <div className="min-w-0">
-          <div className="h-full w-full">
-            <Map markers={markers} markerColor="#10b981" focusSlug={focusSlug} ctaLabel="See more" />
-          </div>
+        <div className="min-w-0 h-full">
+          <Map markers={markers} markerColor="#10b981" focusSlug={focusSlug} ctaLabel="See more" />
         </div>
       </div>
     </section>
