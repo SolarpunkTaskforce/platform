@@ -1,3 +1,4 @@
+// src/lib/grants/findGrantsQuery.ts
 import type { Database } from "@/lib/database.types";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
@@ -30,11 +31,17 @@ export type GrantListRow = Pick<
 
 export type GrantMarker = Pick<
   GrantRow,
-  "id" | "slug" | "title" | "summary" | "project_type" | "latitude" | "longitude" | "location_name"
+  | "id"
+  | "slug"
+  | "title"
+  | "summary"
+  | "project_type"
+  | "latitude"
+  | "longitude"
+  | "location_name"
 >;
 
 type SortColumn = "deadline" | "amount_max" | "created_at";
-
 type SortDirection = "asc" | "desc";
 
 export type FindGrantsParams = {
@@ -64,7 +71,6 @@ export type GrantFilterOptions = {
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
 const SORT_COLUMNS: readonly SortColumn[] = ["deadline", "amount_max", "created_at"];
-
 const SORT_DIRECTIONS: readonly SortDirection[] = ["asc", "desc"];
 
 const isNonEmptyString = (value: string | undefined): value is string =>
@@ -72,7 +78,7 @@ const isNonEmptyString = (value: string | undefined): value is string =>
 
 const parseString = (value: string | string[] | undefined): string | undefined => {
   if (Array.isArray(value)) {
-    return value.find(item => item.trim().length > 0)?.trim();
+    return value.find((item) => item.trim().length > 0)?.trim();
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -83,13 +89,13 @@ const parseString = (value: string | string[] | undefined): string | undefined =
 
 const parseStringList = (value: string | string[] | undefined): string[] => {
   const raw = Array.isArray(value) ? value : value ? value.split(",") : [];
-  return raw.map(item => item.trim()).filter(isNonEmptyString);
+  return raw.map((item) => item.trim()).filter(isNonEmptyString);
 };
 
 const parseNumberList = (value: string | string[] | undefined): number[] =>
   parseStringList(value)
-    .map(item => Number(item))
-    .filter(item => Number.isFinite(item));
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item));
 
 const parseNumber = (value: string | string[] | undefined): number | undefined => {
   const raw = parseString(value);
@@ -123,7 +129,7 @@ const parseDir = (value: string | string[] | undefined): SortDirection => {
 const parseBoolean = (value: string | string[] | undefined): boolean | undefined => {
   const parsed = parseString(value);
   if (!parsed) return undefined;
-  return parsed === "true" || parsed === "1";
+  return parsed === "true" || parsed === "1" || parsed === "on";
 };
 
 const parseDate = (value: string | string[] | undefined): string | undefined => {
@@ -141,12 +147,16 @@ export function parseFindGrantsSearchParams(searchParams: RawSearchParams): Find
     eligible_countries: parseStringList(searchParams.eligible_countries),
     themes: parseStringList(searchParams.themes),
     sdgs: parseNumberList(searchParams.sdgs),
-    remote_only: parseBoolean(searchParams.remote_ok),
+
+    // accept either remote_ok or remote_only from the URL
+    remote_only: parseBoolean(searchParams.remote_ok ?? searchParams.remote_only),
+
     amount_min: parseNumber(searchParams.amount_min),
     amount_max: parseNumber(searchParams.amount_max),
     deadline_from: parseDate(searchParams.deadline_from),
     deadline_to: parseDate(searchParams.deadline_to),
     upcoming_only: parseBoolean(searchParams.upcoming_only),
+
     sort: parseSort(searchParams.sort),
     dir: parseDir(searchParams.dir),
     page: parsePage(searchParams.page),
@@ -171,99 +181,85 @@ export async function fetchFindGrants({
     .select(
       "id,slug,title,summary,funder_name,funding_type,project_type,currency,amount_min,amount_max,deadline,open_date,eligible_countries,location_name,latitude,longitude,status,created_at",
       { count: "exact" },
-    );
-
-  query = query.eq("is_published", true);
+    )
+    .eq("is_published", true);
 
   if (params.q) {
     const escaped = params.q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    query = query.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,funder_name.ilike.%${escaped}%`);
+    query = query.or(
+      `title.ilike.%${escaped}%,summary.ilike.%${escaped}%,funder_name.ilike.%${escaped}%`,
+    );
   }
 
-  if (params.project_type.length) {
-    query = query.in("project_type", params.project_type);
-  }
-
-  if (params.funding_type.length) {
-    query = query.in("funding_type", params.funding_type);
-  }
+  if (params.project_type.length) query = query.in("project_type", params.project_type);
+  if (params.funding_type.length) query = query.in("funding_type", params.funding_type);
 
   if (params.status) {
-    if (params.status !== "all") {
-      query = query.eq("status", params.status);
-    }
+    if (params.status !== "all") query = query.eq("status", params.status);
   } else {
     query = query.eq("status", "open");
   }
 
   if (params.eligible_countries.length) {
-    params.eligible_countries.forEach(value => {
+    params.eligible_countries.forEach((value) => {
       query = query.contains("eligible_countries", [value]);
     });
   }
 
   if (params.themes.length) {
-    params.themes.forEach(value => {
+    params.themes.forEach((value) => {
       query = query.contains("themes", [value]);
     });
   }
 
   if (params.sdgs.length) {
-    params.sdgs.forEach(value => {
+    params.sdgs.forEach((value) => {
       query = query.contains("sdgs", [value]);
     });
   }
 
-  if (params.remote_only) {
-    query = query.eq("remote_ok", true);
-  }
+  if (params.remote_only) query = query.eq("remote_ok", true);
 
+  // overlap logic (OR between min/max columns)
   if (typeof params.amount_min === "number") {
-    query = query.or(`amount_min.gte.${params.amount_min},amount_max.gte.${params.amount_min}`);
+    query = query.or(
+      `amount_min.gte.${params.amount_min},amount_max.gte.${params.amount_min}`,
+    );
   }
 
   if (typeof params.amount_max === "number") {
-    query = query.or(`amount_min.lte.${params.amount_max},amount_max.lte.${params.amount_max}`);
+    query = query.or(
+      `amount_min.lte.${params.amount_max},amount_max.lte.${params.amount_max}`,
+    );
   }
 
-  if (params.deadline_from) {
-    query = query.gte("deadline", params.deadline_from);
-  }
-
-  if (params.deadline_to) {
-    query = query.lte("deadline", params.deadline_to);
-  }
+  if (params.deadline_from) query = query.gte("deadline", params.deadline_from);
+  if (params.deadline_to) query = query.lte("deadline", params.deadline_to);
 
   if (params.upcoming_only) {
     const today = new Date().toISOString().slice(0, 10);
     query = query.or(`deadline.gte.${today},deadline.is.null`);
   }
 
+  // FIX: postgrest-js supports `nullsFirst` only (boolean).
+  // Setting `nullsFirst: false` means "NULLS LAST" in PostgREST.
   const isDeadlineSort = params.sort === "deadline";
   query = query.order(params.sort, {
     ascending: params.dir === "asc",
-    nullsLast: isDeadlineSort,
+    ...(isDeadlineSort ? { nullsFirst: false } : {}),
   });
 
   const offset = (params.page - 1) * PAGE_SIZE;
   query = query.range(offset, offset + PAGE_SIZE - 1);
 
   const { data, count, error } = await query;
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const rows = (data ?? []) as GrantListRow[];
   const totalCount = count ?? rows.length;
   const pageCount = totalCount ? Math.ceil(totalCount / PAGE_SIZE) : 0;
 
-  return {
-    rows,
-    count: totalCount,
-    page: params.page,
-    pageCount,
-  };
+  return { rows, count: totalCount, page: params.page, pageCount };
 }
 
 export async function fetchGrantMarkers({
@@ -274,67 +270,61 @@ export async function fetchGrantMarkers({
   const params = parseFindGrantsSearchParams(searchParams);
   const supabase = await getServerSupabase();
 
-  let query = supabase.from("grants").select("id,slug,title,summary,project_type,latitude,longitude,location_name");
-  query = query.eq("is_published", true);
+  let query = supabase
+    .from("grants")
+    .select("id,slug,title,summary,project_type,latitude,longitude,location_name")
+    .eq("is_published", true);
 
   if (params.q) {
     const escaped = params.q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    query = query.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,funder_name.ilike.%${escaped}%`);
+    query = query.or(
+      `title.ilike.%${escaped}%,summary.ilike.%${escaped}%,funder_name.ilike.%${escaped}%`,
+    );
   }
 
-  if (params.project_type.length) {
-    query = query.in("project_type", params.project_type);
-  }
-
-  if (params.funding_type.length) {
-    query = query.in("funding_type", params.funding_type);
-  }
+  if (params.project_type.length) query = query.in("project_type", params.project_type);
+  if (params.funding_type.length) query = query.in("funding_type", params.funding_type);
 
   if (params.status) {
-    if (params.status !== "all") {
-      query = query.eq("status", params.status);
-    }
+    if (params.status !== "all") query = query.eq("status", params.status);
   } else {
     query = query.eq("status", "open");
   }
 
   if (params.eligible_countries.length) {
-    params.eligible_countries.forEach(value => {
+    params.eligible_countries.forEach((value) => {
       query = query.contains("eligible_countries", [value]);
     });
   }
 
   if (params.themes.length) {
-    params.themes.forEach(value => {
+    params.themes.forEach((value) => {
       query = query.contains("themes", [value]);
     });
   }
 
   if (params.sdgs.length) {
-    params.sdgs.forEach(value => {
+    params.sdgs.forEach((value) => {
       query = query.contains("sdgs", [value]);
     });
   }
 
-  if (params.remote_only) {
-    query = query.eq("remote_ok", true);
-  }
+  if (params.remote_only) query = query.eq("remote_ok", true);
 
   if (typeof params.amount_min === "number") {
-    query = query.or(`amount_min.gte.${params.amount_min},amount_max.gte.${params.amount_min}`);
+    query = query.or(
+      `amount_min.gte.${params.amount_min},amount_max.gte.${params.amount_min}`,
+    );
   }
 
   if (typeof params.amount_max === "number") {
-    query = query.or(`amount_min.lte.${params.amount_max},amount_max.lte.${params.amount_max}`);
+    query = query.or(
+      `amount_min.lte.${params.amount_max},amount_max.lte.${params.amount_max}`,
+    );
   }
 
-  if (params.deadline_from) {
-    query = query.gte("deadline", params.deadline_from);
-  }
-
-  if (params.deadline_to) {
-    query = query.lte("deadline", params.deadline_to);
-  }
+  if (params.deadline_from) query = query.gte("deadline", params.deadline_from);
+  if (params.deadline_to) query = query.lte("deadline", params.deadline_to);
 
   if (params.upcoming_only) {
     const today = new Date().toISOString().slice(0, 10);
@@ -342,10 +332,7 @@ export async function fetchGrantMarkers({
   }
 
   const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   return (data ?? []) as GrantMarker[];
 }
@@ -368,7 +355,7 @@ export async function fetchGrantFilterOptions(): Promise<GrantFilterOptions> {
   const countrySet = new Set<string>();
   const themeSet = new Set<string>();
 
-  (data ?? []).forEach(row => {
+  (data ?? []).forEach((row) => {
     (row.eligible_countries ?? []).forEach((country: string) => countrySet.add(country));
     (row.themes ?? []).forEach((theme: string) => themeSet.add(theme));
   });
@@ -376,7 +363,7 @@ export async function fetchGrantFilterOptions(): Promise<GrantFilterOptions> {
   const toOptions = (values: Set<string>) =>
     Array.from(values)
       .sort((a, b) => a.localeCompare(b))
-      .map(value => ({ value, label: value }));
+      .map((value) => ({ value, label: value }));
 
   return {
     countries: toOptions(countrySet),

@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.0.0",
-
   "scripts": {
     "postinstall": "bash -lc 'if [ -n \"$SUPABASE_ACCESS_TOKEN$SUPABASE_PROJECT_REF\" ] || [ -f supabase/config.toml ]; then echo \"postinstall: running sb:sync\"; pnpm -s sb:sync || true; else echo \"postinstall: skipping sb:sync (no Supabase secrets/link)\"; fi'",
     "predev": "pnpm -s sb:sync || true",
@@ -12,9 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-
     "db:sync": "scripts/db-sync.sh",
-
     "sb:version": "supabase --version",
     "sb:login": "supabase login --token $SUPABASE_ACCESS_TOKEN",
     "sb:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
@@ -23,50 +20,45 @@
     "sb:commit": "supabase db remote commit --dry-run",
     "sb:sync": "bash scripts/sb-sync.sh"
   },
-
   "dependencies": {
-    "@hookform/resolvers": "^3.6.0",
+    "@hookform/resolvers": "^3.10.0",
     "@mapbox/mapbox-gl-geocoder": "^5.1.2",
-
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
-
+    "@radix-ui/react-switch": "^1.2.6",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.56.0",
-
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.542.0",
-
     "mapbox-gl": "^3.14.0",
-
     "next": "15.4.10",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-
     "react-day-picker": "^9.11.0",
+    "react-dom": "19.1.0",
     "react-hook-form": "^7.62.0",
-
     "tailwind-merge": "^2.5.3",
     "zod": "^3.23.8"
   },
-
   "devDependencies": {
-    "@eslint/eslintrc": "^3.0.0",
-
-    "@types/node": "^20.11.30",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-
-    "eslint": "^9.0.0",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
     "eslint-config-next": "15.4.10",
-
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0",
-
+    "tailwindcss": "^4",
     "tsx": "^4.19.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "react-hook-form": "^7.62.0",
+      "@hookform/resolvers": "^3.10.0",
+      "zod": "^3.23.8"
+    }
   }
 }

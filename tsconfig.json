@@ -1,24 +1,32 @@
 {
   "compilerOptions": {
-    /* Language and environment */
+    /* ================================
+       Language & Environment
+       ================================ */
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
 
-    /* JS/TS behavior */
+    /* ================================
+       TypeScript Behavior
+       ================================ */
     "allowJs": true,
-    "skipLibCheck": true,
     "strict": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "incremental": true,
     "isolatedModules": true,
 
-    /* Module system */
+    /* ================================
+       Module Resolution
+       ================================ */
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "resolveJsonModule": true,
 
-    /* React / Next */
+    /* ================================
+       React / Next.js
+       ================================ */
     "jsx": "preserve",
     "plugins": [
       {
@@ -26,11 +34,18 @@
       }
     ],
 
-    /* Path aliases */
+    /* ================================
+       Path Aliases
+       ================================ */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": ["./src/*"]
+    },
+
+    /* ================================
+       Safety / Compatibility
+       ================================ */
+    "forceConsistentCasingInFileNames": true
   },
 
   "include": [

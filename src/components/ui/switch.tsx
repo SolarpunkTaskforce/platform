@@ -1,62 +1,29 @@
-'use client';
+// src/components/ui/switch.tsx
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
+import * as SwitchPrimitive from "@radix-ui/react-switch";
+import { cn } from "@/lib/cn";
 
-export interface SwitchProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
-  checked?: boolean;
-  defaultChecked?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
-  disabled?: boolean;
-}
+export type SwitchProps = React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>;
 
-/**
- * Dependency-free Switch with a Radix/shadcn-compatible API.
- * Replace later with Radix Switch if you install it.
- */
-export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
-  (
-    { checked, defaultChecked, onCheckedChange, disabled, className, ...props },
-    ref,
-  ) => {
-    const [internal, setInternal] = React.useState<boolean>(defaultChecked ?? false);
-    const isControlled = typeof checked === 'boolean';
-    const isOn = isControlled ? (checked as boolean) : internal;
-
-    const toggle = () => {
-      if (disabled) return;
-      const next = !isOn;
-      if (!isControlled) setInternal(next);
-      onCheckedChange?.(next);
-    };
-
-    return (
-      <button
-        type="button"
-        role="switch"
-        aria-checked={isOn}
-        aria-disabled={disabled || undefined}
-        data-state={isOn ? 'checked' : 'unchecked'}
-        disabled={disabled}
-        onClick={toggle}
-        ref={ref}
-        className={[
-          'inline-flex h-6 w-11 items-center rounded-full border transition',
-          isOn ? 'bg-black text-white' : 'bg-white text-black',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-          className ?? '',
-        ].join(' ')}
-        {...props}
-      >
-        <span
-          aria-hidden="true"
-          className={[
-            'block h-5 w-5 rounded-full bg-current transition-transform',
-            isOn ? 'translate-x-5' : 'translate-x-0',
-          ].join(' ')}
-        />
-      </button>
-    );
-  },
-);
-Switch.displayName = 'Switch';
+export const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitive.Root>,
+  SwitchProps
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitive.Root
+    ref={ref}
+    className={cn(
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-foreground data-[state=unchecked]:bg-input",
+      className
+    )}
+    {...props}
+  >
+    <SwitchPrimitive.Thumb
+      className={cn(
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+      )}
+    />
+  </SwitchPrimitive.Root>
+));
+Switch.displayName = "Switch";

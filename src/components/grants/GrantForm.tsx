@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -33,6 +33,8 @@ import { createClient } from "@/utils/supabase/client";
 import type { Database } from "@/types/supabase";
 
 type GrantRow = Database["public"]["Tables"]["grants"]["Row"];
+type GrantInsert = Database["public"]["Tables"]["grants"]["Insert"];
+type GrantUpdate = Database["public"]["Tables"]["grants"]["Update"];
 
 const projectTypes = ["environmental", "humanitarian", "both"] as const;
 const fundingTypes = [
@@ -45,20 +47,24 @@ const fundingTypes = [
   "other",
 ] as const;
 
+// Keep RHF values as strings/booleans (no Zod transforms), and convert for DB in onSubmit.
+// This avoids resolver/control generic mismatches and the cascade of TS errors.
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
+
   summary: z
     .string()
     .max(500, "Summary is too long")
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+    .transform((v) => (v && v.trim().length ? v.trim() : "")),
+
   description: z
     .string()
     .max(5000, "Description is too long")
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+    .transform((v) => (v && v.trim().length ? v.trim() : "")),
 
   project_type: z.enum(projectTypes),
   funding_type: z.enum(fundingTypes),
@@ -68,119 +74,78 @@ const formSchema = z.object({
     .min(1, "Application URL is required")
     .url("Please enter a valid URL"),
 
-  currency: z
-    .string()
-    .min(1, "Currency is required")
-    .max(10, "Currency is too long"),
+  currency: z.string().min(1, "Currency is required").max(10, "Currency is too long"),
+
   amount_min: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
-    .refine((v) => v === undefined || Number.isFinite(v), {
+    .refine((v) => v === "" || Number.isFinite(Number(v)), {
       message: "Min amount must be a number",
     }),
+
   amount_max: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
-    .refine((v) => v === undefined || Number.isFinite(v), {
+    .refine((v) => v === "" || Number.isFinite(Number(v)), {
       message: "Max amount must be a number",
     }),
 
-  open_date: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v : undefined)),
-  deadline: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v : undefined)),
-  decision_date: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v : undefined)),
-  start_date: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v : undefined)),
+  open_date: z.string().optional().or(z.literal("")),
+  deadline: z.string().optional().or(z.literal("")),
+  decision_date: z.string().optional().or(z.literal("")),
+  start_date: z.string().optional().or(z.literal("")),
 
-  eligible_countries: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v : undefined)),
-  remote_ok: z.boolean().default(false),
+  eligible_countries: z.string().optional().or(z.literal("")),
 
-  location_name: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  // Make it non-optional in the form type; defaultValues always provides false.
+  remote_ok: z.boolean(),
+
+  location_name: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
+
   latitude: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
-    .refine((v) => v === undefined || Number.isFinite(v), {
+    .refine((v) => v === "" || Number.isFinite(Number(v)), {
       message: "Latitude must be a number",
     }),
+
   longitude: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? Number(v) : undefined))
-    .refine((v) => v === undefined || Number.isFinite(v), {
+    .refine((v) => v === "" || Number.isFinite(Number(v)), {
       message: "Longitude must be a number",
     }),
 
-  themes: z
-    .array(z.string())
-    .optional()
-    .default([])
-    .transform((v) => v ?? []),
-  sdgs: z
-    .array(z.string())
-    .optional()
-    .default([])
-    .transform((v) => v ?? []),
-  keywords: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  themes: z.array(z.string()).optional().default([]),
+  sdgs: z.array(z.string()).optional().default([]),
 
-  funder_name: z
-    .string()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
+  keywords: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
+
+  funder_name: z.string().optional().or(z.literal("")).transform((v) => v ?? ""),
   funder_website: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined))
-    .refine((v) => v === undefined || /^https?:\/\//i.test(v), {
+    .transform((v) => (v && v.trim().length ? v.trim() : ""))
+    .refine((v) => v === "" || /^https?:\/\//i.test(v), {
       message: "Funder website must be a valid URL (include http/https)",
     }),
+
   contact_email: z
     .string()
     .optional()
     .or(z.literal(""))
-    .transform((v) => (v && v.trim().length ? v.trim() : undefined))
-    .refine((v) => v === undefined || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
+    .transform((v) => (v && v.trim().length ? v.trim() : ""))
+    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
       message: "Please enter a valid email address",
     }),
 });
 
-type FormInput = z.input<typeof formSchema>;
-// Values after Zod transforms (what you get in onSubmit)
-type FormValues = z.output<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
 type GrantFormProps = {
   grant?: GrantRow | null;
@@ -241,7 +206,6 @@ function joinArrayForEdit(value: unknown): string[] {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
     } catch {
-      // fallback: comma-separated string
       return value
         .split(",")
         .map((s) => s.trim())
@@ -258,12 +222,38 @@ function keywordsToString(value: unknown): string {
   return "";
 }
 
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function toNullableNumber(v: string | undefined): number | null {
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toNullableString(v: string | undefined): string | null {
+  const s = (v ?? "").trim();
+  return s.length ? s : null;
+}
+
+function toNullableDateString(v: string | undefined): string | null {
+  const s = (v ?? "").trim();
+  return s.length ? s : null;
+}
+
 export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
-  const createDefaultValues = (): FormInput => {
+  const createDefaultValues = (): FormValues => {
     if (!grant) {
       return {
         title: "",
@@ -297,8 +287,8 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       title: grant.title ?? "",
       summary: grant.summary ?? "",
       description: grant.description ?? "",
-      project_type: (grant.project_type as FormInput["project_type"]) ?? "both",
-      funding_type: (grant.funding_type as FormInput["funding_type"]) ?? "grant",
+      project_type: (grant.project_type as FormValues["project_type"]) ?? "both",
+      funding_type: (grant.funding_type as FormValues["funding_type"]) ?? "grant",
       application_url: grant.application_url ?? "",
       currency: grant.currency ?? "USD",
       amount_min: grant.amount_min != null ? String(grant.amount_min) : "",
@@ -307,7 +297,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       deadline: toDateInputValue(grant.deadline),
       decision_date: toDateInputValue(grant.decision_date),
       start_date: toDateInputValue(grant.start_date),
-      eligible_countries: grant.eligible_countries ?? "",
+      eligible_countries: (Array.isArray(grant.eligible_countries)
+        ? grant.eligible_countries.join(", ")
+        : (grant.eligible_countries as unknown as string)) ?? "",
       remote_ok: !!grant.remote_ok,
       location_name: grant.location_name ?? "",
       latitude: grant.latitude != null ? String(grant.latitude) : "",
@@ -321,7 +313,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
     };
   };
 
-  const form = useForm<FormInput, any, FormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: createDefaultValues(),
     mode: "onChange",
@@ -330,7 +322,6 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
-      // Convert keywords string -> array (store as text[] or json depending on your schema)
       const keywordsArray = values.keywords
         ? values.keywords
             .split(",")
@@ -338,10 +329,23 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
             .filter(Boolean)
         : [];
 
-      const payload = {
+      const eligibleCountriesArray =
+        values.eligible_countries && values.eligible_countries.trim().length
+          ? values.eligible_countries
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : null;
+
+      const themesArray = (values.themes ?? []).filter(Boolean);
+      const sdgNumbers = (values.sdgs ?? [])
+        .map((s) => Number(s))
+        .filter((n) => Number.isFinite(n));
+
+      const basePayload: Omit<GrantInsert, "created_by" | "slug"> & GrantUpdate = {
         title: values.title,
-        summary: values.summary ?? null,
-        description: values.description ?? null,
+        summary: toNullableString(values.summary),
+        description: toNullableString(values.description),
 
         project_type: values.project_type,
         funding_type: values.funding_type,
@@ -349,37 +353,47 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
         application_url: values.application_url,
 
         currency: values.currency,
-        amount_min: values.amount_min ?? null,
-        amount_max: values.amount_max ?? null,
+        amount_min: toNullableNumber(values.amount_min),
+        amount_max: toNullableNumber(values.amount_max),
 
-        open_date: values.open_date ?? null,
-        deadline: values.deadline ?? null,
-        decision_date: values.decision_date ?? null,
-        start_date: values.start_date ?? null,
+        open_date: toNullableDateString(values.open_date),
+        deadline: toNullableDateString(values.deadline),
+        decision_date: toNullableDateString(values.decision_date),
+        start_date: toNullableDateString(values.start_date),
 
-        eligible_countries: values.eligible_countries ?? null,
-        remote_ok: values.remote_ok ?? false,
+        eligible_countries: eligibleCountriesArray,
 
-        location_name: values.location_name ?? null,
-        latitude: values.latitude ?? null,
-        longitude: values.longitude ?? null,
+        remote_ok: !!values.remote_ok,
 
-        themes: values.themes ?? [],
-        sdgs: values.sdgs ?? [],
+        location_name: toNullableString(values.location_name),
+        latitude: toNullableNumber(values.latitude),
+        longitude: toNullableNumber(values.longitude),
+
+        themes: themesArray.length ? themesArray : [],
+
+        // if your DB column is number[] | null, this matches:
+        sdgs: sdgNumbers.length ? sdgNumbers : [],
+
         keywords: keywordsArray,
 
-        funder_name: values.funder_name ?? null,
-        funder_website: values.funder_website ?? null,
-        contact_email: values.contact_email ?? null,
-      } satisfies Partial<GrantRow>;
+        funder_name: toNullableString(values.funder_name),
+        funder_website: toNullableString(values.funder_website),
+        contact_email: toNullableString(values.contact_email),
+      };
 
       if (mode === "edit") {
         if (!grant?.id) throw new Error("Missing grant id");
-        const { error } = await supabase
-          .from("grants")
-          .update(payload)
-          .eq("id", grant.id);
 
+        // Optional: keep slug stable unless you want it updated on title change.
+        // If you DO want it updated, uncomment:
+        // const slug = slugify(values.title);
+
+        const updatePayload: GrantUpdate = {
+          ...basePayload,
+          // slug,
+        };
+
+        const { error } = await supabase.from("grants").update(updatePayload).eq("id", grant.id);
         if (error) throw error;
 
         toast({
@@ -387,7 +401,20 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
           description: "Your changes have been saved.",
         });
       } else {
-        const { error } = await supabase.from("grants").insert(payload);
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) throw userError ?? new Error("Not authenticated");
+
+        const insertPayload: GrantInsert = {
+          ...basePayload,
+          created_by: user.id,
+          slug: slugify(values.title),
+        };
+
+        const { error } = await supabase.from("grants").insert(insertPayload);
         if (error) throw error;
 
         toast({
@@ -461,15 +488,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               <FormItem>
                 <FormLabel>Summary</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Short summary (max 500 chars)"
-                    rows={3}
-                    {...field}
-                  />
+                  <Textarea placeholder="Short summary (max 500 chars)" rows={3} {...field} />
                 </FormControl>
-                <FormDescription>
-                  A short summary shown in search results.
-                </FormDescription>
+                <FormDescription>A short summary shown in search results.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -513,11 +534,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project type *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project type" />
@@ -540,11 +557,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Funding type *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a funding type" />
@@ -711,14 +724,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               <FormItem>
                 <FormLabel>Eligible countries</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="e.g. Global, EU, USA, Kenya"
-                    {...field}
-                  />
+                  <Input placeholder="e.g. Global, EU, USA, Kenya" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Free text is ok (e.g. “Global” or “EU + UK”).
-                </FormDescription>
+                <FormDescription>Free text is ok (e.g. “Global” or “EU + UK”).</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -727,9 +735,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-1">
               <FormLabel className="text-base">Remote OK</FormLabel>
-              <FormDescription>
-                Applicants can participate without being on-site.
-              </FormDescription>
+              <FormDescription>Applicants can participate without being on-site.</FormDescription>
             </div>
             <FormField
               control={form.control}
@@ -849,9 +855,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 <FormControl>
                   <Input placeholder="comma, separated, keywords" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Used for search. Separate with commas.
-                </FormDescription>
+                <FormDescription>Used for search. Separate with commas.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
