@@ -19,6 +19,7 @@ type Marker = {
   placeName?: string | null;
   description?: string | null;
   ctaHref?: string;
+  markerColor?: string;
 };
 
 type MapProps = {
@@ -220,7 +221,7 @@ export default function Map({
         width: "20px",
         height: "20px",
         borderRadius: "9999px",
-        backgroundColor: markerColor,
+        backgroundColor: m.markerColor ?? markerColor,
         boxShadow: "0 4px 12px rgba(15, 23, 42, 0.35)",
         transform: `translate(-50%, -50%) scale(${scale})`,
       });

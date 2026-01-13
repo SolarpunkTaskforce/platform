@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const FILTER_KEYS = [
   "q",
+  "type",
   "category",
   "country",
   "region",
@@ -32,7 +33,17 @@ const FILTER_KEYS = [
 
 const getParamValue = (searchParams: URLSearchParams, key: string) => searchParams.get(key) ?? "";
 
-export default function ProjectsFilters() {
+type ProjectsFiltersProps = {
+  basePath?: string;
+  showSorting?: boolean;
+  variant?: "panel" | "inline";
+};
+
+export default function ProjectsFilters({
+  basePath = "/projects",
+  showSorting = true,
+  variant = "panel",
+}: ProjectsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -48,20 +59,20 @@ export default function ProjectsFilters() {
       });
       params.set("page", "1");
       const query = params.toString();
-      router.push(query ? `/projects?${query}` : "/projects");
+      router.push(query ? `${basePath}?${query}` : basePath);
     },
-    [router, searchParams],
+    [basePath, router, searchParams],
   );
 
   const clearFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     FILTER_KEYS.forEach(key => params.delete(key));
     const query = params.toString();
-    router.push(query ? `/projects?${query}` : "/projects");
-  }, [router, searchParams]);
+    router.push(query ? `${basePath}?${query}` : basePath);
+  }, [basePath, router, searchParams]);
 
   const qValue = getParamValue(searchParams, "q");
-  const categoryValue = getParamValue(searchParams, "category");
+  const categoryValue = getParamValue(searchParams, "category") || getParamValue(searchParams, "type");
   const countryValue = getParamValue(searchParams, "country");
   const regionValue = getParamValue(searchParams, "region");
   const currencyValue = getParamValue(searchParams, "currency");
@@ -80,8 +91,13 @@ export default function ProjectsFilters() {
   const sortValue = getParamValue(searchParams, "sort") || "created_at";
   const dirValue = getParamValue(searchParams, "dir") || "desc";
 
+  const containerClassName =
+    variant === "panel"
+      ? "space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      : "space-y-4";
+
   return (
-    <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <section className={containerClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
@@ -103,16 +119,21 @@ export default function ProjectsFilters() {
         </label>
 
         <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Category</span>
+          <span className="font-medium text-slate-900">Project type</span>
           <Select
             value={categoryValue || "all"}
-            onValueChange={value => updateParams({ category: value === "all" ? "" : value })}
+            onValueChange={value =>
+              updateParams({
+                category: value === "all" ? "" : value,
+                type: "",
+              })
+            }
           >
             <SelectTrigger>
-              <SelectValue placeholder="All categories" />
+              <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="all">All types</SelectItem>
               <SelectItem value="humanitarian">Humanitarian</SelectItem>
               <SelectItem value="environmental">Environmental</SelectItem>
             </SelectContent>
@@ -258,34 +279,38 @@ export default function ProjectsFilters() {
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Sort by</span>
-            <Select value={sortValue} onValueChange={value => updateParams({ sort: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="created_at">Newest</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="amount_needed">Amount needed</SelectItem>
-                <SelectItem value="donations_received">Donations received</SelectItem>
-                <SelectItem value="start_date">Start date</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
+          {showSorting ? (
+            <>
+              <label className="space-y-1 text-sm text-slate-600">
+                <span className="font-medium text-slate-900">Sort by</span>
+                <Select value={sortValue} onValueChange={value => updateParams({ sort: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created_at">Newest</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="amount_needed">Amount needed</SelectItem>
+                    <SelectItem value="donations_received">Donations received</SelectItem>
+                    <SelectItem value="start_date">Start date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Sort direction</span>
-            <Select value={dirValue} onValueChange={value => updateParams({ dir: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="desc">Descending</SelectItem>
-                <SelectItem value="asc">Ascending</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
+              <label className="space-y-1 text-sm text-slate-600">
+                <span className="font-medium text-slate-900">Sort direction</span>
+                <Select value={dirValue} onValueChange={value => updateParams({ dir: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Descending</SelectItem>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+            </>
+          ) : null}
         </div>
       </details>
     </section>

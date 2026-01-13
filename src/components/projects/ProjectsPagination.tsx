@@ -3,6 +3,7 @@ import Link from "next/link";
 const buildSearchParams = (
   searchParams: Record<string, string | string[] | undefined>,
   page: number,
+  basePath: string,
 ) => {
   const params = new URLSearchParams();
   Object.entries(searchParams).forEach(([key, value]) => {
@@ -19,7 +20,7 @@ const buildSearchParams = (
 
   params.set("page", page.toString());
   const query = params.toString();
-  return query ? `/projects?${query}` : "/projects";
+  return query ? `${basePath}?${query}` : basePath;
 };
 
 const buildPageNumbers = (page: number, pageCount: number) => {
@@ -38,9 +39,15 @@ type ProjectsPaginationProps = {
   page: number;
   pageCount: number;
   searchParams: Record<string, string | string[] | undefined>;
+  basePath?: string;
 };
 
-export default function ProjectsPagination({ page, pageCount, searchParams }: ProjectsPaginationProps) {
+export default function ProjectsPagination({
+  page,
+  pageCount,
+  searchParams,
+  basePath = "/projects",
+}: ProjectsPaginationProps) {
   if (pageCount <= 1) {
     return null;
   }
@@ -55,7 +62,7 @@ export default function ProjectsPagination({ page, pageCount, searchParams }: Pr
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Link
-          href={buildSearchParams(searchParams, Math.max(safePage - 1, 1))}
+          href={buildSearchParams(searchParams, Math.max(safePage - 1, 1), basePath)}
           aria-disabled={safePage === 1}
           className={`rounded border px-3 py-1 text-sm ${
             safePage === 1
@@ -65,10 +72,10 @@ export default function ProjectsPagination({ page, pageCount, searchParams }: Pr
         >
           Prev
         </Link>
-        {pages.map(value => (
+          {pages.map(value => (
           <Link
             key={value}
-            href={buildSearchParams(searchParams, value)}
+            href={buildSearchParams(searchParams, value, basePath)}
             className={`rounded border px-3 py-1 text-sm ${
               value === safePage
                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
@@ -79,7 +86,7 @@ export default function ProjectsPagination({ page, pageCount, searchParams }: Pr
           </Link>
         ))}
         <Link
-          href={buildSearchParams(searchParams, Math.min(safePage + 1, pageCount))}
+          href={buildSearchParams(searchParams, Math.min(safePage + 1, pageCount), basePath)}
           aria-disabled={safePage === pageCount}
           className={`rounded border px-3 py-1 text-sm ${
             safePage === pageCount

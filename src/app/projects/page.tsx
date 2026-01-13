@@ -56,8 +56,12 @@ const getTagPreview = (project: ProjectListRow) => {
 
 const getProjectSlug = (project: ProjectListRow) => project.slug ?? project.id;
 
-const mapRouteByCategory = (category: string) =>
-  category === "humanitarian" ? "/projects/humanitarian" : "/projects/environmental";
+const mapRouteByCategory = (category: string) => {
+  const params = new URLSearchParams();
+  params.set("view", "globe");
+  params.set("type", category === "humanitarian" ? "humanitarian" : "environmental");
+  return `/find-projects?${params.toString()}`;
+};
 
 const buttonClasses =
   "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:pointer-events-none disabled:opacity-50";
@@ -120,7 +124,7 @@ export default async function ProjectsPage({
                 // Only include focus when slug is a real string.
                 const focusSlug = project.slug ?? null;
                 const mapHref = focusSlug
-                  ? `${mapRouteByCategory(project.category)}?focus=${encodeURIComponent(focusSlug)}`
+                  ? `${mapRouteByCategory(project.category)}&focus=${encodeURIComponent(focusSlug)}`
                   : mapRouteByCategory(project.category);
 
                 return (
