@@ -25,6 +25,11 @@ export type ProjectListRow = Pick<
   | "target_demographic"
 >;
 
+export type ProjectMarker = Pick<
+  ProjectRow,
+  "id" | "slug" | "name" | "category" | "lat" | "lng" | "place_name" | "description"
+>;
+
 type SortColumn = "created_at" | "name" | "amount_needed" | "donations_received" | "start_date";
 
 type SortDirection = "asc" | "desc";
@@ -32,6 +37,7 @@ type SortDirection = "asc" | "desc";
 export type FindProjectsParams = {
   q?: string;
   category: string[];
+  type: string[];
   country: string[];
   region: string[];
   currency: string[];
@@ -122,6 +128,7 @@ export function parseFindProjectsSearchParams(searchParams: RawSearchParams): Fi
   return {
     q: parseString(searchParams.q),
     category: parseStringList(searchParams.category),
+    type: parseStringList(searchParams.type),
     country: parseStringList(searchParams.country),
     region: parseStringList(searchParams.region),
     currency: parseStringList(searchParams.currency),
@@ -154,6 +161,7 @@ export async function fetchFindProjects({
   pageCount: number;
 }> {
   const params = parseFindProjectsSearchParams(searchParams);
+  const categoryFilters = params.category.length ? params.category : params.type;
   const supabase = await getServerSupabase();
   const {
     data: { user },
@@ -175,8 +183,8 @@ export async function fetchFindProjects({
     query = query.or(`name.ilike.%${escaped}%,place_name.ilike.%${escaped}%`);
   }
 
-  if (params.category.length) {
-    query = query.in("category", params.category);
+  if (categoryFilters.length) {
+    query = query.in("category", categoryFilters);
   }
 
   if (params.country.length) {
@@ -266,4 +274,108 @@ export async function fetchFindProjects({
     page: params.page,
     pageCount,
   };
+}
+
+export async function fetchProjectMarkers({
+  searchParams,
+}: {
+  searchParams: RawSearchParams;
+}): Promise<ProjectMarker[]> {
+  const params = parseFindProjectsSearchParams(searchParams);
+  const categoryFilters = params.category.length ? params.category : params.type;
+  const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let query = supabase
+    .from("projects")
+    .select("id,slug,name,category,lat,lng,place_name,description");
+
+  if (!user) {
+    query = query.eq("status", "approved");
+  }
+
+  if (params.q) {
+    const escaped = params.q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    query = query.or(`name.ilike.%${escaped}%,place_name.ilike.%${escaped}%`);
+  }
+
+  if (categoryFilters.length) {
+    query = query.in("category", categoryFilters);
+  }
+
+  if (params.country.length) {
+    query = query.in("country", params.country);
+  }
+
+  if (params.region.length) {
+    query = query.in("region", params.region);
+  }
+
+  if (params.currency.length) {
+    query = query.in("currency", params.currency);
+  }
+
+  if (params.target_demographic.length) {
+    query = query.in("target_demographic", params.target_demographic);
+  }
+
+  if (params.thematic_area.length) {
+    params.thematic_area.forEach(value => {
+      query = query.contains("thematic_area", [value]);
+    });
+  }
+
+  if (params.type_of_intervention.length) {
+    params.type_of_intervention.forEach(value => {
+      query = query.contains("type_of_intervention", [value]);
+    });
+  }
+
+  if (params.partner_org_ids.length) {
+    params.partner_org_ids.forEach(value => {
+      query = query.contains("partner_org_ids", [value]);
+    });
+  }
+
+  if (typeof params.min_needed === "number") {
+    query = query.gte("amount_needed", params.min_needed);
+  }
+
+  if (typeof params.max_needed === "number") {
+    query = query.lte("amount_needed", params.max_needed);
+  }
+
+  if (typeof params.min_received === "number") {
+    query = query.gte("donations_received", params.min_received);
+  }
+
+  if (typeof params.max_received === "number") {
+    query = query.lte("donations_received", params.max_received);
+  }
+
+  if (typeof params.min_lives === "number") {
+    query = query.gte("lives_improved", params.min_lives);
+  }
+
+  if (typeof params.max_lives === "number") {
+    query = query.lte("lives_improved", params.max_lives);
+  }
+
+  if (params.start_from) {
+    query = query.gte("start_date", params.start_from);
+  }
+
+  if (params.end_to) {
+    query = query.lte("end_date", params.end_to);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as ProjectMarker[];
 }
