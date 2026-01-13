@@ -26,9 +26,11 @@ const formatNumber = (value: number | null) => {
 
 const formatFunding = (value: number | null) => {
   if (typeof value !== "number") return "—";
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    value,
-  );
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
 };
 
 const formatAge = (value: number | null) => {
@@ -36,20 +38,47 @@ const formatAge = (value: number | null) => {
   return `${value} yrs`;
 };
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 export default async function FindOrganisationsPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<SearchParams>;
 }) {
-  const params = searchParams ? await searchParams : {};
-  const viewParam = typeof params.view === "string" ? params.view : "globe";
-  const focus = typeof params.focus === "string" ? params.focus : null;
-  const view = viewParam === "table" ? "table" : "globe";
+  const params: SearchParams = searchParams ? await searchParams : {};
 
-  const filterOptions = await fetchOrganisationFilterOptions();
-  const { rows, count, page, pageCount } = await fetchFindOrganisations({ searchParams: params });
-  const markers =
-    view === "globe" ? await fetchOrganisationMarkers({ searchParams: params }) : [];
+  const viewParam = typeof params.view === "string" ? params.view : "globe";
+  const view: "globe" | "table" = viewParam === "table" ? "table" : "globe";
+  const focus = typeof params.focus === "string" ? params.focus : null;
+
+  // Filter options (should be stable; still safe if it fails)
+  let filterOptions = await fetchOrganisationFilterOptions();
+
+  // List query (must never crash the page)
+  let rows: OrganisationListRow[] = [];
+  let count = 0;
+  let page = 1;
+  let pageCount = 1;
+
+  try {
+    const result = await fetchFindOrganisations({ searchParams: params });
+    rows = result.rows;
+    count = result.count;
+    page = result.page;
+    pageCount = result.pageCount;
+  } catch (e) {
+    console.error("Find organisations: list query failed", e);
+  }
+
+  // Markers (only for globe view; must never crash the page)
+  let markers: Awaited<ReturnType<typeof fetchOrganisationMarkers>> = [];
+  if (view === "globe") {
+    try {
+      markers = await fetchOrganisationMarkers({ searchParams: params });
+    } catch (e) {
+      console.error("Find organisations: marker query failed", e);
+    }
+  }
 
   return (
     <main className="space-y-6 px-6 py-8">
@@ -74,13 +103,14 @@ export default async function FindOrganisationsPage({
               {markers.length} organisations mapped · {count} total matching filters
             </div>
           </div>
+
           <div className="min-h-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <Map
               markers={markers}
               markerColor="#10b981"
               focusSlug={focus}
               ctaLabel="See more"
-              getCtaHref={marker => `/organisations/${marker.slug}`}
+              getCtaHref={(marker) => `/organisations/${marker.slug}`}
             />
           </div>
         </section>
@@ -110,8 +140,9 @@ export default async function FindOrganisationsPage({
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-100">
-                  {rows.map(organisation => (
+                  {rows.map((organisation) => (
                     <tr key={organisation.id} className="align-top">
                       <td className="px-4 py-4">
                         <Link
@@ -124,12 +155,14 @@ export default async function FindOrganisationsPage({
                           {organisation.description ?? "No description yet."}
                         </p>
                       </td>
+
                       <td className="px-4 py-4 text-slate-600">{formatLocation(organisation)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_total_count)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_ongoing_count)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.followers_count)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatFunding(organisation.funding_needed)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatAge(organisation.age_years)}</td>
+
                       <td className="px-4 py-4 text-right">
                         <Link
                           href={`/organisations/${organisation.id}`}
