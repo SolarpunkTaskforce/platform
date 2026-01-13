@@ -27,8 +27,11 @@ type MapProps = {
   focusSlug?: string | null;
   ctaLabel?: string;
 
-  /** Increment to force a one-shot recenter (e.g. after collapsing/expanding side panels). */
+  /** Increment to force a one-shot recenter after layout changes. */
   recenterNonce?: number;
+
+  /** When true, visually freeze the map during aggressive layout changes (e.g. dragging splitter). */
+  freeze?: boolean;
 };
 
 type MarkerObject = {
@@ -50,13 +53,13 @@ export default function Map({
   focusSlug = null,
   ctaLabel = "View",
   recenterNonce,
+  freeze = false,
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
 
-  // Track if the user has interacted recently, so resize doesn't "fight" them.
   const userInteractedRef = useRef(false);
   const userInteractTimerRef = useRef<number | null>(null);
 
@@ -123,54 +126,36 @@ export default function Map({
     mapRef.current = map;
 
     return () => {
-      if (userInteractTimerRef.current != null) {
-        window.clearTimeout(userInteractTimerRef.current);
-      }
+      if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
       map.remove();
       mapRef.current = null;
     };
   }, []);
 
-  // Resize observer: smooth resizing without frequent white flashes.
-  useEffect(() => {
-    const map = mapRef.current;
-    const el = containerRef.current;
-    if (!map || !el) return;
-
-    let rafId: number | null = null;
-    let settleTimer: number | null = null;
-
-    const scheduleResize = () => {
-      if (rafId != null) return;
-
-      rafId = window.requestAnimationFrame(() => {
-        rafId = null;
-        map.resize();
-      });
-
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => {
-        if (!userInteractedRef.current) {
-          fitToMarkers(map, false);
-        }
-      }, 180);
-    };
-
-    const ro = new ResizeObserver(() => scheduleResize());
-    ro.observe(el);
-
-    return () => {
-      ro.disconnect();
-      if (rafId != null) window.cancelAnimationFrame(rafId);
-      if (settleTimer != null) window.clearTimeout(settleTimer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validMarkers]);
-
-  // Force recenter on demand (collapse/expand)
+  // IMPORTANT: when freeze is enabled, we intentionally do NOT resize continuously.
+  // We'll do a single resize once freeze is turned off.
+  const lastFreezeRef = useRef(false);
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+
+    const wasFrozen = lastFreezeRef.current;
+    lastFreezeRef.current = freeze;
+
+    if (wasFrozen && !freeze) {
+      // Unfreezing: do one clean resize (and let recenterNonce handle camera if needed).
+      const id = window.requestAnimationFrame(() => {
+        map.resize();
+      });
+      return () => window.cancelAnimationFrame(id);
+    }
+  }, [freeze]);
+
+  // Forced recenter on demand (collapse/expand/drag end)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (freeze) return; // don't animate/resize while frozen
 
     const id = window.requestAnimationFrame(() => {
       map.resize();
@@ -254,22 +239,46 @@ export default function Map({
       });
     });
 
-    userInteractedRef.current = false;
-    fitToMarkers(map, true);
+    // Only auto-fit if not frozen (avoid mid-drag camera motion)
+    if (!freeze) {
+      userInteractedRef.current = false;
+      fitToMarkers(map, true);
 
-    if (focusSlug) {
-      const focused = markerObjs.current.find((o) => o.slug === focusSlug);
-      if (focused) {
-        map.easeTo({
-          center: [focused.lng, focused.lat],
-          zoom: Math.max(map.getZoom(), 4),
-          duration: 450,
-        });
-        focused.marker.getPopup()?.addTo(map);
+      if (focusSlug) {
+        const focused = markerObjs.current.find((o) => o.slug === focusSlug);
+        if (focused) {
+          map.easeTo({
+            center: [focused.lng, focused.lat],
+            zoom: Math.max(map.getZoom(), 4),
+            duration: 450,
+          });
+          focused.marker.getPopup()?.addTo(map);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctaLabel, focusSlug, markerColor, router, validMarkers]);
+  }, [ctaLabel, focusSlug, markerColor, router, validMarkers, freeze]);
 
-  return <div ref={containerRef} className="h-full w-full bg-slate-100" />;
+  return (
+    <div className="relative h-full w-full bg-slate-100">
+      {/* Map mount point */}
+      <div
+        ref={containerRef}
+        className={[
+          "h-full w-full",
+          // Hide the WebGL canvas during drag to avoid flash/flicker
+          freeze ? "opacity-0" : "opacity-100",
+        ].join(" ")}
+      />
+
+      {/* Freeze overlay */}
+      {freeze ? (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+          <div className="rounded-xl bg-white/90 px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200">
+            Updating map…
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }

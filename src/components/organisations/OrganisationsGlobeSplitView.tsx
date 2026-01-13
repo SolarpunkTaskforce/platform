@@ -34,8 +34,7 @@ export default function OrganisationsGlobeSplitView({
 
   const [panelWidth, setPanelWidth] = useState<number>(420);
   const [collapsed, setCollapsed] = useState(false);
-
-  // bump this to force the map to recenter after layout changes like collapse/expand
+  const [isDragging, setIsDragging] = useState(false);
   const [recenterNonce, setRecenterNonce] = useState(0);
 
   const lastExpandedWidthRef = useRef<number>(420);
@@ -44,7 +43,7 @@ export default function OrganisationsGlobeSplitView({
     () => ({
       absoluteMin: 360,
       absoluteMax: 1200,
-      handle: 34, // wider and easier to use
+      handle: 34,
     }),
     [],
   );
@@ -113,9 +112,7 @@ export default function OrganisationsGlobeSplitView({
 
         const { min, max } = computeBounds(rect.width);
 
-        if (collapsed) {
-          setCollapsed(false);
-        }
+        if (collapsed) setCollapsed(false);
 
         const next = clamp(Math.floor(raw), min, max);
         lastExpandedWidthRef.current = next;
@@ -126,6 +123,7 @@ export default function OrganisationsGlobeSplitView({
     const stopDrag = () => {
       if (!draggingRef.current) return;
       draggingRef.current = false;
+      setIsDragging(false);
 
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
@@ -142,7 +140,7 @@ export default function OrganisationsGlobeSplitView({
         }
       }
 
-      // after drag settles, re-center once (nice finishing touch)
+      // One-shot: now that layout is stable, recenter once.
       setRecenterNonce((n) => n + 1);
     };
 
@@ -162,6 +160,7 @@ export default function OrganisationsGlobeSplitView({
 
   const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
+    setIsDragging(true);
     dragPointerIdRef.current = e.pointerId;
 
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -181,9 +180,6 @@ export default function OrganisationsGlobeSplitView({
       } else {
         setCollapsed(false);
       }
-
-      // force recenter when reopening via drag
-      setRecenterNonce((n) => n + 1);
     }
   };
 
@@ -228,7 +224,7 @@ export default function OrganisationsGlobeSplitView({
         {/* Left panel */}
         <div
           className={[
-            "min-w-0 h-full border-r border-slate-200 bg-white transition-[width,opacity] duration-150",
+            "min-w-0 h-full border-r border-slate-200 bg-white transition-[opacity] duration-150",
             collapsed ? "pointer-events-none opacity-0" : "opacity-100",
           ].join(" ")}
           aria-hidden={collapsed ? "true" : "false"}
@@ -245,17 +241,13 @@ export default function OrganisationsGlobeSplitView({
 
         {/* Handle column */}
         <div className="relative h-full w-full bg-slate-100">
-          {/* Drag layer */}
           <button
             type="button"
             aria-label="Resize panel"
             onPointerDown={startDrag}
             className="absolute inset-0 h-full w-full hover:bg-slate-200/60 active:bg-slate-200/80 focus:outline-none"
           >
-            {/* Thick rail */}
             <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-slate-300" />
-
-            {/* Big handle badge */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
               <div className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-bold text-white shadow-lg ring-1 ring-black/10">
                 {"<>"}
@@ -263,7 +255,6 @@ export default function OrganisationsGlobeSplitView({
             </div>
           </button>
 
-          {/* Collapse button (very visible) */}
           <button
             type="button"
             aria-label={collapsed ? "Open filters panel" : "Close filters panel"}
@@ -282,6 +273,7 @@ export default function OrganisationsGlobeSplitView({
             focusSlug={focusSlug}
             ctaLabel="See more"
             recenterNonce={recenterNonce}
+            freeze={isDragging}
           />
         </div>
       </div>
