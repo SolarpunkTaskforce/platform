@@ -32,30 +32,33 @@ export default function OrganisationsGlobeSplitView({
   const lastClientXRef = useRef<number | null>(null);
   const initializedRef = useRef(false);
 
-  // Panel width in px.
   const [panelWidth, setPanelWidth] = useState<number>(420);
 
   const limits = useMemo(
     () => ({
-      // Prevent cramped sidebar that causes overlaps.
-      min: 360,
-      // Hard cap so it can’t take over ultra-wide screens.
-      hardMax: 920,
-      // Handle width in px (bigger hit-area).
+      // prevents sidebar content from breaking/overlapping
+      absoluteMin: 360,
+      absoluteMax: 1100,
       handle: 24,
     }),
     [],
   );
 
-  const computeMax = useCallback(
+  const computeBounds = useCallback(
     (containerWidth: number) => {
-      // Allow up to HALF the screen (50%), capped by hardMax.
-      return Math.min(limits.hardMax, Math.floor(containerWidth * 0.5));
+      // Restrict to 1/4 .. 3/4 of available width
+      const minByRatio = Math.floor(containerWidth * 0.25);
+      const maxByRatio = Math.floor(containerWidth * 0.75);
+
+      const min = Math.max(limits.absoluteMin, minByRatio);
+      const max = Math.min(limits.absoluteMax, maxByRatio);
+
+      // Ensure max never dips below min (very small screens)
+      return { min: Math.min(min, max), max };
     },
-    [limits.hardMax],
+    [limits.absoluteMax, limits.absoluteMin],
   );
 
-  // Initialize width ONCE to ~1/3 of container, then only clamp on future resizes.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -64,15 +67,16 @@ export default function OrganisationsGlobeSplitView({
       const w = el.getBoundingClientRect().width;
       if (!Number.isFinite(w) || w <= 0) return;
 
-      const max = computeMax(w);
+      const { min, max } = computeBounds(w);
 
       setPanelWidth((current) => {
         if (!initializedRef.current) {
           initializedRef.current = true;
-          const initial = clamp(Math.floor(w / 3), limits.min, max);
+          const initial = clamp(Math.floor(w / 3), min, max); // initial = ~1/3
           return initial;
         }
-        return clamp(current, limits.min, max);
+        // clamp only (no reset) so dragging never snaps back
+        return clamp(current, min, max);
       });
     };
 
@@ -81,7 +85,7 @@ export default function OrganisationsGlobeSplitView({
     const ro = new ResizeObserver(() => apply());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [computeMax, limits.min]);
+  }, [computeBounds]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -99,8 +103,8 @@ export default function OrganisationsGlobeSplitView({
         const rect = el.getBoundingClientRect();
         const raw = x - rect.left;
 
-        const max = computeMax(rect.width);
-        setPanelWidth(clamp(Math.floor(raw), limits.min, max));
+        const { min, max } = computeBounds(rect.width);
+        setPanelWidth(clamp(Math.floor(raw), min, max));
       });
     };
 
@@ -136,7 +140,7 @@ export default function OrganisationsGlobeSplitView({
         rafRef.current = null;
       }
     };
-  }, [computeMax, limits.min]);
+  }, [computeBounds]);
 
   const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
     draggingRef.current = true;
@@ -152,7 +156,7 @@ export default function OrganisationsGlobeSplitView({
   return (
     <section
       ref={containerRef}
-      className="flex-1 min-h-0 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="h-full w-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
     >
       <div
         className="grid h-full w-full"
@@ -170,17 +174,14 @@ export default function OrganisationsGlobeSplitView({
           </div>
         </div>
 
-        {/* Drag handle (bigger hit area + clear icon) */}
+        {/* Drag handle */}
         <button
           type="button"
           aria-label="Resize panel"
           onPointerDown={startDrag}
           className="relative h-full w-full bg-slate-50 hover:bg-slate-100 active:bg-slate-100 focus:outline-none"
         >
-          {/* full-height grip line */}
           <div className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-slate-200" />
-
-          {/* icon on top, centered, with padding so it's easy to hit */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
               {"<>"}

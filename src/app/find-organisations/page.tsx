@@ -95,12 +95,14 @@ export default async function FindOrganisationsPage({
       </header>
 
       {view === "globe" ? (
-        <OrganisationsGlobeSplitView
-          options={filterOptions}
-          markers={markers}
-          totalCount={count}
-          focusSlug={focus}
-        />
+        <div className="flex-1 min-h-0">
+          <OrganisationsGlobeSplitView
+            options={filterOptions}
+            markers={markers}
+            totalCount={count}
+            focusSlug={focus}
+          />
+        </div>
       ) : (
         <>
           <OrganisationsFilters options={filterOptions} showSorting variant="panel" />
@@ -144,8 +146,12 @@ export default async function FindOrganisationsPage({
                       </td>
 
                       <td className="px-4 py-4 text-slate-600">{formatLocation(organisation)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_total_count)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_ongoing_count)}</td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {formatNumber(organisation.projects_total_count)}
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {formatNumber(organisation.projects_ongoing_count)}
+                      </td>
                       <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.followers_count)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatFunding(organisation.funding_needed)}</td>
                       <td className="px-4 py-4 text-slate-600">{formatAge(organisation.age_years)}</td>

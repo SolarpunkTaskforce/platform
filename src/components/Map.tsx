@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -18,7 +18,6 @@ type Marker = {
   title: string;
   placeName?: string | null;
   description?: string | null;
-  /** Precomputed CTA href from the server (required to avoid passing functions from Server Components). */
   ctaHref?: string;
 };
 
@@ -39,7 +38,6 @@ type MarkerObject = {
 
 const getMarkerScale = (zoom: number) => {
   const scale = zoom / 8;
-  // clamp so markers don't get absurdly tiny/huge
   return Math.min(Math.max(scale, 0.65), 1.75);
 };
 
@@ -53,6 +51,28 @@ export default function Map({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
+
+  const validMarkers = useMemo(
+    () => markers.filter((m) => Number.isFinite(m.lng) && Number.isFinite(m.lat)),
+    [markers],
+  );
+
+  const fitToMarkers = (map: mapboxgl.Map) => {
+    if (validMarkers.length === 0) return;
+
+    const bounds = new mapboxgl.LngLatBounds();
+    validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
+
+    if (validMarkers.length === 1) {
+      map.easeTo({
+        center: [validMarkers[0].lng, validMarkers[0].lat],
+        zoom: 2.5, // keep it globe-friendly (not too zoomed in)
+        duration: 350,
+      });
+    } else {
+      map.fitBounds(bounds, { padding: 60, duration: 350 });
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -68,14 +88,31 @@ export default function Map({
     mapRef.current.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
   }, []);
 
+  // IMPORTANT: ResizeObserver so the map always reflows when the split panel is dragged.
+  useEffect(() => {
+    const map = mapRef.current;
+    const el = containerRef.current;
+    if (!map || !el) return;
+
+    const ro = new ResizeObserver(() => {
+      map.resize();
+      // keep the globe centered after resize
+      fitToMarkers(map);
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validMarkers]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
+    // Remove old markers
     markerObjs.current.forEach((obj) => obj.marker.remove());
     markerObjs.current = [];
 
-    const validMarkers = markers.filter((m) => Number.isFinite(m.lng) && Number.isFinite(m.lat));
     const scale = getMarkerScale(map.getZoom());
 
     validMarkers.forEach((m) => {
@@ -140,21 +177,8 @@ export default function Map({
       });
     });
 
-    // Fit map to markers
-    if (validMarkers.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
-
-      if (validMarkers.length === 1) {
-        map.easeTo({
-          center: [validMarkers[0].lng, validMarkers[0].lat],
-          zoom: 8,
-          duration: 1000,
-        });
-      } else {
-        map.fitBounds(bounds, { padding: 40, duration: 1000 });
-      }
-    }
+    // Fit map to markers (keeps centered in current container size)
+    fitToMarkers(map);
 
     // Focus a specific marker (open popup + center map)
     if (focusSlug) {
@@ -163,13 +187,13 @@ export default function Map({
         map.easeTo({
           center: [focused.lng, focused.lat],
           zoom: Math.max(map.getZoom(), 4),
-          duration: 800,
+          duration: 450,
         });
-
         focused.marker.getPopup()?.addTo(map);
       }
     }
-  }, [ctaLabel, focusSlug, markerColor, markers, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctaLabel, focusSlug, markerColor, router, validMarkers]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
