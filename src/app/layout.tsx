@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-[100dvh] flex flex-col">
+      <body className="h-dvh flex flex-col">
         <ToastProvider>
           <Header />
           {/* This is the critical container that provides a real height */}
