@@ -26,6 +26,9 @@ type MapProps = {
   markerColor?: string;
   focusSlug?: string | null;
   ctaLabel?: string;
+
+  /** Increment to force a one-shot recenter (e.g. after collapsing/expanding side panels). */
+  recenterNonce?: number;
 };
 
 type MarkerObject = {
@@ -46,6 +49,7 @@ export default function Map({
   markerColor = "#22c55e",
   focusSlug = null,
   ctaLabel = "View",
+  recenterNonce,
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,7 +67,6 @@ export default function Map({
 
   const fitToMarkers = (map: mapboxgl.Map, animate: boolean) => {
     if (validMarkers.length === 0) {
-      // Default globe view
       if (animate) {
         map.easeTo({ center: [0, 0], zoom: 1.25, duration: 350 });
       } else {
@@ -96,7 +99,6 @@ export default function Map({
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: [0, 0],
       zoom: 1.25,
-      // Helps reduce flashing/blanking during aggressive resizes on some GPUs
       preserveDrawingBuffer: false,
     });
 
@@ -130,8 +132,6 @@ export default function Map({
   }, []);
 
   // Resize observer: smooth resizing without frequent white flashes.
-  // - RAF throttle map.resize() (max once per frame)
-  // - Debounce refit to after resize settles (and only if user hasn't interacted)
   useEffect(() => {
     const map = mapRef.current;
     const el = containerRef.current;
@@ -166,6 +166,21 @@ export default function Map({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validMarkers]);
+
+  // Force recenter on demand (collapse/expand)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const id = window.requestAnimationFrame(() => {
+      map.resize();
+      userInteractedRef.current = false;
+      fitToMarkers(map, false);
+    });
+
+    return () => window.cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterNonce]);
 
   // Render markers + initial fit when marker set changes.
   useEffect(() => {
@@ -239,7 +254,6 @@ export default function Map({
       });
     });
 
-    // When marker set changes, it's OK to re-center.
     userInteractedRef.current = false;
     fitToMarkers(map, true);
 
@@ -257,6 +271,5 @@ export default function Map({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctaLabel, focusSlug, markerColor, router, validMarkers]);
 
-  // Polished: background color prevents harsh white flash if WebGL clears briefly.
   return <div ref={containerRef} className="h-full w-full bg-slate-100" />;
 }
