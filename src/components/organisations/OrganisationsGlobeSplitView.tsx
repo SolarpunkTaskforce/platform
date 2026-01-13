@@ -35,22 +35,22 @@ export default function OrganisationsGlobeSplitView({
   const [panelWidth, setPanelWidth] = useState<number>(420);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Remember the last expanded width so we can restore it when reopening.
+  // bump this to force the map to recenter after layout changes like collapse/expand
+  const [recenterNonce, setRecenterNonce] = useState(0);
+
   const lastExpandedWidthRef = useRef<number>(420);
 
   const limits = useMemo(
     () => ({
-      // prevents sidebar content from breaking/overlapping
       absoluteMin: 360,
       absoluteMax: 1200,
-      handle: 28, // a bit wider to comfortably click + drag
+      handle: 34, // wider and easier to use
     }),
     [],
   );
 
   const computeBounds = useCallback(
     (containerWidth: number) => {
-      // Restrict to 1/4 .. 3/4 of available width
       const minByRatio = Math.floor(containerWidth * 0.25);
       const maxByRatio = Math.floor(containerWidth * 0.75);
 
@@ -63,7 +63,6 @@ export default function OrganisationsGlobeSplitView({
     [limits.absoluteMax, limits.absoluteMin],
   );
 
-  // Initialize width ONCE to ~1/3, then only clamp on container resizes.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -75,7 +74,6 @@ export default function OrganisationsGlobeSplitView({
       const { min, max } = computeBounds(w);
 
       setPanelWidth((current) => {
-        // If collapsed, keep it collapsed (no clamping needed).
         if (collapsed) return 0;
 
         if (!initializedRef.current) {
@@ -115,7 +113,6 @@ export default function OrganisationsGlobeSplitView({
 
         const { min, max } = computeBounds(rect.width);
 
-        // Dragging should automatically expand if currently collapsed.
         if (collapsed) {
           setCollapsed(false);
         }
@@ -144,6 +141,9 @@ export default function OrganisationsGlobeSplitView({
           // ignore
         }
       }
+
+      // after drag settles, re-center once (nice finishing touch)
+      setRecenterNonce((n) => n + 1);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -170,7 +170,6 @@ export default function OrganisationsGlobeSplitView({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
-    // If collapsed, start by reopening to minimum width immediately (feels better).
     if (collapsed) {
       const el = containerRef.current;
       if (el) {
@@ -182,6 +181,9 @@ export default function OrganisationsGlobeSplitView({
       } else {
         setCollapsed(false);
       }
+
+      // force recenter when reopening via drag
+      setRecenterNonce((n) => n + 1);
     }
   };
 
@@ -189,23 +191,28 @@ export default function OrganisationsGlobeSplitView({
     const el = containerRef.current;
 
     if (!collapsed) {
-      // collapsing: remember current width
       if (panelWidth > 0) lastExpandedWidthRef.current = panelWidth;
       setCollapsed(true);
       setPanelWidth(0);
+      setRecenterNonce((n) => n + 1);
       return;
     }
 
-    // expanding: restore last width (clamped)
     if (el) {
       const { min, max } = computeBounds(el.getBoundingClientRect().width);
-      const restored = clamp(lastExpandedWidthRef.current || Math.floor(el.getBoundingClientRect().width / 3), min, max);
+      const restored = clamp(
+        lastExpandedWidthRef.current || Math.floor(el.getBoundingClientRect().width / 3),
+        min,
+        max,
+      );
       setCollapsed(false);
       setPanelWidth(restored);
       lastExpandedWidthRef.current = restored;
+      setRecenterNonce((n) => n + 1);
     } else {
       setCollapsed(false);
       setPanelWidth(lastExpandedWidthRef.current || limits.absoluteMin);
+      setRecenterNonce((n) => n + 1);
     }
   };
 
@@ -221,7 +228,7 @@ export default function OrganisationsGlobeSplitView({
         {/* Left panel */}
         <div
           className={[
-            "min-w-0 h-full border-r border-slate-200 bg-white transition-[width] duration-150",
+            "min-w-0 h-full border-r border-slate-200 bg-white transition-[width,opacity] duration-150",
             collapsed ? "pointer-events-none opacity-0" : "opacity-100",
           ].join(" ")}
           aria-hidden={collapsed ? "true" : "false"}
@@ -236,39 +243,46 @@ export default function OrganisationsGlobeSplitView({
           </div>
         </div>
 
-        {/* Handle column: drag + toggle */}
-        <div className="relative h-full w-full bg-slate-50">
-          {/* Drag target (full height) */}
+        {/* Handle column */}
+        <div className="relative h-full w-full bg-slate-100">
+          {/* Drag layer */}
           <button
             type="button"
             aria-label="Resize panel"
             onPointerDown={startDrag}
-            className="absolute inset-0 h-full w-full hover:bg-slate-100 active:bg-slate-100 focus:outline-none"
+            className="absolute inset-0 h-full w-full hover:bg-slate-200/60 active:bg-slate-200/80 focus:outline-none"
           >
-            <div className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-slate-200" />
+            {/* Thick rail */}
+            <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-slate-300" />
+
+            {/* Big handle badge */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
-              <div className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+              <div className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-bold text-white shadow-lg ring-1 ring-black/10">
                 {"<>"}
               </div>
             </div>
           </button>
 
-          {/* Collapse/expand button (sits above drag layer) */}
+          {/* Collapse button (very visible) */}
           <button
             type="button"
             aria-label={collapsed ? "Open filters panel" : "Close filters panel"}
             onClick={toggleCollapsed}
-            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-white p-1.5 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50"
+            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
           >
-            <span className="text-xs font-semibold text-slate-700">
-              {collapsed ? "›" : "‹"}
-            </span>
+            {collapsed ? "Show" : "Hide"}
           </button>
         </div>
 
         {/* Map */}
         <div className="min-w-0 h-full">
-          <Map markers={markers} markerColor="#10b981" focusSlug={focusSlug} ctaLabel="See more" />
+          <Map
+            markers={markers}
+            markerColor="#10b981"
+            focusSlug={focusSlug}
+            ctaLabel="See more"
+            recenterNonce={recenterNonce}
+          />
         </div>
       </div>
     </section>

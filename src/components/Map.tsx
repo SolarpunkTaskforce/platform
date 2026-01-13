@@ -26,6 +26,9 @@ type MapProps = {
   markerColor?: string;
   focusSlug?: string | null;
   ctaLabel?: string;
+
+  /** Bump this number to force a recenter (used when collapsing/expanding side panels) */
+  recenterNonce?: number;
 };
 
 type MarkerObject = {
@@ -46,6 +49,7 @@ export default function Map({
   markerColor = "#22c55e",
   focusSlug = null,
   ctaLabel = "View",
+  recenterNonce,
 }: MapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,7 +67,6 @@ export default function Map({
 
   const fitToMarkers = (map: mapboxgl.Map, animate: boolean) => {
     if (validMarkers.length === 0) {
-      // Default globe view
       if (animate) {
         map.easeTo({ center: [0, 0], zoom: 1.25, duration: 350 });
       } else {
@@ -96,6 +99,7 @@ export default function Map({
       style: "mapbox://styles/mapbox/outdoors-v12",
       center: [0, 0],
       zoom: 1.25,
+      preserveDrawingBuffer: false,
     });
 
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
@@ -127,24 +131,57 @@ export default function Map({
     };
   }, []);
 
-  // Resize observer: always resize map; only auto-fit if user hasn't just interacted.
+  // Resize observer: smooth resizing without frequent white flashes.
   useEffect(() => {
     const map = mapRef.current;
     const el = containerRef.current;
     if (!map || !el) return;
 
-    const ro = new ResizeObserver(() => {
-      map.resize();
-      // Keep centered as container changes, but don't fight user pan/zoom.
-      if (!userInteractedRef.current) {
-        fitToMarkers(map, false);
-      }
-    });
+    let rafId: number | null = null;
+    let settleTimer: number | null = null;
 
+    const scheduleResize = () => {
+      if (rafId != null) return;
+
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        map.resize();
+      });
+
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        if (!userInteractedRef.current) {
+          fitToMarkers(map, false);
+        }
+      }, 180);
+    };
+
+    const ro = new ResizeObserver(() => scheduleResize());
     ro.observe(el);
-    return () => ro.disconnect();
+
+    return () => {
+      ro.disconnect();
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validMarkers]);
+
+  // Force recenter on demand (e.g. collapsing/expanding the panel)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const id = window.requestAnimationFrame(() => {
+      map.resize();
+      // Explicitly override the "don't fight the user" rule for this one action
+      userInteractedRef.current = false;
+      fitToMarkers(map, false);
+    });
+
+    return () => window.cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterNonce]);
 
   // Render markers + initial fit when marker set changes.
   useEffect(() => {
@@ -236,5 +273,5 @@ export default function Map({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctaLabel, focusSlug, markerColor, router, validMarkers]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return <div ref={containerRef} className="h-full w-full bg-slate-100" />;
 }
