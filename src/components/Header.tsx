@@ -122,7 +122,7 @@ export default function Header() {
         items: [
           { href: "/projects", label: "Find Projects" },
           { href: "/organisations", label: "Find Organisations" },
-          { href: "/grants", label: "Find Grants" },
+          { href: "/funding", label: "Find Funding" },
           { href: "/watchdog", label: "Watchdog Community" },
         ],
       },

@@ -45,7 +45,7 @@ type GrantsFiltersProps = {
 };
 
 const FUNDING_TYPE_OPTIONS: Option[] = [
-  { value: "grant", label: "Grant" },
+  { value: "grant", label: "Funding" },
   { value: "prize", label: "Prize" },
   { value: "fellowship", label: "Fellowship" },
   { value: "loan", label: "Loan" },
@@ -80,7 +80,7 @@ const SORT_OPTIONS = [
 
 export default function GrantsFilters({
   options,
-  basePath = "/find-grants",
+  basePath = "/funding",
   showSorting = true,
   variant = "panel",
 }: GrantsFiltersProps) {
@@ -158,7 +158,7 @@ export default function GrantsFilters({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
-          <p className="text-sm text-slate-500">Refine grant opportunities by eligibility, funding, and timing.</p>
+          <p className="text-sm text-slate-500">Refine funding opportunities by eligibility, funding, and timing.</p>
         </div>
         <Button type="button" variant="ghost" onClick={clearFilters}>
           Clear filters

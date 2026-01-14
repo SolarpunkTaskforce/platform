@@ -217,7 +217,7 @@ export default function GrantsGlobeSplitView({ options, markers, totalCount, foc
         slug: marker.slug ?? marker.id,
         lng: typeof marker.longitude === "number" ? marker.longitude : Number.NaN,
         lat: typeof marker.latitude === "number" ? marker.latitude : Number.NaN,
-        title: marker.title ?? "Untitled grant",
+        title: marker.title ?? "Untitled funding",
         placeName: marker.location_name,
         description: marker.summary,
         markerColor: resolveMarkerColor(marker.project_type),
@@ -243,9 +243,9 @@ export default function GrantsGlobeSplitView({ options, markers, totalCount, foc
         >
           <div className="h-full overflow-y-auto p-4">
             <div className="space-y-4">
-              <GrantsFilters basePath="/find-grants" options={options} showSorting={false} variant="inline" />
+              <GrantsFilters basePath="/funding" options={options} showSorting={false} variant="inline" />
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                {markers.length} grants mapped · {totalCount} total matching filters
+                {markers.length} funding opportunities mapped · {totalCount} total matching filters
               </div>
             </div>
           </div>

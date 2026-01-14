@@ -46,7 +46,7 @@ export default function GrantsPagination({
   page,
   pageCount,
   searchParams,
-  basePath = "/find-grants",
+  basePath = "/funding",
 }: GrantsPaginationProps) {
   if (pageCount <= 1) {
     return null;

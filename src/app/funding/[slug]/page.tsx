@@ -46,7 +46,7 @@ export default async function GrantDetailPage({
 
   if (error || !grant) {
     if (error?.code === "PGRST116" || error?.code === "42501") notFound();
-    throw new Error(error?.message ?? "Failed to load grant.");
+    throw new Error(error?.message ?? "Failed to load funding.");
   }
 
   const amountRange = formatAmountRange(grant);
@@ -58,7 +58,7 @@ export default async function GrantDetailPage({
   return (
     <main className="mx-auto w-full max-w-4xl space-y-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <header className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Grant opportunity</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Funding opportunity</p>
         <h1 className="text-3xl font-semibold text-slate-900">{grant.title}</h1>
         {grant.summary ? <p className="text-base text-slate-600">{grant.summary}</p> : null}
       </header>

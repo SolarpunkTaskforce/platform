@@ -70,15 +70,15 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">Showing {rows.length} of {count} grants</p>
-        <GrantsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/find-grants" />
+        <p className="text-sm text-slate-600">Showing {rows.length} of {count} funding opportunities</p>
+        <GrantsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/funding" />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
-              <th className="px-4 py-3">Grant</th>
+              <th className="px-4 py-3">Funding opportunity</th>
               <th className="px-4 py-3">Funding</th>
               <th className="px-4 py-3">Project type</th>
               <th className="px-4 py-3">Eligibility</th>
@@ -96,14 +96,14 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
               if (focusSlug) {
                 mapParams.set("focus", focusSlug);
               }
-              const mapHref = `/find-grants?${mapParams.toString()}`;
+              const mapHref = `/funding?${mapParams.toString()}`;
 
               return (
                 <tr key={grant.id} className="align-top">
                   <td className="px-4 py-4">
                     <Link
                       className="font-semibold text-emerald-700 hover:text-emerald-800"
-                      href={`/grants/${encodeURIComponent(slugForPath)}`}
+                      href={`/funding/${encodeURIComponent(slugForPath)}`}
                     >
                       {grant.title}
                     </Link>
@@ -130,7 +130,7 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
                       <Link
-                        href={`/grants/${encodeURIComponent(slugForPath)}`}
+                        href={`/funding/${encodeURIComponent(slugForPath)}`}
                         className={cn(buttonClasses, buttonSizes.sm, buttonVariants.secondary)}
                       >
                         Open
@@ -149,11 +149,11 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-          No grants match the selected filters.
+          No funding opportunities match the selected filters.
         </div>
       ) : null}
 
-      <GrantsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/find-grants" />
+      <GrantsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/funding" />
     </section>
   );
 }
