@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Plus, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UserMenu from "@/components/UserMenu";
+import CreateMenuButton from "@/components/CreateMenuButton";
 
 type Profile = {
   id: string;
@@ -139,15 +140,7 @@ export default function Header() {
     </div>
   );
 
-  const addButton = (
-    <Link
-      href="/projects/new"
-      className="grid h-9 w-9 place-items-center rounded-full border"
-      aria-label="Add Project"
-    >
-      <Plus className="h-4 w-4" />
-    </Link>
-  );
+  const addButton = <CreateMenuButton />;
 
   const profileControls = (
     <div className="relative">
