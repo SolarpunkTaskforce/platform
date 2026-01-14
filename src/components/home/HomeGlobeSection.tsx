@@ -5,6 +5,7 @@ import type { FocusEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 
 import HomeGlobe, { type HomeGlobeMode, type HomeGlobePoint } from "@/components/home/HomeGlobe";
+import type { HomeStats } from "@/lib/homeStats";
 import { cn } from "@/lib/utils";
 import type { GrantMarker } from "@/lib/grants/findGrantsQuery";
 import type { ProjectMarker } from "@/lib/projects/findProjectsQuery";
@@ -46,14 +47,39 @@ const formatUrgency = (urgency: number | null | undefined) => {
   return `Urgency ${urgency}`;
 };
 
+type StatItem = {
+  label: string;
+  value?: number;
+  format: "number" | "currency";
+};
+
+const numberFormatter = new Intl.NumberFormat("en-US");
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
+
+const formatStatValue = (item: StatItem) => {
+  if (typeof item.value !== "number" || Number.isNaN(item.value)) {
+    return "—";
+  }
+  if (item.format === "currency") {
+    return currencyFormatter.format(item.value);
+  }
+  return numberFormatter.format(item.value);
+};
+
 export default function HomeGlobeSection({
   projectMarkers,
   grantMarkers,
   issueMarkers,
+  homeStats,
 }: {
   projectMarkers: ProjectMarker[];
   grantMarkers: GrantMarker[];
   issueMarkers: WatchdogIssueMarker[];
+  homeStats: HomeStats | null;
 }) {
   const [mode, setMode] = useState<HomeGlobeMode>(DEFAULT_MODE);
   const buttonRowRef = useRef<HTMLDivElement | null>(null);
@@ -118,6 +144,91 @@ export default function HomeGlobeSection({
     }),
     [grantMarkers, issueMarkers, projectMarkers],
   );
+
+  const statsByMode = useMemo<
+    Record<
+      HomeGlobeMode,
+      { leftTitle: string; rightTitle: string; left: StatItem[]; right: StatItem[]; footnote: string }
+    >
+  >(
+    () => ({
+      projects: {
+        leftTitle: "Project momentum",
+        rightTitle: "Community impact",
+        left: [
+          {
+            label: "Approved projects",
+            value: homeStats?.projects.projects_approved,
+            format: "number",
+          },
+          {
+            label: "Ongoing projects",
+            value: homeStats?.projects.projects_ongoing,
+            format: "number",
+          },
+        ],
+        right: [
+          {
+            label: "Verified organisations",
+            value: homeStats?.projects.organisations_registered,
+            format: "number",
+          },
+          {
+            label: "Donations received",
+            value: homeStats?.projects.donations_received_eur,
+            format: "currency",
+          },
+        ],
+        footnote: "Totals reflect approved public projects and verified organisations.",
+      },
+      funding: {
+        leftTitle: "Funding flow",
+        rightTitle: "Funder network",
+        left: [
+          {
+            label: "Funding opportunities",
+            value: homeStats?.funding.opportunities_total,
+            format: "number",
+          },
+          {
+            label: "Open calls",
+            value: homeStats?.funding.open_calls,
+            format: "number",
+          },
+        ],
+        right: [
+          {
+            label: "Funders represented",
+            value: homeStats?.funding.funders_registered,
+            format: "number",
+          },
+        ],
+        footnote: "Counts include published funding calls that are open or rolling.",
+      },
+      issues: {
+        leftTitle: "Issue visibility",
+        rightTitle: "Urgency signals",
+        left: [
+          {
+            label: "Approved issues",
+            value: homeStats?.issues.issues_total,
+            format: "number",
+          },
+        ],
+        right: [
+          {
+            label: "High-urgency alerts",
+            value: homeStats?.issues.issues_open,
+            format: "number",
+          },
+        ],
+        footnote: "High-urgency alerts are approved issues marked 4+ on urgency.",
+      },
+    }),
+    [homeStats],
+  );
+
+  const activeStats = statsByMode[mode];
 
   const handleRowBlur = (event: FocusEvent<HTMLDivElement>) => {
     const nextFocus = event.relatedTarget;
@@ -192,9 +303,67 @@ export default function HomeGlobeSection({
         </Link>
       </div>
 
-      <div id="home-globe" className="min-h-[60vh] flex-1">
-        <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
+      <div className="flex flex-col gap-6">
+        <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.1fr)_minmax(0,1fr)]">
+          <div className="hidden lg:block">
+            <HomeStatsPanel title={activeStats.leftTitle} items={activeStats.left} footnote={activeStats.footnote} />
+          </div>
+          <div id="home-globe" className="min-h-[60vh] flex-1">
+            <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
+          </div>
+          <div className="hidden lg:block">
+            <HomeStatsPanel
+              title={activeStats.rightTitle}
+              items={activeStats.right}
+              footnote={activeStats.footnote}
+              align="right"
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:hidden">
+          <HomeStatsPanel title="Snapshot" items={activeStats.left} />
+          <HomeStatsPanel title="Snapshot" items={activeStats.right} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function HomeStatsPanel({
+  title,
+  items,
+  footnote,
+  align = "left",
+}: {
+  title: string;
+  items: StatItem[];
+  footnote?: string;
+  align?: "left" | "right";
+}) {
+  if (!items.length) return null;
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col gap-4 rounded-3xl border border-white/50 bg-gradient-to-br from-white/85 via-white/70 to-emerald-50/70 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
+        align === "right" ? "lg:text-right" : "lg:text-left",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+        <span>{title}</span>
+        <span className="hidden text-slate-500 lg:inline">Live aggregates</span>
+      </div>
+      <div className="grid gap-4">
+        {items.map(item => (
+          <div key={item.label} className="flex items-baseline justify-between gap-4">
+            <div className="text-sm font-semibold text-slate-700">{item.label}</div>
+            <div className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+              {formatStatValue(item)}
+            </div>
+          </div>
+        ))}
+      </div>
+      {footnote ? <p className="text-xs text-slate-500">{footnote}</p> : null}
     </div>
   );
 }
