@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !grant) {
-    return NextResponse.json({ error: error?.message ?? "Unable to submit grant" }, { status: 400 });
+    return NextResponse.json({ error: error?.message ?? "Unable to submit funding" }, { status: 400 });
   }
 
   return NextResponse.json(grant);

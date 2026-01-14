@@ -335,20 +335,20 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       }
 
       if (mode === "edit") {
-        if (!grant?.id) throw new Error("Missing grant id")
+        if (!grant?.id) throw new Error("Missing funding id")
 
         const payload: GrantUpdate = payloadBase
         const { error } = await supabase.from("grants").update(payload).eq("id", grant.id)
         if (error) throw error
 
-        toast({ title: "Grant updated", description: "Your changes have been saved." })
+        toast({ title: "Funding updated", description: "Your changes have been saved." })
       } else {
         const {
           data: { user },
           error: userErr,
         } = await supabase.auth.getUser()
         if (userErr) throw userErr
-        if (!user) throw new Error("You must be signed in to create a grant.")
+        if (!user) throw new Error("You must be signed in to create funding.")
 
         const payload: GrantInsert = {
           ...(payloadBase as Omit<GrantInsert, "created_by" | "slug">),
@@ -359,13 +359,13 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
         const { error } = await supabase.from("grants").insert(payload)
         if (error) throw error
 
-        toast({ title: "Grant created", description: "Your grant has been created." })
+        toast({ title: "Funding created", description: "Your funding has been created." })
       }
 
       router.refresh()
-      router.push("/grants")
+      router.push("/funding")
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save grant."
+      const message = err instanceof Error ? err.message : "Failed to save funding."
       toast({ title: "Something went wrong", description: message, variant: "destructive" })
     } finally {
       setSubmitting(false)
@@ -392,7 +392,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {!supabaseConfigured ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <div className="font-semibold">Grant registration is unavailable</div>
+            <div className="font-semibold">Funding registration is unavailable</div>
             <div className="mt-1 text-amber-800">
               This deployment is missing Supabase public environment variables. Configure{" "}
               <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
@@ -417,7 +417,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               <FormItem>
                 <FormLabel>Title *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Climate Innovation Grant" {...field} />
+                  <Input placeholder="e.g. Climate Innovation Funding" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -448,7 +448,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 <FormControl>
                   <Textarea placeholder="Full description (max 5000 chars)" rows={7} {...field} />
                 </FormControl>
-                <FormDescription>More detail about the grant, criteria, and how to apply.</FormDescription>
+                <FormDescription>More detail about the funding, criteria, and how to apply.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -501,7 +501,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="grant">Grant</SelectItem>
+                      <SelectItem value="grant">Funding</SelectItem>
                       <SelectItem value="prize">Prize</SelectItem>
                       <SelectItem value="fellowship">Fellowship</SelectItem>
                       <SelectItem value="loan">Loan</SelectItem>
@@ -855,7 +855,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 : "Creating..."
               : mode === "edit"
                 ? "Save changes"
-                : "Create grant"}
+                : "Create funding"}
           </Button>
 
           <Button type="button" variant="outline" disabled={submitting} onClick={() => router.back()}>

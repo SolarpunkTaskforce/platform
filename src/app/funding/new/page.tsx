@@ -8,7 +8,7 @@ export default function NewGrantPage() {
     <main className="mx-auto max-w-4xl space-y-6 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-900">
-          Register a grant opportunity
+          Register a funding opportunity
         </h1>
         <p className="text-sm text-slate-600">
           Provide as much detail as you can. Your submission will be reviewed by

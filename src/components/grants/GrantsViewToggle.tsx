@@ -18,7 +18,7 @@ export default function GrantsViewToggle({ view }: GrantsViewToggleProps) {
       const params = new URLSearchParams(searchParams.toString());
       params.set("view", nextView);
       const query = params.toString();
-      router.push(query ? `/find-grants?${query}` : "/find-grants");
+      router.push(query ? `/funding?${query}` : "/funding");
     },
     [router, searchParams],
   );

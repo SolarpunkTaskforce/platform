@@ -12,7 +12,7 @@ import {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-export default async function FindGrantsPage({
+export default async function FindFundingPage({
   searchParams,
 }: {
   searchParams?: Promise<SearchParams>;
@@ -43,7 +43,7 @@ export default async function FindGrantsPage({
     page = result.page;
     pageCount = result.pageCount;
   } catch (error) {
-    console.error("Find grants: list query failed", error);
+    console.error("Find funding: list query failed", error);
   }
 
   let markers: Awaited<ReturnType<typeof fetchGrantMarkers>> = [];
@@ -51,7 +51,7 @@ export default async function FindGrantsPage({
     try {
       markers = await fetchGrantMarkers({ searchParams: params });
     } catch (error) {
-      console.error("Find grants: marker query failed", error);
+      console.error("Find funding: marker query failed", error);
     }
   }
 
@@ -59,12 +59,12 @@ export default async function FindGrantsPage({
     <main className="flex-1 min-h-0 px-6 py-8 flex flex-col gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-slate-900">Find Grants</h1>
+          <h1 className="text-3xl font-semibold text-slate-900">Find Funding</h1>
           <p className="text-sm text-slate-600">
-            Discover funding opportunities and grants to support environmental and humanitarian work.
+            Discover funding opportunities to support environmental and humanitarian work.
           </p>
           <p className="text-sm text-slate-500">
-            Showing {rows.length} of {count} grants · {PAGE_SIZE} per page
+            Showing {rows.length} of {count} funding opportunities · {PAGE_SIZE} per page
           </p>
         </div>
         <GrantsViewToggle view={safeView} />
@@ -76,7 +76,7 @@ export default async function FindGrantsPage({
         </div>
       ) : (
         <>
-          <GrantsFilters options={filterOptions} basePath="/find-grants" showSorting variant="panel" />
+          <GrantsFilters options={filterOptions} basePath="/funding" showSorting variant="panel" />
           <GrantsTableView rows={rows} count={count} page={page} pageCount={pageCount} searchParams={params} />
         </>
       )}
