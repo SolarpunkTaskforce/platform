@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import * as React from "react"
+import { useRouter } from "next/navigation"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -16,36 +16,28 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 
-import { createClient } from "@/utils/supabase/client";
-import type { Database } from "@/types/supabase";
+import { createClient } from "@/utils/supabase/client"
+import type { Database } from "@/types/supabase"
 
-type GrantRow = Database["public"]["Tables"]["grants"]["Row"];
-type GrantInsert = Database["public"]["Tables"]["grants"]["Insert"];
-type GrantUpdate = Database["public"]["Tables"]["grants"]["Update"];
+type GrantRow = Database["public"]["Tables"]["grants"]["Row"]
+type GrantInsert = Database["public"]["Tables"]["grants"]["Insert"]
+type GrantUpdate = Database["public"]["Tables"]["grants"]["Update"]
 
-const projectTypes = ["environmental", "humanitarian", "both"] as const;
-const fundingTypes = [
-  "grant",
-  "prize",
-  "fellowship",
-  "loan",
-  "equity",
-  "in-kind",
-  "other",
-] as const;
+const projectTypes = ["environmental", "humanitarian", "both"] as const
+const fundingTypes = ["grant", "prize", "fellowship", "loan", "equity", "in-kind", "other"] as const
 
 const SDG_OPTIONS = [
   { id: "1", label: "No Poverty" },
@@ -65,7 +57,7 @@ const SDG_OPTIONS = [
   { id: "15", label: "Life on Land" },
   { id: "16", label: "Peace, Justice and Strong Institutions" },
   { id: "17", label: "Partnerships for the Goals" },
-] as const;
+] as const
 
 const THEME_OPTIONS = [
   "Biodiversity",
@@ -81,26 +73,19 @@ const THEME_OPTIONS = [
   "Water",
   "Women & girls",
   "Economic development",
-] as const;
+] as const
 
 // ✅ IMPORTANT: keep the schema types aligned with form values (strings stay strings)
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
 
   summary: z.string().max(500, "Summary is too long").optional().default(""),
-  description: z
-    .string()
-    .max(5000, "Description is too long")
-    .optional()
-    .default(""),
+  description: z.string().max(5000, "Description is too long").optional().default(""),
 
   project_type: z.enum(projectTypes),
   funding_type: z.enum(fundingTypes),
 
-  application_url: z
-    .string()
-    .min(1, "Application URL is required")
-    .url("Please enter a valid URL"),
+  application_url: z.string().min(1, "Application URL is required").url("Please enter a valid URL"),
 
   currency: z.string().min(1, "Currency is required").max(10, "Currency is too long"),
 
@@ -143,59 +128,59 @@ const formSchema = z.object({
     .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
       message: "Please enter a valid email address",
     }),
-});
+})
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>
 
 type GrantFormProps = {
-  grant?: GrantRow | null;
-  mode?: "create" | "edit";
-};
+  grant?: GrantRow | null
+  mode?: "create" | "edit"
+}
 
 function toDateInputValue(value: string | null | undefined) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  if (!value) return ""
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ""
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const dd = String(d.getDate()).padStart(2, "0")
+  return `${yyyy}-${mm}-${dd}`
 }
 
 function joinArrayForEdit(value: unknown): string[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (!value) return []
+  if (Array.isArray(value)) return value.filter(Boolean).map(String)
   if (typeof value === "string") {
     try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String)
     } catch {
       return value
         .split(",")
         .map((s) => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
     }
   }
-  return [];
+  return []
 }
 
 function keywordsToString(value: unknown): string {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.filter(Boolean).map(String).join(", ");
-  return "";
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (Array.isArray(value)) return value.filter(Boolean).map(String).join(", ")
+  return ""
 }
 
 function parseNumberOrNull(s: string | undefined) {
-  const trimmed = (s ?? "").trim();
-  if (!trimmed) return null;
-  const n = Number(trimmed);
-  return Number.isFinite(n) ? n : null;
+  const trimmed = (s ?? "").trim()
+  if (!trimmed) return null
+  const n = Number(trimmed)
+  return Number.isFinite(n) ? n : null
 }
 
 function parseDateOrNull(s: string | undefined) {
-  const trimmed = (s ?? "").trim();
-  return trimmed ? trimmed : null; // stored as date/text, OK
+  const trimmed = (s ?? "").trim()
+  return trimmed ? trimmed : null // stored as date/text, OK
 }
 
 function slugify(input: string) {
@@ -205,14 +190,27 @@ function slugify(input: string) {
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+    .slice(0, 80)
 }
 
 export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
-  const router = useRouter();
-  const supabase = createClient();
-  const { toast } = useToast();
-  const [submitting, setSubmitting] = React.useState(false);
+  const router = useRouter()
+
+  // ✅ Do NOT crash the page if Supabase public env vars are missing.
+  // createClient() in this repo throws when NEXT_PUBLIC_SUPABASE_URL / ANON_KEY aren't set.
+  const [supabase] = React.useState<ReturnType<typeof createClient> | null>(() => {
+    try {
+      return createClient()
+    } catch (err) {
+      console.error("Supabase client init failed:", err)
+      return null
+    }
+  })
+
+  const supabaseConfigured = supabase !== null
+
+  const { toast } = useToast()
+  const [submitting, setSubmitting] = React.useState(false)
 
   const defaultValues: FormValues = React.useMemo(() => {
     if (!grant) {
@@ -241,7 +239,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
         funder_name: "",
         funder_website: "",
         contact_email: "",
-      };
+      }
     }
 
     return {
@@ -271,24 +269,30 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       funder_name: grant.funder_name ?? "",
       funder_website: grant.funder_website ?? "",
       contact_email: grant.contact_email ?? "",
-    };
-  }, [grant]);
+    }
+  }, [grant])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
     mode: "onChange",
-  });
+  })
 
   const onSubmit = async (values: FormValues) => {
-    setSubmitting(true);
+    setSubmitting(true)
     try {
+      if (!supabase) {
+        throw new Error(
+          "Supabase is not configured for this deployment. Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY."
+        )
+      }
+
       const keywordsArray = values.keywords
         ? values.keywords
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean)
-        : [];
+        : []
 
       const eligibleCountries =
         values.eligible_countries.trim().length > 0
@@ -296,11 +300,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean)
-          : null;
+          : null
 
-      const sdgsNumeric = (values.sdgs ?? [])
-        .map((s) => Number(s))
-        .filter((n) => Number.isFinite(n));
+      const sdgsNumeric = (values.sdgs ?? []).map((s) => Number(s)).filter((n) => Number.isFinite(n))
 
       const payloadBase = {
         title: values.title,
@@ -335,70 +337,76 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
         funder_name: values.funder_name.trim() ? values.funder_name.trim() : null,
         funder_website: values.funder_website.trim() ? values.funder_website.trim() : null,
         contact_email: values.contact_email.trim() ? values.contact_email.trim() : null,
-      };
+      }
 
       if (mode === "edit") {
-        if (!grant?.id) throw new Error("Missing grant id");
+        if (!grant?.id) throw new Error("Missing grant id")
 
-        const payload: GrantUpdate = payloadBase;
+        const payload: GrantUpdate = payloadBase
+        const { error } = await supabase.from("grants").update(payload).eq("id", grant.id)
+        if (error) throw error
 
-        const { error } = await supabase.from("grants").update(payload).eq("id", grant.id);
-        if (error) throw error;
-
-        toast({ title: "Grant updated", description: "Your changes have been saved." });
+        toast({ title: "Grant updated", description: "Your changes have been saved." })
       } else {
         // ✅ Fix insert missing required DB fields (created_by, slug)
         const {
           data: { user },
           error: userErr,
-        } = await supabase.auth.getUser();
-        if (userErr) throw userErr;
-        if (!user) throw new Error("You must be signed in to create a grant.");
+        } = await supabase.auth.getUser()
+        if (userErr) throw userErr
+        if (!user) throw new Error("You must be signed in to create a grant.")
 
         const payload: GrantInsert = {
           ...(payloadBase as Omit<GrantInsert, "created_by" | "slug">),
           created_by: user.id,
           slug: slugify(values.title) || `grant-${Date.now()}`,
-        };
+        }
 
-        const { error } = await supabase.from("grants").insert(payload);
-        if (error) throw error;
+        const { error } = await supabase.from("grants").insert(payload)
+        if (error) throw error
 
-        toast({ title: "Grant created", description: "Your grant has been created." });
+        toast({ title: "Grant created", description: "Your grant has been created." })
       }
 
-      router.refresh();
-      router.push("/grants");
+      router.refresh()
+      router.push("/grants")
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save grant.";
-      toast({ title: "Something went wrong", description: message, variant: "destructive" });
+      const message = err instanceof Error ? err.message : "Failed to save grant."
+      toast({ title: "Something went wrong", description: message, variant: "destructive" })
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
-  const selectedThemes = form.watch("themes") ?? [];
-  const selectedSdgs = form.watch("sdgs") ?? [];
+  const selectedThemes = form.watch("themes") ?? []
+  const selectedSdgs = form.watch("sdgs") ?? []
 
   const toggleTheme = (theme: string) => {
-    const current = form.getValues("themes") ?? [];
-    const next = current.includes(theme)
-      ? current.filter((t) => t !== theme)
-      : [...current, theme];
-    form.setValue("themes", next, { shouldDirty: true, shouldValidate: true });
-  };
+    const current = form.getValues("themes") ?? []
+    const next = current.includes(theme) ? current.filter((t) => t !== theme) : [...current, theme]
+    form.setValue("themes", next, { shouldDirty: true, shouldValidate: true })
+  }
 
   const toggleSdg = (sdgId: string) => {
-    const current = form.getValues("sdgs") ?? [];
-    const next = current.includes(sdgId)
-      ? current.filter((t) => t !== sdgId)
-      : [...current, sdgId];
-    form.setValue("sdgs", next, { shouldDirty: true, shouldValidate: true });
-  };
+    const current = form.getValues("sdgs") ?? []
+    const next = current.includes(sdgId) ? current.filter((t) => t !== sdgId) : [...current, sdgId]
+    form.setValue("sdgs", next, { shouldDirty: true, shouldValidate: true })
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {!supabaseConfigured ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="font-semibold">Grant registration is unavailable</div>
+            <div className="mt-1 text-amber-800">
+              This deployment is missing Supabase public environment variables. Configure{" "}
+              <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
+              in Vercel (Production), then redeploy.
+            </div>
+          </div>
+        ) : null}
+
         {/* Basic info */}
         <div className="space-y-6 rounded-xl border p-6">
           <div className="space-y-2">
@@ -444,15 +452,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Full description (max 5000 chars)"
-                    rows={7}
-                    {...field}
-                  />
+                  <Textarea placeholder="Full description (max 5000 chars)" rows={7} {...field} />
                 </FormControl>
-                <FormDescription>
-                  More detail about the grant, criteria, and how to apply.
-                </FormDescription>
+                <FormDescription>More detail about the grant, criteria, and how to apply.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -750,17 +752,12 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
             <FormLabel>Themes</FormLabel>
             <div className="flex flex-wrap gap-2">
               {THEME_OPTIONS.map((t) => {
-                const active = selectedThemes.includes(t);
+                const active = selectedThemes.includes(t)
                 return (
-                  <button
-                    type="button"
-                    key={t}
-                    className="rounded-full"
-                    onClick={() => toggleTheme(t)}
-                  >
+                  <button type="button" key={t} className="rounded-full" onClick={() => toggleTheme(t)}>
                     <Badge variant={active ? "default" : "outline"}>{t}</Badge>
                   </button>
-                );
+                )
               })}
             </div>
           </FormItem>
@@ -769,7 +766,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
             <FormLabel>SDGs</FormLabel>
             <div className="flex flex-wrap gap-2">
               {SDG_OPTIONS.map((s) => {
-                const active = selectedSdgs.includes(s.id);
+                const active = selectedSdgs.includes(s.id)
                 return (
                   <button
                     type="button"
@@ -781,7 +778,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                       {s.id}. {s.label}
                     </Badge>
                   </button>
-                );
+                )
               })}
             </div>
           </FormItem>
@@ -858,7 +855,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || !supabaseConfigured}>
             {submitting
               ? mode === "edit"
                 ? "Saving..."
@@ -868,16 +865,11 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 : "Create grant"}
           </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            disabled={submitting}
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" disabled={submitting} onClick={() => router.back()}>
             Cancel
           </Button>
         </div>
       </form>
     </Form>
-  );
+  )
 }
