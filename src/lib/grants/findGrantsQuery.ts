@@ -264,8 +264,10 @@ export async function fetchFindGrants({
 
 export async function fetchGrantMarkers({
   searchParams,
+  limit,
 }: {
   searchParams: RawSearchParams;
+  limit?: number;
 }): Promise<GrantMarker[]> {
   const params = parseFindGrantsSearchParams(searchParams);
   const supabase = await getServerSupabase();
@@ -329,6 +331,10 @@ export async function fetchGrantMarkers({
   if (params.upcoming_only) {
     const today = new Date().toISOString().slice(0, 10);
     query = query.or(`deadline.gte.${today},deadline.is.null`);
+  }
+
+  if (typeof limit === "number") {
+    query = query.limit(limit);
   }
 
   const { data, error } = await query;
