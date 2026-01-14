@@ -75,7 +75,6 @@ const THEME_OPTIONS = [
   "Economic development",
 ] as const
 
-// ✅ IMPORTANT: keep the schema types aligned with form values (strings stay strings)
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
 
@@ -89,11 +88,9 @@ const formSchema = z.object({
 
   currency: z.string().min(1, "Currency is required").max(10, "Currency is too long"),
 
-  // ✅ strings in the form (parse in submit)
   amount_min: z.string().optional().default(""),
   amount_max: z.string().optional().default(""),
 
-  // ✅ strings in the form (date input gives yyyy-mm-dd)
   open_date: z.string().optional().default(""),
   deadline: z.string().optional().default(""),
   decision_date: z.string().optional().default(""),
@@ -101,7 +98,6 @@ const formSchema = z.object({
 
   eligible_countries: z.string().optional().default(""),
 
-  // ✅ always boolean
   remote_ok: z.boolean().default(false),
 
   location_name: z.string().optional().default(""),
@@ -180,7 +176,7 @@ function parseNumberOrNull(s: string | undefined) {
 
 function parseDateOrNull(s: string | undefined) {
   const trimmed = (s ?? "").trim()
-  return trimmed ? trimmed : null // stored as date/text, OK
+  return trimmed ? trimmed : null
 }
 
 function slugify(input: string) {
@@ -196,8 +192,7 @@ function slugify(input: string) {
 export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
   const router = useRouter()
 
-  // ✅ Do NOT crash the page if Supabase public env vars are missing.
-  // createClient() in this repo throws when NEXT_PUBLIC_SUPABASE_URL / ANON_KEY aren't set.
+  // Safe Supabase init (avoid crashing render if env vars are missing)
   const [supabase] = React.useState<ReturnType<typeof createClient> | null>(() => {
     try {
       return createClient()
@@ -348,7 +343,6 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
 
         toast({ title: "Grant updated", description: "Your changes have been saved." })
       } else {
-        // ✅ Fix insert missing required DB fields (created_by, slug)
         const {
           data: { user },
           error: userErr,
@@ -677,8 +671,11 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-1">
-              <FormLabel className="text-base">Remote OK</FormLabel>
-              <FormDescription>Applicants can participate without being on-site.</FormDescription>
+              {/* IMPORTANT: use plain elements here (FormLabel/FormDescription require FormFieldContext) */}
+              <div className="text-base font-medium">Remote OK</div>
+              <div className="text-sm text-muted-foreground">
+                Applicants can participate without being on-site.
+              </div>
             </div>
 
             <FormField
@@ -748,8 +745,9 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
             </p>
           </div>
 
-          <FormItem>
-            <FormLabel>Themes</FormLabel>
+          {/* IMPORTANT: No FormLabel here (requires FormFieldContext). Use plain text. */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium leading-none">Themes</div>
             <div className="flex flex-wrap gap-2">
               {THEME_OPTIONS.map((t) => {
                 const active = selectedThemes.includes(t)
@@ -760,20 +758,15 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 )
               })}
             </div>
-          </FormItem>
+          </div>
 
-          <FormItem>
-            <FormLabel>SDGs</FormLabel>
+          <div className="space-y-2">
+            <div className="text-sm font-medium leading-none">SDGs</div>
             <div className="flex flex-wrap gap-2">
               {SDG_OPTIONS.map((s) => {
                 const active = selectedSdgs.includes(s.id)
                 return (
-                  <button
-                    type="button"
-                    key={s.id}
-                    className="rounded-full"
-                    onClick={() => toggleSdg(s.id)}
-                  >
+                  <button type="button" key={s.id} className="rounded-full" onClick={() => toggleSdg(s.id)}>
                     <Badge variant={active ? "default" : "outline"}>
                       {s.id}. {s.label}
                     </Badge>
@@ -781,7 +774,7 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
                 )
               })}
             </div>
-          </FormItem>
+          </div>
 
           <FormField
             control={form.control}
