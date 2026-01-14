@@ -123,6 +123,7 @@ export default function Header() {
           { href: "/projects", label: "Find Projects" },
           { href: "/organisations", label: "Find Organisations" },
           { href: "/grants", label: "Find Grants" },
+          { href: "/watchdog", label: "Watchdog Community" },
         ],
       },
       { type: "link", href: "/feed", label: "Feed" },

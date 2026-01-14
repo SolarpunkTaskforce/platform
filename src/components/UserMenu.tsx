@@ -53,6 +53,13 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           >
             Project Registrations
           </Link>
+          <Link
+            href="/admin/issue-registrations"
+            className="px-4 py-2 hover:bg-white/10"
+            onClick={onNavigate}
+          >
+            Issue Registrations
+          </Link>
         </>
       )}
       {isSuper && (

@@ -1,0 +1,301 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import Map from "@/components/Map";
+import WatchdogFilters from "@/components/watchdog/WatchdogFilters";
+import type { WatchdogFilterOptions, WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+type Props = {
+  markers: WatchdogIssueMarker[];
+  totalCount: number;
+  focusId: string | null;
+  options: WatchdogFilterOptions;
+};
+
+const URGENCY_COLORS = [
+  "#22c55e",
+  "#84cc16",
+  "#f59e0b",
+  "#f97316",
+  "#ef4444",
+];
+
+const resolveMarkerColor = (urgency: number | null) => {
+  if (!urgency || urgency < 1) return URGENCY_COLORS[0];
+  return URGENCY_COLORS[Math.min(Math.max(urgency, 1), 5) - 1];
+};
+
+const formatPlaceName = (marker: WatchdogIssueMarker) => {
+  const parts = [marker.city, marker.region, marker.country].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+};
+
+export default function WatchdogGlobeSplitView({ markers, totalCount, focusId, options }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const draggingRef = useRef(false);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastClientXRef = useRef<number | null>(null);
+  const initializedRef = useRef(false);
+
+  const [panelWidth, setPanelWidth] = useState<number>(420);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [recenterNonce, setRecenterNonce] = useState(0);
+
+  const lastExpandedWidthRef = useRef<number>(420);
+
+  const limits = useMemo(
+    () => ({
+      absoluteMin: 360,
+      absoluteMax: 1200,
+      handle: 34,
+    }),
+    [],
+  );
+
+  const computeBounds = useCallback(
+    (containerWidth: number) => {
+      const minByRatio = Math.floor(containerWidth * 0.25);
+      const maxByRatio = Math.floor(containerWidth * 0.75);
+
+      const min = Math.max(limits.absoluteMin, minByRatio);
+      const max = Math.min(limits.absoluteMax, maxByRatio);
+
+      const safeMax = Math.max(min, max);
+      return { min, max: safeMax };
+    },
+    [limits.absoluteMax, limits.absoluteMin],
+  );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      const w = el.getBoundingClientRect().width;
+      if (!Number.isFinite(w) || w <= 0) return;
+
+      const { min, max } = computeBounds(w);
+
+      setPanelWidth(current => {
+        if (collapsed) return 0;
+
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          const initial = clamp(Math.floor(w / 3), min, max);
+          lastExpandedWidthRef.current = initial;
+          return initial;
+        }
+
+        const next = clamp(current, min, max);
+        lastExpandedWidthRef.current = next;
+        return next;
+      });
+    };
+
+    apply();
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [computeBounds, collapsed]);
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!draggingRef.current) return;
+      lastClientXRef.current = e.clientX;
+
+      if (rafRef.current != null) return;
+      rafRef.current = window.requestAnimationFrame(() => {
+        rafRef.current = null;
+
+        const el = containerRef.current;
+        const x = lastClientXRef.current;
+        if (!el || x == null) return;
+
+        const rect = el.getBoundingClientRect();
+        const raw = x - rect.left;
+
+        const { min, max } = computeBounds(rect.width);
+
+        if (collapsed) setCollapsed(false);
+
+        const next = clamp(Math.floor(raw), min, max);
+        lastExpandedWidthRef.current = next;
+        setPanelWidth(next);
+      });
+    };
+
+    const stopDrag = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      setIsDragging(false);
+
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      const pointerId = dragPointerIdRef.current;
+      dragPointerIdRef.current = null;
+
+      const active = document.activeElement;
+      if (pointerId != null && active instanceof HTMLElement && active.releasePointerCapture) {
+        try {
+          active.releasePointerCapture(pointerId);
+        } catch {
+          // ignore
+        }
+      }
+
+      setRecenterNonce(n => n + 1);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
+      if (rafRef.current != null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [computeBounds, collapsed]);
+
+  const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    draggingRef.current = true;
+    setIsDragging(true);
+    dragPointerIdRef.current = e.pointerId;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.focus();
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    if (collapsed) {
+      const el = containerRef.current;
+      if (el) {
+        const { min, max } = computeBounds(el.getBoundingClientRect().width);
+        const restored = clamp(lastExpandedWidthRef.current || min, min, max);
+        setCollapsed(false);
+        setPanelWidth(restored);
+        lastExpandedWidthRef.current = restored;
+      } else {
+        setCollapsed(false);
+      }
+    }
+  };
+
+  const toggleCollapsed = () => {
+    const el = containerRef.current;
+
+    if (!collapsed) {
+      if (panelWidth > 0) lastExpandedWidthRef.current = panelWidth;
+      setCollapsed(true);
+      setPanelWidth(0);
+      setRecenterNonce(n => n + 1);
+      return;
+    }
+
+    if (el) {
+      const { min, max } = computeBounds(el.getBoundingClientRect().width);
+      const restored = clamp(
+        lastExpandedWidthRef.current || Math.floor(el.getBoundingClientRect().width / 3),
+        min,
+        max,
+      );
+      setCollapsed(false);
+      setPanelWidth(restored);
+      lastExpandedWidthRef.current = restored;
+      setRecenterNonce(n => n + 1);
+    } else {
+      setCollapsed(false);
+      setPanelWidth(lastExpandedWidthRef.current || limits.absoluteMin);
+      setRecenterNonce(n => n + 1);
+    }
+  };
+
+  const mapMarkers = useMemo(
+    () =>
+      markers.map(marker => ({
+        id: marker.id,
+        slug: marker.id,
+        lng: typeof marker.longitude === "number" ? marker.longitude : Number.NaN,
+        lat: typeof marker.latitude === "number" ? marker.latitude : Number.NaN,
+        title: marker.title ?? "Untitled issue",
+        placeName: formatPlaceName(marker),
+        description: marker.description,
+        ctaHref: `/watchdog?view=table&focus=${marker.id}`,
+        markerColor: resolveMarkerColor(marker.urgency ?? null),
+      })),
+    [markers],
+  );
+
+  return (
+    <section
+      ref={containerRef}
+      className="h-full w-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+    >
+      <div className="grid h-full w-full" style={{ gridTemplateColumns: `${panelWidth}px ${limits.handle}px 1fr` }}>
+        <div
+          className={[
+            "min-w-0 h-full border-r border-slate-200 bg-white transition-[opacity] duration-150",
+            collapsed ? "pointer-events-none opacity-0" : "opacity-100",
+          ].join(" ")}
+          aria-hidden={collapsed ? "true" : "false"}
+        >
+          <div className="h-full overflow-y-auto p-4">
+            <div className="space-y-4">
+              <WatchdogFilters options={options} basePath="/watchdog" showSorting={false} variant="inline" />
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                {markers.length} issues mapped · {totalCount} total matching filters
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative h-full w-full bg-slate-100">
+          <button
+            type="button"
+            aria-label="Resize panel"
+            onPointerDown={startDrag}
+            className="absolute inset-0 h-full w-full hover:bg-slate-200/60 active:bg-slate-200/80 focus:outline-none"
+          >
+            <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-slate-300" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none">
+              <div className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-sm font-bold text-white shadow-lg ring-1 ring-black/10">
+                {"<>"}
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            aria-label={collapsed ? "Open filters panel" : "Close filters panel"}
+            onClick={toggleCollapsed}
+            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          >
+            {collapsed ? "Show" : "Hide"}
+          </button>
+        </div>
+
+        <div className="min-w-0 h-full">
+          <Map
+            markers={mapMarkers}
+            markerColor="#10b981"
+            focusSlug={focusId}
+            ctaLabel="View details"
+            recenterNonce={recenterNonce}
+            freeze={isDragging}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
