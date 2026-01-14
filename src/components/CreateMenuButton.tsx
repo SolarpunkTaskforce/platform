@@ -15,7 +15,7 @@ export default function CreateMenuButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="default" aria-label="Create project or grant">
+        <Button size="icon" variant="default" aria-label="Create project, grant, or issue">
           <Plus className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -25,6 +25,9 @@ export default function CreateMenuButton() {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/grants/new">Register grant</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/watchdog/new">Register issue</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

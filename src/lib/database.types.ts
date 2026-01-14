@@ -1136,6 +1136,96 @@ export type Database = {
         }
         Relationships: []
       }
+      watchdog_issues: {
+        Row: {
+          affected_demographics: string[]
+          affected_groups_text: string | null
+          approved_at: string | null
+          approved_by: string | null
+          city: string | null
+          contact_allowed: boolean
+          country: string | null
+          created_at: string
+          created_by: string
+          date_observed: string | null
+          description: string
+          desired_outcome: string | null
+          evidence_links: string[]
+          global_challenges: string[]
+          id: string
+          latitude: number
+          longitude: number
+          region: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          reporter_anonymous: boolean
+          sdgs: number[]
+          status: string
+          title: string
+          updated_at: string
+          urgency: number
+        }
+        Insert: {
+          affected_demographics?: string[]
+          affected_groups_text?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          contact_allowed?: boolean
+          country?: string | null
+          created_at?: string
+          created_by: string
+          date_observed?: string | null
+          description: string
+          desired_outcome?: string | null
+          evidence_links?: string[]
+          global_challenges?: string[]
+          id?: string
+          latitude: number
+          longitude: number
+          region?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          reporter_anonymous?: boolean
+          sdgs?: number[]
+          status?: string
+          title: string
+          updated_at?: string
+          urgency?: number
+        }
+        Update: {
+          affected_demographics?: string[]
+          affected_groups_text?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          city?: string | null
+          contact_allowed?: boolean
+          country?: string | null
+          created_at?: string
+          created_by?: string
+          date_observed?: string | null
+          description?: string
+          desired_outcome?: string | null
+          evidence_links?: string[]
+          global_challenges?: string[]
+          id?: string
+          latitude?: number
+          longitude?: number
+          region?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          reporter_anonymous?: boolean
+          sdgs?: number[]
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency?: number
+        }
+        Relationships: []
+      }
       ifrc_challenges: {
         Row: {
           code: string | null
@@ -3012,4 +3102,3 @@ export const Constants = {
     },
   },
 } as const
-
