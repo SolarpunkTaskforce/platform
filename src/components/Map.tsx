@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 
-// Guard Mapbox token (prevents client-side exception when env var is missing)
+// Token guard
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length > 0
 mapboxgl.accessToken = MAPBOX_TOKEN || ""
@@ -59,21 +59,7 @@ export default function Map({
   recenterNonce,
   freeze = false,
 }: MapProps) {
-  // If Mapbox isn't configured, render a safe fallback and never touch WebGL/Mapbox.
-  if (!HAS_MAPBOX_TOKEN) {
-    return (
-      <div className="grid h-full w-full place-items-center rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-slate-900">Map view unavailable</div>
-          <div className="text-sm text-slate-600">
-            This deployment is missing the Mapbox token (<code>NEXT_PUBLIC_MAPBOX_TOKEN</code>).
-            Use the table view instead.
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // Hooks MUST be unconditional
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
@@ -113,7 +99,7 @@ export default function Map({
   }
 
   useEffect(() => {
-    // Hard guard: never init without a token (extra safety)
+    // Hard guard: never init without a token
     if (!HAS_MAPBOX_TOKEN) return
     if (!containerRef.current) return
     if (mapRef.current) return
@@ -164,7 +150,6 @@ export default function Map({
     lastFreezeRef.current = freeze
 
     if (wasFrozen && !freeze) {
-      // Unfreezing: do one clean resize (and let recenterNonce handle camera if needed).
       const id = window.requestAnimationFrame(() => {
         map.resize()
       })
@@ -176,7 +161,7 @@ export default function Map({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    if (freeze) return // don't animate/resize while frozen
+    if (freeze) return
 
     const id = window.requestAnimationFrame(() => {
       map.resize()
@@ -260,7 +245,6 @@ export default function Map({
       })
     })
 
-    // Only auto-fit if not frozen (avoid mid-drag camera motion)
     if (!freeze) {
       userInteractedRef.current = false
       fitToMarkers(map, true)
@@ -280,15 +264,28 @@ export default function Map({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctaLabel, focusSlug, markerColor, router, validMarkers, freeze])
 
+  // If token missing, render a safe fallback *after* hooks (no conditional hooks)
+  if (!HAS_MAPBOX_TOKEN) {
+    return (
+      <div className="grid h-full w-full place-items-center rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-slate-900">Map view unavailable</div>
+          <div className="text-sm text-slate-600">
+            This deployment is missing the Mapbox token (<code>NEXT_PUBLIC_MAPBOX_TOKEN</code>).
+            Use the table view instead.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative h-full w-full bg-slate-100">
-      {/* Map mount point */}
       <div
         ref={containerRef}
         className={["h-full w-full", freeze ? "opacity-0" : "opacity-100"].join(" ")}
       />
 
-      {/* Freeze overlay */}
       {freeze ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div className="rounded-xl bg-white/90 px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200">
