@@ -5,7 +5,6 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import type { ProjectMarker } from "@/lib/projects/findProjectsQuery";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length > 0;
@@ -16,20 +15,24 @@ const MIN_SWITCH_MS = 8000;
 const RECENT_POOL_SIZE = 6;
 const IN_VIEW_THRESHOLD = 0.3;
 
-type HomeGlobeMarker = {
+export type HomeGlobeMode = "projects" | "funding" | "issues";
+
+export type HomeGlobePoint = {
   id: string;
-  slug: string;
   lng: number;
   lat: number;
   title: string;
   placeName?: string | null;
   description?: string | null;
   markerColor?: string;
+  ctaHref: string;
+  ctaLabel: string;
+  eyebrow?: string;
+  meta?: string | null;
 };
 
 type MarkerObject = {
   marker: mapboxgl.Marker;
-  slug: string;
   id: string;
   lng: number;
   lat: number;
@@ -58,33 +61,45 @@ const isMarkerInView = (marker: MarkerObject, center: mapboxgl.LngLat) => {
   return dot > IN_VIEW_THRESHOLD;
 };
 
-export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
+const FEATURED_COPY: Record<HomeGlobeMode, { title: string; description: string }> = {
+  projects: {
+    title: "Featured projects",
+    description: "The globe highlights approved projects as they rotate into view.",
+  },
+  funding: {
+    title: "Featured funding",
+    description: "Highlighted funding opportunities refresh as the globe spins.",
+  },
+  issues: {
+    title: "Featured issues",
+    description: "Reviewed watchdog issues surface as they rotate into view.",
+  },
+};
+
+export default function HomeGlobe({
+  mode,
+  pointsByMode,
+}: {
+  mode: HomeGlobeMode;
+  pointsByMode: Record<HomeGlobeMode, HomeGlobePoint[]>;
+}) {
   const reducedMotion = usePrefersReducedMotion();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
   const activeMarkerRef = useRef<MarkerObject | null>(null);
-  const recentIdsRef = useRef<string[]>([]);
+  const recentIdsRef = useRef<Record<HomeGlobeMode, string[]>>({
+    projects: [],
+    funding: [],
+    issues: [],
+  });
   const lastSwitchRef = useRef<number>(0);
   const rotationFrameRef = useRef<number | null>(null);
   const lastRotationTimeRef = useRef<number | null>(null);
   const userInteractedRef = useRef(false);
   const userInteractTimerRef = useRef<number | null>(null);
 
-  const mapMarkers: HomeGlobeMarker[] = useMemo(
-    () =>
-      markers.map(marker => ({
-        id: marker.id,
-        slug: marker.slug ?? marker.id,
-        lng: typeof marker.lng === "number" ? marker.lng : Number.NaN,
-        lat: typeof marker.lat === "number" ? marker.lat : Number.NaN,
-        title: marker.name ?? "Untitled project",
-        placeName: marker.place_name,
-        description: marker.description,
-        markerColor: marker.category === "humanitarian" ? "#7f1d1d" : "#064e3b",
-      })),
-    [markers],
-  );
+  const mapMarkers = useMemo(() => pointsByMode[mode] ?? [], [mode, pointsByMode]);
 
   useEffect(() => {
     if (!HAS_MAPBOX_TOKEN) return;
@@ -151,6 +166,13 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
       const popupNode = document.createElement("div");
       popupNode.className = "space-y-2 text-sm text-slate-700";
 
+      if (marker.eyebrow) {
+        const eyebrowEl = document.createElement("p");
+        eyebrowEl.className = "text-xs font-semibold uppercase tracking-wide text-emerald-700";
+        eyebrowEl.textContent = marker.eyebrow;
+        popupNode.appendChild(eyebrowEl);
+      }
+
       const titleEl = document.createElement("h3");
       titleEl.className = "text-base font-semibold text-slate-900";
       titleEl.textContent = marker.title;
@@ -163,6 +185,13 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
         popupNode.appendChild(placeEl);
       }
 
+      if (marker.meta) {
+        const metaEl = document.createElement("p");
+        metaEl.className = "text-xs font-medium text-slate-500";
+        metaEl.textContent = marker.meta;
+        popupNode.appendChild(metaEl);
+      }
+
       if (marker.description) {
         const descriptionEl = document.createElement("p");
         descriptionEl.className = "text-sm leading-snug text-slate-600";
@@ -171,10 +200,10 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
       }
 
       const cta = document.createElement("a");
-      cta.href = `/projects/${marker.slug}`;
+      cta.href = marker.ctaHref;
       cta.className =
         "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
-      cta.textContent = "See more";
+      cta.textContent = marker.ctaLabel;
       popupNode.appendChild(cta);
 
       popup.setDOMContent(popupNode);
@@ -196,13 +225,21 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
 
       markerObjs.current.push({
         marker: mapMarker,
-        slug: marker.slug,
         id: marker.id,
         lng: marker.lng,
         lat: marker.lat,
       });
     });
   }, [mapMarkers]);
+
+  useEffect(() => {
+    const current = activeMarkerRef.current;
+    if (current) {
+      current.marker.getPopup()?.remove();
+      activeMarkerRef.current = null;
+    }
+    lastSwitchRef.current = 0;
+  }, [mode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -259,7 +296,7 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
       const candidates = markerObjs.current.filter(marker => isMarkerInView(marker, center));
       if (!candidates.length) return;
 
-      const recent = new Set(recentIdsRef.current);
+      const recent = new Set(recentIdsRef.current[mode] ?? []);
       const fresh = candidates.filter(marker => !recent.has(marker.id));
       const pool = fresh.length ? fresh : candidates;
       const choice = pool[Math.floor(Math.random() * pool.length)];
@@ -268,13 +305,16 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
       activeMarkerRef.current = choice;
       lastSwitchRef.current = now;
 
-      recentIdsRef.current = [choice.id, ...recentIdsRef.current].slice(0, RECENT_POOL_SIZE);
+      recentIdsRef.current[mode] = [choice.id, ...(recentIdsRef.current[mode] ?? [])].slice(
+        0,
+        RECENT_POOL_SIZE,
+      );
     };
 
     pickFeatured();
     const interval = window.setInterval(pickFeatured, 1000);
     return () => window.clearInterval(interval);
-  }, [reducedMotion]);
+  }, [mode, reducedMotion]);
 
   useEffect(() => {
     if (!reducedMotion) return;
@@ -303,11 +343,9 @@ export default function HomeGlobe({ markers }: { markers: ProjectMarker[] }) {
       <div ref={containerRef} className="h-full w-full" />
       <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-2xl bg-white/85 p-4 text-sm text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          Featured projects
+          {FEATURED_COPY[mode].title}
         </div>
-        <p className="mt-1 text-sm text-slate-600">
-          The globe highlights approved projects as they rotate into view.
-        </p>
+        <p className="mt-1 text-sm text-slate-600">{FEATURED_COPY[mode].description}</p>
       </div>
     </div>
   );

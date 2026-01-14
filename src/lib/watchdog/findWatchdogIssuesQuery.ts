@@ -212,8 +212,10 @@ export async function fetchWatchdogIssues({
 
 export async function fetchWatchdogMarkers({
   searchParams,
+  limit,
 }: {
   searchParams: RawSearchParams;
+  limit?: number;
 }): Promise<WatchdogIssueMarker[]> {
   const params = parseFindWatchdogIssuesSearchParams(searchParams);
   const supabase = await getServerSupabase();
@@ -253,6 +255,10 @@ export async function fetchWatchdogMarkers({
 
   if (params.date_from) query = query.gte("date_observed", params.date_from);
   if (params.date_to) query = query.lte("date_observed", params.date_to);
+
+  if (typeof limit === "number") {
+    query = query.limit(limit);
+  }
 
   const { data, error } = await query;
   if (error) throw error;

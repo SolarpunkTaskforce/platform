@@ -1,16 +1,29 @@
-import Link from "next/link";
-
-import HomeGlobe from "@/components/home/HomeGlobe";
+import HomeGlobeSection from "@/components/home/HomeGlobeSection";
+import { fetchHomeGrantMarkers } from "@/lib/grants/homeGrantsQuery";
 import { fetchHomeProjectMarkers } from "@/lib/projects/homeProjectsQuery";
-import { cn } from "@/lib/utils";
+import { fetchHomeWatchdogMarkers } from "@/lib/watchdog/homeWatchdogQuery";
 
 export default async function HomePage() {
   let markers: Awaited<ReturnType<typeof fetchHomeProjectMarkers>> = [];
+  let grantMarkers: Awaited<ReturnType<typeof fetchHomeGrantMarkers>> = [];
+  let issueMarkers: Awaited<ReturnType<typeof fetchHomeWatchdogMarkers>> = [];
 
   try {
     markers = await fetchHomeProjectMarkers();
   } catch (error) {
     console.error("Home globe: marker query failed", error);
+  }
+
+  try {
+    grantMarkers = await fetchHomeGrantMarkers();
+  } catch (error) {
+    console.error("Home globe: funding marker query failed", error);
+  }
+
+  try {
+    issueMarkers = await fetchHomeWatchdogMarkers();
+  } catch (error) {
+    console.error("Home globe: issue marker query failed", error);
   }
 
   return (
@@ -28,41 +41,9 @@ export default async function HomePage() {
             Taskforce ecosystem.
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/find-projects"
-            className={cn(
-              "inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-              "bg-emerald-600 text-white hover:bg-emerald-700",
-            )}
-          >
-            Find Projects
-          </Link>
-          <Link
-            href="/funding"
-            className={cn(
-              "inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-              "border border-slate-200 text-slate-900 hover:bg-slate-100",
-            )}
-          >
-            Find Funding
-          </Link>
-          <Link
-            href="/watchdog"
-            className={cn(
-              "inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
-              "border border-slate-200 text-slate-900 hover:bg-slate-100",
-            )}
-          >
-            Find Issues
-          </Link>
-        </div>
       </div>
 
-      <div className="min-h-[60vh] flex-1">
-        <HomeGlobe markers={markers} />
-      </div>
+      <HomeGlobeSection projectMarkers={markers} grantMarkers={grantMarkers} issueMarkers={issueMarkers} />
     </main>
   );
 }
