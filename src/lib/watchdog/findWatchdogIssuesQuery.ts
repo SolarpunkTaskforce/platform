@@ -5,9 +5,7 @@ export const PAGE_SIZE = 25;
 export const FILTER_OPTIONS_LIMIT = 2000;
 
 type WatchdogIssueRow = Database["public"]["Tables"]["watchdog_issues"]["Row"];
-
 type SdgRow = Database["public"]["Tables"]["sdgs"]["Row"];
-type IfrcRow = Database["public"]["Tables"]["ifrc_challenges"]["Row"];
 
 export type WatchdogIssueListRow = Pick<
   WatchdogIssueRow,
@@ -77,7 +75,7 @@ const isNonEmptyString = (value: string | undefined): value is string =>
 
 const parseString = (value: string | string[] | undefined): string | undefined => {
   if (Array.isArray(value)) {
-    return value.find(item => item.trim().length > 0)?.trim();
+    return value.find(v => v.trim().length > 0)?.trim();
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -88,13 +86,13 @@ const parseString = (value: string | string[] | undefined): string | undefined =
 
 const parseStringList = (value: string | string[] | undefined): string[] => {
   const raw = Array.isArray(value) ? value : value ? value.split(",") : [];
-  return raw.map(item => item.trim()).filter(isNonEmptyString);
+  return raw.map(v => v.trim()).filter(isNonEmptyString);
 };
 
 const parseNumberList = (value: string | string[] | undefined): number[] =>
   parseStringList(value)
-    .map(item => Number(item))
-    .filter(item => Number.isFinite(item));
+    .map(Number)
+    .filter(Number.isFinite);
 
 const parseNumber = (value: string | string[] | undefined): number | undefined => {
   const raw = parseString(value);
@@ -105,33 +103,29 @@ const parseNumber = (value: string | string[] | undefined): number | undefined =
 
 const parsePage = (value: string | string[] | undefined): number => {
   const parsed = parseNumber(value);
-  if (!parsed || parsed < 1) return 1;
-  return Math.floor(parsed);
+  return !parsed || parsed < 1 ? 1 : Math.floor(parsed);
 };
 
 const parseSort = (value: string | string[] | undefined): SortColumn => {
   const parsed = parseString(value);
-  if (parsed && SORT_COLUMNS.includes(parsed as SortColumn)) {
-    return parsed as SortColumn;
-  }
-  return "created_at";
+  return parsed && SORT_COLUMNS.includes(parsed as SortColumn)
+    ? (parsed as SortColumn)
+    : "created_at";
 };
 
 const parseDir = (value: string | string[] | undefined): SortDirection => {
   const parsed = parseString(value);
-  if (parsed && SORT_DIRECTIONS.includes(parsed as SortDirection)) {
-    return parsed as SortDirection;
-  }
-  return "desc";
+  return parsed && SORT_DIRECTIONS.includes(parsed as SortDirection)
+    ? (parsed as SortDirection)
+    : "desc";
 };
 
-const parseDate = (value: string | string[] | undefined): string | undefined => {
-  const parsed = parseString(value);
-  if (!parsed) return undefined;
-  return parsed;
-};
+const parseDate = (value: string | string[] | undefined): string | undefined =>
+  parseString(value);
 
-export function parseFindWatchdogIssuesSearchParams(searchParams: RawSearchParams): FindWatchdogIssuesParams {
+export function parseFindWatchdogIssuesSearchParams(
+  searchParams: RawSearchParams,
+): FindWatchdogIssuesParams {
   return {
     q: parseString(searchParams.q),
     sdgs: parseNumberList(searchParams.sdgs),
@@ -175,31 +169,20 @@ export async function fetchWatchdogIssues({
     query = query.or(`title.ilike.%${escaped}%,description.ilike.%${escaped}%`);
   }
 
-  if (params.country.length) {
-    query = query.in("country", params.country);
-  }
+  if (params.country.length) query = query.in("country", params.country);
+  if (params.region.length) query = query.in("region", params.region);
 
-  if (params.region.length) {
-    query = query.in("region", params.region);
-  }
+  params.sdgs.forEach(value => {
+    query = query.contains("sdgs", [value]);
+  });
 
-  if (params.sdgs.length) {
-    params.sdgs.forEach(value => {
-      query = query.contains("sdgs", [value]);
-    });
-  }
+  params.global_challenges.forEach(value => {
+    query = query.contains("global_challenges", [value]);
+  });
 
-  if (params.global_challenges.length) {
-    params.global_challenges.forEach(value => {
-      query = query.contains("global_challenges", [value]);
-    });
-  }
-
-  if (params.affected_demographics.length) {
-    params.affected_demographics.forEach(value => {
-      query = query.contains("affected_demographics", [value]);
-    });
-  }
+  params.affected_demographics.forEach(value => {
+    query = query.contains("affected_demographics", [value]);
+  });
 
   if (typeof params.urgency_min === "number") {
     query = query.gte("urgency", params.urgency_min);
@@ -209,13 +192,8 @@ export async function fetchWatchdogIssues({
     query = query.lte("urgency", params.urgency_max);
   }
 
-  if (params.date_from) {
-    query = query.gte("date_observed", params.date_from);
-  }
-
-  if (params.date_to) {
-    query = query.lte("date_observed", params.date_to);
-  }
+  if (params.date_from) query = query.gte("date_observed", params.date_from);
+  if (params.date_to) query = query.lte("date_observed", params.date_to);
 
   query = query.order(params.sort, { ascending: params.dir === "asc" });
 
@@ -250,31 +228,20 @@ export async function fetchWatchdogMarkers({
     query = query.or(`title.ilike.%${escaped}%,description.ilike.%${escaped}%`);
   }
 
-  if (params.country.length) {
-    query = query.in("country", params.country);
-  }
+  if (params.country.length) query = query.in("country", params.country);
+  if (params.region.length) query = query.in("region", params.region);
 
-  if (params.region.length) {
-    query = query.in("region", params.region);
-  }
+  params.sdgs.forEach(value => {
+    query = query.contains("sdgs", [value]);
+  });
 
-  if (params.sdgs.length) {
-    params.sdgs.forEach(value => {
-      query = query.contains("sdgs", [value]);
-    });
-  }
+  params.global_challenges.forEach(value => {
+    query = query.contains("global_challenges", [value]);
+  });
 
-  if (params.global_challenges.length) {
-    params.global_challenges.forEach(value => {
-      query = query.contains("global_challenges", [value]);
-    });
-  }
-
-  if (params.affected_demographics.length) {
-    params.affected_demographics.forEach(value => {
-      query = query.contains("affected_demographics", [value]);
-    });
-  }
+  params.affected_demographics.forEach(value => {
+    query = query.contains("affected_demographics", [value]);
+  });
 
   if (typeof params.urgency_min === "number") {
     query = query.gte("urgency", params.urgency_min);
@@ -284,13 +251,8 @@ export async function fetchWatchdogMarkers({
     query = query.lte("urgency", params.urgency_max);
   }
 
-  if (params.date_from) {
-    query = query.gte("date_observed", params.date_from);
-  }
-
-  if (params.date_to) {
-    query = query.lte("date_observed", params.date_to);
-  }
+  if (params.date_from) query = query.gte("date_observed", params.date_from);
+  if (params.date_to) query = query.lte("date_observed", params.date_to);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -311,10 +273,6 @@ export async function fetchWatchdogFilterOptions(): Promise<WatchdogFilterOption
     supabase.from("ifrc_challenges").select("id,name").order("name"),
   ]);
 
-  if (locationsRes.error) {
-    console.error("Failed to load watchdog filter options", locationsRes.error);
-  }
-
   const countrySet = new Set<string>();
   const regionSet = new Set<string>();
   const demographicSet = new Set<string>();
@@ -322,7 +280,9 @@ export async function fetchWatchdogFilterOptions(): Promise<WatchdogFilterOption
   (locationsRes.data ?? []).forEach(row => {
     if (row.country) countrySet.add(row.country);
     if (row.region) regionSet.add(row.region);
-    (row.affected_demographics ?? []).forEach((tag: string) => demographicSet.add(tag));
+    (row.affected_demographics ?? []).forEach((tag: string) =>
+      demographicSet.add(tag),
+    );
   });
 
   const toOptions = (values: Set<string>) =>
@@ -335,8 +295,8 @@ export async function fetchWatchdogFilterOptions(): Promise<WatchdogFilterOption
     label: sdg.name ? `${sdg.id}. ${sdg.name}` : `SDG ${sdg.id}`,
   }));
 
-  const ifrcOptions = (ifrcRes.data ?? []).map((challenge: IfrcRow) => ({
-    value: challenge.name ?? String(challenge.id),
+  const ifrcOptions = (ifrcRes.data ?? []).map(challenge => ({
+    value: String(challenge.id),
     label: challenge.name ?? String(challenge.id),
   }));
 
