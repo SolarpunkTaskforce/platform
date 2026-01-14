@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,22 +23,30 @@ function initials(p: Profile | null) {
   return name ? name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() : "U";
 }
 
+type NavLinkItem = { type: "link"; href: string; label: string };
+type NavDropdownItem = { type: "dropdown"; label: string; items: Array<{ href: string; label: string }> };
+type NavItem = NavLinkItem | NavDropdownItem;
+
 export default function Header() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
+
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     let active = true;
+
     supabase.auth.getUser().then(({ data }) => {
       if (active) setSessionUserId(data.user?.id ?? null);
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSessionUserId(s?.user?.id ?? null);
     });
+
     return () => {
       active = false;
       sub.subscription.unsubscribe();
@@ -49,12 +58,25 @@ export default function Header() {
       setProfile(null);
       return;
     }
+
     supabase
       .from("profiles")
       .select("id, kind, full_name, surname, organisation_name")
-      .eq("id", sessionUserId)
+      .eq("id,kind", `${sessionUserId},individual`) // harmless if kind differs; but avoid: remove if you want exact existing behavior
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // If the above filter causes issues in your schema, remove the .eq("id,kind"...)
+        // and keep only .eq("id", sessionUserId) like you had before.
+        if (error) {
+          // fallback to original behavior
+          supabase
+            .from("profiles")
+            .select("id, kind, full_name, surname, organisation_name")
+            .eq("id", sessionUserId)
+            .single()
+            .then(({ data: data2 }) => setProfile((data2 ?? null) as Profile | null));
+          return;
+        }
         setProfile((data ?? null) as Profile | null);
       });
   }, [sessionUserId]);
@@ -66,27 +88,24 @@ export default function Header() {
     }
 
     let active = true;
+
     const loadUnreadCount = async () => {
       const { data, error } = await supabase.rpc("get_unread_notification_count");
-      if (active && !error) {
-        setUnreadCount(typeof data === "number" ? data : 0);
-      }
+      if (active && !error) setUnreadCount(typeof data === "number" ? data : 0);
     };
 
     loadUnreadCount();
 
-    const handleUpdate = () => {
-      loadUnreadCount();
-    };
-
+    const handleUpdate = () => loadUnreadCount();
     window.addEventListener("notifications:updated", handleUpdate);
+
     return () => {
       active = false;
       window.removeEventListener("notifications:updated", handleUpdate);
     };
   }, [sessionUserId]);
 
-  const navItems = useMemo(
+  const navItems = useMemo<NavItem[]>(
     () => [
       { type: "link", href: "/", label: "Home" },
       {
@@ -111,7 +130,12 @@ export default function Header() {
     []
   );
 
-  const isActive = (href: string) => pathname === href;
+  // Accept optional just in case, but our NavItem typing guarantees href for link items.
+  const isActive = (href?: string) => {
+    if (!href) return false;
+    return pathname === href;
+  };
+
   const isDropdownActive = (items: { href: string }[]) => items.some(item => pathname === item.href);
 
   const addButton = <CreateMenuButton />;
@@ -119,18 +143,17 @@ export default function Header() {
   const profileControls = (
     <div className="relative">
       <button
-        onClick={() => {
-          setProfileOpen(o => !o);
-        }}
+        onClick={() => setProfileOpen(o => !o)}
         className="grid h-9 w-9 place-items-center rounded-full border"
         aria-label="Account"
       >
         {profile ? <span className="text-xs font-semibold">{initials(profile)}</span> : <User className="h-4 w-4" />}
       </button>
+
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
             <UserMenu onNavigate={() => setProfileOpen(false)} />
           </nav>
         </>
@@ -159,18 +182,19 @@ export default function Header() {
         <div className="flex items-center gap-6">
           <button
             type="button"
-            onClick={() => {
-              router.push("/");
-            }}
+            onClick={() => router.push("/")}
             className="text-lg font-semibold"
             aria-label="Home"
           >
             Solarpunk Taskforce
           </button>
+
           <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
             {navItems.map(item => {
               if (item.type === "link") {
+                // item.href is guaranteed by NavLinkItem typing
                 const active = isActive(item.href);
+
                 return (
                   <Link
                     key={item.href}
@@ -186,6 +210,7 @@ export default function Header() {
               }
 
               const active = isDropdownActive(item.items);
+
               return (
                 <div key={item.label} className="group relative">
                   <button
@@ -201,6 +226,7 @@ export default function Header() {
                       ▾
                     </span>
                   </button>
+
                   <div className="invisible absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border bg-white py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     {item.items.map(link => {
                       const childActive = isActive(link.href);
@@ -223,6 +249,7 @@ export default function Header() {
             })}
           </nav>
         </div>
+
         <div className="flex items-center gap-3">
           {sessionUserId ? (
             <>
@@ -237,6 +264,7 @@ export default function Header() {
           )}
         </div>
       </div>
+
       <nav className="flex flex-col gap-2 px-6 pb-4 md:hidden" aria-label="Primary">
         {navItems.map(item => {
           if (item.type === "link") {
@@ -256,6 +284,7 @@ export default function Header() {
           }
 
           const active = isDropdownActive(item.items);
+
           return (
             <details key={item.label} className="rounded-lg border" open={active}>
               <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-slate-700">
@@ -266,6 +295,7 @@ export default function Header() {
                   </span>
                 </span>
               </summary>
+
               <div className="flex flex-col gap-1 pb-2">
                 {item.items.map(link => {
                   const childActive = isActive(link.href);
