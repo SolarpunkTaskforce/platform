@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UserMenu from "@/components/UserMenu";
@@ -26,9 +26,9 @@ export default function Header() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     let active = true;
@@ -86,59 +86,33 @@ export default function Header() {
     };
   }, [sessionUserId]);
 
-  const navLinks = useMemo(
+  const navItems = useMemo(
     () => [
-      { href: "/", label: "Home" },
-      { href: "/about", label: "About" },
-      { href: "/find-projects", label: "Find Projects" },
-      { href: "/find-grants", label: "Find Grants" },
-      { href: "/find-organisations", label: "Find Organisations" },
-      { href: "/feed", label: "Feed" },
-      { href: "/note-empathy", label: "Note Empathy" },
-      { href: "/services", label: "Services" },
+      { type: "link", href: "/", label: "Home" },
+      {
+        type: "dropdown",
+        label: "About",
+        items: [
+          { href: "/about", label: "What is Solarpunk Taskforce" },
+          { href: "/services", label: "Services" },
+        ],
+      },
+      {
+        type: "dropdown",
+        label: "Find",
+        items: [
+          { href: "/projects", label: "Find Projects" },
+          { href: "/organisations", label: "Find Organisations" },
+          { href: "/grants", label: "Find Grants" },
+        ],
+      },
+      { type: "link", href: "/feed", label: "Feed" },
     ],
     []
   );
 
-  const menu = (
-    <div className="relative">
-      <button
-        onClick={() => {
-          setMenuOpen(o => !o);
-          setProfileOpen(false);
-        }}
-        className="grid h-9 w-9 place-items-center rounded-full border"
-        aria-label="Menu"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-      {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-          <nav className="fixed top-0 right-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
-            {navLinks.map(l => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="px-4 py-2 hover:bg-white/10"
-                onClick={() => setMenuOpen(false)}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        </>
-      )}
-    </div>
-  );
+  const isActive = (href: string) => pathname === href;
+  const isDropdownActive = (items: { href: string }[]) => items.some(item => pathname === item.href);
 
   const addButton = <CreateMenuButton />;
 
@@ -147,7 +121,6 @@ export default function Header() {
       <button
         onClick={() => {
           setProfileOpen(o => !o);
-          setMenuOpen(false);
         }}
         className="grid h-9 w-9 place-items-center rounded-full border"
         aria-label="Account"
@@ -181,34 +154,139 @@ export default function Header() {
   );
 
   return (
-    <header className="relative z-10 flex h-14 items-center justify-between px-6">
-      <div className="flex items-center gap-6">
-        <button
-          type="button"
-          onClick={() => {
-            setMenuOpen(false);
-            router.push("/");
-          }}
-          className="text-lg font-semibold"
-          aria-label="Home"
-        >
-          Solarpunk Taskforce
-        </button>
+    <header className="relative z-10 border-b bg-white">
+      <div className="flex h-14 items-center justify-between px-6">
+        <div className="flex items-center gap-6">
+          <button
+            type="button"
+            onClick={() => {
+              router.push("/");
+            }}
+            className="text-lg font-semibold"
+            aria-label="Home"
+          >
+            Solarpunk Taskforce
+          </button>
+          <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
+            {navItems.map(item => {
+              if (item.type === "link") {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-medium transition ${
+                      active ? "text-[#11526D]" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              const active = isDropdownActive(item.items);
+              return (
+                <div key={item.label} className="group relative">
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1 text-sm font-medium transition ${
+                      active ? "text-[#11526D]" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                  >
+                    {item.label}
+                    <span aria-hidden="true" className="text-xs">
+                      ▾
+                    </span>
+                  </button>
+                  <div className="invisible absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border bg-white py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                    {item.items.map(link => {
+                      const childActive = isActive(link.href);
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className={`block px-4 py-2 transition ${
+                            childActive ? "bg-slate-100 text-[#11526D]" : "hover:bg-slate-50"
+                          }`}
+                          aria-current={childActive ? "page" : undefined}
+                        >
+                          {link.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          {sessionUserId ? (
+            <>
+              {addButton}
+              {notificationsButton}
+              {profileControls}
+            </>
+          ) : (
+            <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">
+              Sign in
+            </Link>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        {menu}
-        {sessionUserId ? (
-          <>
-            {addButton}
-            {notificationsButton}
-            {profileControls}
-          </>
-        ) : (
-          <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">
-            Sign in
-          </Link>
-        )}
-      </div>
+      <nav className="flex flex-col gap-2 px-6 pb-4 md:hidden" aria-label="Primary">
+        {navItems.map(item => {
+          if (item.type === "link") {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  active ? "bg-slate-100 text-[#11526D]" : "text-slate-700"
+                }`}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          }
+
+          const active = isDropdownActive(item.items);
+          return (
+            <details key={item.label} className="rounded-lg border" open={active}>
+              <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-slate-700">
+                <span className="flex items-center justify-between">
+                  {item.label}
+                  <span aria-hidden="true" className="text-xs text-slate-500">
+                    ▾
+                  </span>
+                </span>
+              </summary>
+              <div className="flex flex-col gap-1 pb-2">
+                {item.items.map(link => {
+                  const childActive = isActive(link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`mx-2 rounded-md px-3 py-2 text-sm ${
+                        childActive ? "bg-slate-100 text-[#11526D]" : "text-slate-600"
+                      }`}
+                      aria-current={childActive ? "page" : undefined}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </details>
+          );
+        })}
+      </nav>
     </header>
   );
 }
