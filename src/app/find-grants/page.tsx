@@ -19,8 +19,14 @@ export default async function FindGrantsPage({
 }) {
   const params: SearchParams = searchParams ? await searchParams : {};
 
-  const viewParam = typeof params.view === "string" ? params.view : "globe";
+  const mapboxEnabled =
+    typeof process.env.NEXT_PUBLIC_MAPBOX_TOKEN === "string" &&
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN.length > 0;
+
+  const defaultView = mapboxEnabled ? "globe" : "table";
+  const viewParam = typeof params.view === "string" ? params.view : defaultView;
   const view: "globe" | "table" = viewParam === "table" ? "table" : "globe";
+  const safeView: "globe" | "table" = mapboxEnabled ? view : "table";
   const focus = typeof params.focus === "string" ? params.focus : null;
 
   const filterOptions = await fetchGrantFilterOptions();
@@ -61,10 +67,10 @@ export default async function FindGrantsPage({
             Showing {rows.length} of {count} grants · {PAGE_SIZE} per page
           </p>
         </div>
-        <GrantsViewToggle view={view} />
+        <GrantsViewToggle view={safeView} />
       </header>
 
-      {view === "globe" ? (
+      {safeView === "globe" ? (
         <div className="flex-1 min-h-0">
           <GrantsGlobeSplitView options={filterOptions} markers={markers} totalCount={count} focusSlug={focus} />
         </div>

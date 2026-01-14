@@ -1,52 +1,55 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import { useEffect, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
+import mapboxgl from "mapbox-gl"
+import "mapbox-gl/dist/mapbox-gl.css"
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+// Guard Mapbox token (prevents client-side exception when env var is missing)
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length > 0
+mapboxgl.accessToken = MAPBOX_TOKEN || ""
 
 const truncate = (value: string, length = 160) =>
-  value.length > length ? `${value.slice(0, length).trimEnd()}…` : value;
+  value.length > length ? `${value.slice(0, length).trimEnd()}…` : value
 
 type Marker = {
-  id: string;
-  slug: string;
-  lng: number;
-  lat: number;
-  title: string;
-  placeName?: string | null;
-  description?: string | null;
-  ctaHref?: string;
-  markerColor?: string;
-};
+  id: string
+  slug: string
+  lng: number
+  lat: number
+  title: string
+  placeName?: string | null
+  description?: string | null
+  ctaHref?: string
+  markerColor?: string
+}
 
 type MapProps = {
-  markers?: Marker[];
-  markerColor?: string;
-  focusSlug?: string | null;
-  ctaLabel?: string;
+  markers?: Marker[]
+  markerColor?: string
+  focusSlug?: string | null
+  ctaLabel?: string
 
   /** Increment to force a one-shot recenter after layout changes. */
-  recenterNonce?: number;
+  recenterNonce?: number
 
   /** When true, visually freeze the map during aggressive layout changes (e.g. dragging splitter). */
-  freeze?: boolean;
-};
+  freeze?: boolean
+}
 
 type MarkerObject = {
-  marker: mapboxgl.Marker;
-  element: HTMLDivElement;
-  slug: string;
-  lng: number;
-  lat: number;
-};
+  marker: mapboxgl.Marker
+  element: HTMLDivElement
+  slug: string
+  lng: number
+  lat: number
+}
 
 const getMarkerScale = (zoom: number) => {
-  const scale = zoom / 8;
-  return Math.min(Math.max(scale, 0.65), 1.75);
-};
+  const scale = zoom / 8
+  return Math.min(Math.max(scale, 0.65), 1.75)
+}
 
 export default function Map({
   markers = [],
@@ -56,47 +59,64 @@ export default function Map({
   recenterNonce,
   freeze = false,
 }: MapProps) {
-  const router = useRouter();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerObjs = useRef<MarkerObject[]>([]);
+  // If Mapbox isn't configured, render a safe fallback and never touch WebGL/Mapbox.
+  if (!HAS_MAPBOX_TOKEN) {
+    return (
+      <div className="grid h-full w-full place-items-center rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-slate-900">Map view unavailable</div>
+          <div className="text-sm text-slate-600">
+            This deployment is missing the Mapbox token (<code>NEXT_PUBLIC_MAPBOX_TOKEN</code>).
+            Use the table view instead.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  const userInteractedRef = useRef(false);
-  const userInteractTimerRef = useRef<number | null>(null);
+  const router = useRouter()
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const markerObjs = useRef<MarkerObject[]>([])
+
+  const userInteractedRef = useRef(false)
+  const userInteractTimerRef = useRef<number | null>(null)
 
   const validMarkers = useMemo(
     () => markers.filter((m) => Number.isFinite(m.lng) && Number.isFinite(m.lat)),
-    [markers],
-  );
+    [markers]
+  )
 
   const fitToMarkers = (map: mapboxgl.Map, animate: boolean) => {
     if (validMarkers.length === 0) {
       if (animate) {
-        map.easeTo({ center: [0, 0], zoom: 1.25, duration: 350 });
+        map.easeTo({ center: [0, 0], zoom: 1.25, duration: 350 })
       } else {
-        map.jumpTo({ center: [0, 0], zoom: 1.25 });
+        map.jumpTo({ center: [0, 0], zoom: 1.25 })
       }
-      return;
+      return
     }
 
-    const bounds = new mapboxgl.LngLatBounds();
-    validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]));
+    const bounds = new mapboxgl.LngLatBounds()
+    validMarkers.forEach((m) => bounds.extend([m.lng, m.lat]))
 
     if (validMarkers.length === 1) {
-      const [lng, lat] = [validMarkers[0].lng, validMarkers[0].lat];
+      const [lng, lat] = [validMarkers[0].lng, validMarkers[0].lat]
       if (animate) {
-        map.easeTo({ center: [lng, lat], zoom: 3, duration: 350 });
+        map.easeTo({ center: [lng, lat], zoom: 3, duration: 350 })
       } else {
-        map.jumpTo({ center: [lng, lat], zoom: 3 });
+        map.jumpTo({ center: [lng, lat], zoom: 3 })
       }
     } else {
-      map.fitBounds(bounds, { padding: 60, duration: animate ? 350 : 0 });
+      map.fitBounds(bounds, { padding: 60, duration: animate ? 350 : 0 })
     }
-  };
+  }
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (mapRef.current) return;
+    // Hard guard: never init without a token (extra safety)
+    if (!HAS_MAPBOX_TOKEN) return
+    if (!containerRef.current) return
+    if (mapRef.current) return
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
@@ -104,119 +124,119 @@ export default function Map({
       center: [0, 0],
       zoom: 1.25,
       preserveDrawingBuffer: false,
-    });
+    })
 
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right")
 
     const markInteracted = () => {
-      userInteractedRef.current = true;
+      userInteractedRef.current = true
       if (userInteractTimerRef.current != null) {
-        window.clearTimeout(userInteractTimerRef.current);
+        window.clearTimeout(userInteractTimerRef.current)
       }
       userInteractTimerRef.current = window.setTimeout(() => {
-        userInteractedRef.current = false;
-        userInteractTimerRef.current = null;
-      }, 1500);
-    };
+        userInteractedRef.current = false
+        userInteractTimerRef.current = null
+      }, 1500)
+    }
 
-    map.on("dragstart", markInteracted);
-    map.on("zoomstart", markInteracted);
-    map.on("rotatestart", markInteracted);
-    map.on("pitchstart", markInteracted);
+    map.on("dragstart", markInteracted)
+    map.on("zoomstart", markInteracted)
+    map.on("rotatestart", markInteracted)
+    map.on("pitchstart", markInteracted)
 
-    mapRef.current = map;
+    mapRef.current = map
 
     return () => {
-      if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
-      map.remove();
-      mapRef.current = null;
-    };
-  }, []);
+      if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current)
+      map.remove()
+      mapRef.current = null
+    }
+  }, [])
 
   // IMPORTANT: when freeze is enabled, we intentionally do NOT resize continuously.
   // We'll do a single resize once freeze is turned off.
-  const lastFreezeRef = useRef(false);
+  const lastFreezeRef = useRef(false)
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    const map = mapRef.current
+    if (!map) return
 
-    const wasFrozen = lastFreezeRef.current;
-    lastFreezeRef.current = freeze;
+    const wasFrozen = lastFreezeRef.current
+    lastFreezeRef.current = freeze
 
     if (wasFrozen && !freeze) {
       // Unfreezing: do one clean resize (and let recenterNonce handle camera if needed).
       const id = window.requestAnimationFrame(() => {
-        map.resize();
-      });
-      return () => window.cancelAnimationFrame(id);
+        map.resize()
+      })
+      return () => window.cancelAnimationFrame(id)
     }
-  }, [freeze]);
+  }, [freeze])
 
   // Forced recenter on demand (collapse/expand/drag end)
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (freeze) return; // don't animate/resize while frozen
+    const map = mapRef.current
+    if (!map) return
+    if (freeze) return // don't animate/resize while frozen
 
     const id = window.requestAnimationFrame(() => {
-      map.resize();
-      userInteractedRef.current = false;
-      fitToMarkers(map, false);
-    });
+      map.resize()
+      userInteractedRef.current = false
+      fitToMarkers(map, false)
+    })
 
-    return () => window.cancelAnimationFrame(id);
+    return () => window.cancelAnimationFrame(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recenterNonce]);
+  }, [recenterNonce])
 
   // Render markers + initial fit when marker set changes.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    const map = mapRef.current
+    if (!map) return
 
-    markerObjs.current.forEach((obj) => obj.marker.remove());
-    markerObjs.current = [];
+    markerObjs.current.forEach((obj) => obj.marker.remove())
+    markerObjs.current = []
 
-    const scale = getMarkerScale(map.getZoom());
+    const scale = getMarkerScale(map.getZoom())
 
     validMarkers.forEach((m) => {
-      const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px" });
+      const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px" })
 
-      const popupNode = document.createElement("div");
-      popupNode.className = "space-y-2 text-sm text-slate-700";
+      const popupNode = document.createElement("div")
+      popupNode.className = "space-y-2 text-sm text-slate-700"
 
-      const titleEl = document.createElement("h3");
-      titleEl.className = "text-base font-semibold text-slate-900";
-      titleEl.textContent = m.title;
-      popupNode.appendChild(titleEl);
+      const titleEl = document.createElement("h3")
+      titleEl.className = "text-base font-semibold text-slate-900"
+      titleEl.textContent = m.title
+      popupNode.appendChild(titleEl)
 
       if (m.placeName) {
-        const placeEl = document.createElement("p");
-        placeEl.className = "text-xs uppercase tracking-wide text-slate-500";
-        placeEl.textContent = m.placeName;
-        popupNode.appendChild(placeEl);
+        const placeEl = document.createElement("p")
+        placeEl.className = "text-xs uppercase tracking-wide text-slate-500"
+        placeEl.textContent = m.placeName
+        popupNode.appendChild(placeEl)
       }
 
       if (m.description) {
-        const descriptionEl = document.createElement("p");
-        descriptionEl.className = "text-sm leading-snug text-slate-600";
-        descriptionEl.textContent = truncate(m.description);
-        popupNode.appendChild(descriptionEl);
+        const descriptionEl = document.createElement("p")
+        descriptionEl.className = "text-sm leading-snug text-slate-600"
+        descriptionEl.textContent = truncate(m.description)
+        popupNode.appendChild(descriptionEl)
       }
 
-      const cta = document.createElement("button");
-      cta.type = "button";
+      const cta = document.createElement("button")
+      cta.type = "button"
       cta.className =
-        "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
-      cta.textContent = ctaLabel;
+        "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+      cta.textContent = ctaLabel
       cta.addEventListener("click", () => {
-        const href = m.ctaHref ?? `/projects/${m.slug}`;
-        router.push(href);
-      });
-      popupNode.appendChild(cta);
+        const href = m.ctaHref ?? `/projects/${m.slug}`
+        router.push(href)
+      })
+      popupNode.appendChild(cta)
 
-      popup.setDOMContent(popupNode);
+      popup.setDOMContent(popupNode)
 
-      const el = document.createElement("div");
+      const el = document.createElement("div")
       Object.assign(el.style, {
         width: "20px",
         height: "20px",
@@ -224,12 +244,12 @@ export default function Map({
         backgroundColor: m.markerColor ?? markerColor,
         boxShadow: "0 4px 12px rgba(15, 23, 42, 0.35)",
         transform: `translate(-50%, -50%) scale(${scale})`,
-      });
+      })
 
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([m.lng, m.lat])
         .setPopup(popup)
-        .addTo(map);
+        .addTo(map)
 
       markerObjs.current.push({
         marker,
@@ -237,39 +257,35 @@ export default function Map({
         slug: m.slug,
         lng: m.lng,
         lat: m.lat,
-      });
-    });
+      })
+    })
 
     // Only auto-fit if not frozen (avoid mid-drag camera motion)
     if (!freeze) {
-      userInteractedRef.current = false;
-      fitToMarkers(map, true);
+      userInteractedRef.current = false
+      fitToMarkers(map, true)
 
       if (focusSlug) {
-        const focused = markerObjs.current.find((o) => o.slug === focusSlug);
+        const focused = markerObjs.current.find((o) => o.slug === focusSlug)
         if (focused) {
           map.easeTo({
             center: [focused.lng, focused.lat],
             zoom: Math.max(map.getZoom(), 4),
             duration: 450,
-          });
-          focused.marker.getPopup()?.addTo(map);
+          })
+          focused.marker.getPopup()?.addTo(map)
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctaLabel, focusSlug, markerColor, router, validMarkers, freeze]);
+  }, [ctaLabel, focusSlug, markerColor, router, validMarkers, freeze])
 
   return (
     <div className="relative h-full w-full bg-slate-100">
       {/* Map mount point */}
       <div
         ref={containerRef}
-        className={[
-          "h-full w-full",
-          // Hide the WebGL canvas during drag to avoid flash/flicker
-          freeze ? "opacity-0" : "opacity-100",
-        ].join(" ")}
+        className={["h-full w-full", freeze ? "opacity-0" : "opacity-100"].join(" ")}
       />
 
       {/* Freeze overlay */}
@@ -281,5 +297,5 @@ export default function Map({
         </div>
       ) : null}
     </div>
-  );
+  )
 }
