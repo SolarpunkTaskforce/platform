@@ -273,6 +273,7 @@ export default function HomeGlobeSection({
           className="grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1"
           role="tablist"
           aria-label="Select globe preview mode"
+          aria-orientation="horizontal"
         >
           {(Object.keys(MODE_CONFIG) as HomeGlobeMode[]).map(key => {
             const item = MODE_CONFIG[key];
@@ -306,13 +307,19 @@ export default function HomeGlobeSection({
       <div className="flex flex-col gap-6">
         <div className="grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.1fr)_minmax(0,1fr)]">
           <div className="hidden lg:block">
-            <HomeStatsPanel title={activeStats.leftTitle} items={activeStats.left} footnote={activeStats.footnote} />
+            <HomeStatsPanel
+              key={`${mode}-left`}
+              title={activeStats.leftTitle}
+              items={activeStats.left}
+              footnote={activeStats.footnote}
+            />
           </div>
           <div id="home-globe" className="min-h-[60vh] flex-1">
             <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
           </div>
           <div className="hidden lg:block">
             <HomeStatsPanel
+              key={`${mode}-right`}
               title={activeStats.rightTitle}
               items={activeStats.right}
               footnote={activeStats.footnote}
@@ -321,8 +328,8 @@ export default function HomeGlobeSection({
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:hidden">
-          <HomeStatsPanel title="Snapshot" items={activeStats.left} />
-          <HomeStatsPanel title="Snapshot" items={activeStats.right} />
+          <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
+          <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
         </div>
       </div>
     </div>
@@ -351,7 +358,7 @@ function HomeStatsPanel({
     >
       <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
         <span>{title}</span>
-        <span className="hidden text-slate-500 lg:inline">Live aggregates</span>
+        <span className="hidden text-slate-600 lg:inline">Live aggregates</span>
       </div>
       <div className="grid gap-4">
         {items.map(item => (
@@ -363,7 +370,7 @@ function HomeStatsPanel({
           </div>
         ))}
       </div>
-      {footnote ? <p className="text-xs text-slate-500">{footnote}</p> : null}
+      {footnote ? <p className="text-xs text-slate-600">{footnote}</p> : null}
     </div>
   );
 }

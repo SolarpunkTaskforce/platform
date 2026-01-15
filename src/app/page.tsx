@@ -3,6 +3,7 @@ import Link from "next/link";
 import HomeGlobeSection from "@/components/home/HomeGlobeSection";
 import { fetchHomeGrantMarkers } from "@/lib/grants/homeGrantsQuery";
 import { fetchHomeStats } from "@/lib/homeStatsQuery";
+import { logOnce } from "@/lib/logOnce";
 import { fetchHomeProjectMarkers } from "@/lib/projects/homeProjectsQuery";
 import { fetchHomeWatchdogMarkers } from "@/lib/watchdog/homeWatchdogQuery";
 
@@ -15,25 +16,25 @@ export default async function HomePage() {
   try {
     markers = await fetchHomeProjectMarkers();
   } catch (error) {
-    console.error("Home globe: marker query failed", error);
+    logOnce("home-markers", "Home globe: marker query failed", error);
   }
 
   try {
     grantMarkers = await fetchHomeGrantMarkers();
   } catch (error) {
-    console.error("Home globe: funding marker query failed", error);
+    logOnce("home-grants", "Home globe: funding marker query failed", error);
   }
 
   try {
     issueMarkers = await fetchHomeWatchdogMarkers();
   } catch (error) {
-    console.error("Home globe: issue marker query failed", error);
+    logOnce("home-issues", "Home globe: issue marker query failed", error);
   }
 
   try {
     homeStats = await fetchHomeStats();
   } catch (error) {
-    console.error("Home globe: stats query failed", error);
+    logOnce("home-stats", "Home globe: stats query failed", error);
   }
 
   return (
