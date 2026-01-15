@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useSearchParams } from "next/navigation";
@@ -12,10 +12,11 @@ const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length
 mapboxgl.accessToken = MAPBOX_TOKEN || "";
 
 const ROTATION_SPEED_DEG_PER_SEC = 1.25;
-const MIN_SWITCH_MS = 9000;
+const MIN_SWITCH_MS = 10000;
 const POPUP_CHECK_INTERVAL_MS = 1500;
-const INTERACTION_COOLDOWN_MS = 10000;
-const RECENT_POOL_SIZE = 6;
+const INTERACTION_COOLDOWN_MS = 25000;
+const FEATURED_REPEAT_BLOCK_MINUTES = 10;
+const FEATURED_REPEAT_BLOCK_MS = FEATURED_REPEAT_BLOCK_MINUTES * 60 * 1000;
 const IN_VIEW_THRESHOLD = 0.3;
 
 export type HomeGlobeMode = "projects" | "funding" | "issues";
@@ -32,6 +33,14 @@ export type HomeGlobePoint = {
   ctaLabel: string;
   eyebrow?: string;
   meta?: string | null;
+  isVerified?: boolean | null;
+  isApproved?: boolean | null;
+  verifiedAt?: string | number | Date | null;
+  approvedAt?: string | number | Date | null;
+  updatedAt?: string | number | Date | null;
+  hasMedia?: boolean | null;
+  mediaUrls?: string[] | null;
+  mediaCount?: number | null;
 };
 
 type MarkerObject = {
@@ -39,6 +48,7 @@ type MarkerObject = {
   id: string;
   lng: number;
   lat: number;
+  point: HomeGlobePoint;
 };
 
 const truncate = (value: string, length = 140) =>
@@ -55,6 +65,54 @@ const toUnitVector = (lng: number, lat: number) => {
     y: Math.sin(phi),
     z: cosPhi * Math.sin(theta),
   };
+};
+
+const toTimestamp = (value: string | number | Date | null | undefined) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isFinite(value.valueOf()) ? value.valueOf() : null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const scoreFeaturedCandidate = (point: HomeGlobePoint, now: number) => {
+  let score = 1;
+  const isVerified = point.isVerified ?? Boolean(point.verifiedAt);
+  const isApproved = point.isApproved ?? Boolean(point.approvedAt);
+  const hasMedia =
+    point.hasMedia ??
+    (typeof point.mediaCount === "number" ? point.mediaCount > 0 : null) ??
+    (Array.isArray(point.mediaUrls) ? point.mediaUrls.length > 0 : null) ??
+    false;
+
+  if (isVerified) score += 3;
+  if (isApproved) score += 2;
+  if (hasMedia) score += 2;
+
+  const updatedAt = toTimestamp(point.updatedAt);
+  if (updatedAt) {
+    const ageDays = (now - updatedAt) / (1000 * 60 * 60 * 24);
+    if (ageDays <= 1) score += 3;
+    else if (ageDays <= 7) score += 2;
+    else if (ageDays <= 30) score += 1;
+  }
+
+  return score;
+};
+
+const pickWeightedCandidate = (candidates: MarkerObject[], now: number) => {
+  const weighted = candidates.map(candidate => ({
+    candidate,
+    weight: scoreFeaturedCandidate(candidate.point, now),
+  }));
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  if (totalWeight <= 0) return null;
+  let threshold = Math.random() * totalWeight;
+  for (const item of weighted) {
+    threshold -= item.weight;
+    if (threshold <= 0) return item.candidate;
+  }
+  return weighted[weighted.length - 1]?.candidate ?? null;
 };
 
 const isMarkerInView = (marker: MarkerObject, center: mapboxgl.LngLat) => {
@@ -92,7 +150,7 @@ export default function HomeGlobe({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
   const activeMarkerRef = useRef<MarkerObject | null>(null);
-  const recentIdsRef = useRef<Record<HomeGlobeMode, string[]>>({
+  const recentIdsRef = useRef<Record<HomeGlobeMode, Array<{ id: string; timestamp: number }>>>({
     projects: [],
     funding: [],
     issues: [],
@@ -112,6 +170,18 @@ export default function HomeGlobe({
     searchParams?.get("globeDebug") === "1" || searchParams?.get("globe_debug") === "1";
 
   const mapMarkers = useMemo(() => pointsByMode[mode] ?? [], [mode, pointsByMode]);
+
+  const markInteracted = useCallback(() => {
+    userInteractedRef.current = true;
+    lastInteractionRef.current = Date.now();
+    if (userInteractTimerRef.current != null) {
+      window.clearTimeout(userInteractTimerRef.current);
+    }
+    userInteractTimerRef.current = window.setTimeout(() => {
+      userInteractedRef.current = false;
+      userInteractTimerRef.current = null;
+    }, 2500);
+  }, []);
 
   useEffect(() => {
     if (!HAS_MAPBOX_TOKEN) return;
@@ -138,18 +208,6 @@ export default function HomeGlobe({
       });
     });
 
-    const markInteracted = () => {
-      userInteractedRef.current = true;
-      lastInteractionRef.current = Date.now();
-      if (userInteractTimerRef.current != null) {
-        window.clearTimeout(userInteractTimerRef.current);
-      }
-      userInteractTimerRef.current = window.setTimeout(() => {
-        userInteractedRef.current = false;
-        userInteractTimerRef.current = null;
-      }, 2500);
-    };
-
     const handleMapError = (event: mapboxgl.ErrorEvent) => {
       if (hasLoggedErrorRef.current) return;
       hasLoggedErrorRef.current = true;
@@ -171,7 +229,7 @@ export default function HomeGlobe({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [markInteracted]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -246,14 +304,18 @@ export default function HomeGlobe({
         .setPopup(popup)
         .addTo(map);
 
+      el.addEventListener("click", markInteracted);
+      popup.on("close", markInteracted);
+
       markerObjs.current.push({
         marker: mapMarker,
         id: marker.id,
         lng: marker.lng,
         lat: marker.lat,
+        point: marker,
       });
     });
-  }, [mapMarkers]);
+  }, [mapMarkers, markInteracted]);
 
   useEffect(() => {
     const current = activeMarkerRef.current;
@@ -326,10 +388,17 @@ export default function HomeGlobe({
       const candidates = markerObjs.current.filter(marker => isMarkerInView(marker, center));
       if (!candidates.length) return;
 
-      const recent = new Set(recentIdsRef.current[mode] ?? []);
+      const recentEntries = recentIdsRef.current[mode] ?? [];
+      const recent = new Set(
+        recentEntries
+          .filter(entry => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS)
+          .map(entry => entry.id),
+      );
       const fresh = candidates.filter(marker => !recent.has(marker.id));
-      const pool = fresh.length ? fresh : candidates;
-      const choice = pool[Math.floor(Math.random() * pool.length)];
+      if (!fresh.length) return;
+
+      const choice = pickWeightedCandidate(fresh, now);
+      if (!choice) return;
 
       choice.marker.getPopup()?.addTo(map);
       activeMarkerRef.current = choice;
@@ -338,10 +407,10 @@ export default function HomeGlobe({
         setDebugState({ mode, featuredId: choice.id });
       }
 
-      recentIdsRef.current[mode] = [choice.id, ...(recentIdsRef.current[mode] ?? [])].slice(
-        0,
-        RECENT_POOL_SIZE,
-      );
+      recentIdsRef.current[mode] = [
+        { id: choice.id, timestamp: now },
+        ...recentEntries.filter(entry => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS),
+      ];
     };
 
     pickFeatured();
