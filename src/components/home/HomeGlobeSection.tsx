@@ -314,9 +314,12 @@ export default function HomeGlobeSection({
               footnote={activeStats.footnote}
             />
           </div>
-          <div id="home-globe" className="min-h-[60vh] flex-1">
+
+          {/* ✅ FIX: Explicit height so HomeGlobe's h-full container actually renders */}
+          <div id="home-globe" className="h-[60vh] flex-1 lg:h-[70vh]">
             <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
           </div>
+
           <div className="hidden lg:block">
             <HomeStatsPanel
               key={`${mode}-right`}
@@ -327,6 +330,7 @@ export default function HomeGlobeSection({
             />
           </div>
         </div>
+
         <div className="grid gap-4 md:grid-cols-2 lg:hidden">
           <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
           <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
@@ -352,7 +356,7 @@ function HomeStatsPanel({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-4 rounded-3xl border border-white/50 bg-gradient-to-br from-white/85 via-white/70 to-emerald-50/70 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
+        "relative flex flex-col gap-4 rounded-3xl border border-white/50 bg-linear-to-br from-white/85 via-white/70 to-emerald-50/70 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
         align === "right" ? "lg:text-right" : "lg:text-left",
       )}
     >
