@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useSearchParams } from "next/navigation";
 
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
@@ -11,7 +12,9 @@ const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length
 mapboxgl.accessToken = MAPBOX_TOKEN || "";
 
 const ROTATION_SPEED_DEG_PER_SEC = 1.25;
-const MIN_SWITCH_MS = 8000;
+const MIN_SWITCH_MS = 9000;
+const POPUP_CHECK_INTERVAL_MS = 1500;
+const INTERACTION_COOLDOWN_MS = 10000;
 const RECENT_POOL_SIZE = 6;
 const IN_VIEW_THRESHOLD = 0.3;
 
@@ -84,6 +87,7 @@ export default function HomeGlobe({
   pointsByMode: Record<HomeGlobeMode, HomeGlobePoint[]>;
 }) {
   const reducedMotion = usePrefersReducedMotion();
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerObjs = useRef<MarkerObject[]>([]);
@@ -98,6 +102,14 @@ export default function HomeGlobe({
   const lastRotationTimeRef = useRef<number | null>(null);
   const userInteractedRef = useRef(false);
   const userInteractTimerRef = useRef<number | null>(null);
+  const lastInteractionRef = useRef<number>(0);
+  const hasLoggedErrorRef = useRef(false);
+  const [debugState, setDebugState] = useState<{ mode: HomeGlobeMode; featuredId?: string | null } | null>(
+    null,
+  );
+
+  const debugEnabled =
+    searchParams?.get("globeDebug") === "1" || searchParams?.get("globe_debug") === "1";
 
   const mapMarkers = useMemo(() => pointsByMode[mode] ?? [], [mode, pointsByMode]);
 
@@ -128,6 +140,7 @@ export default function HomeGlobe({
 
     const markInteracted = () => {
       userInteractedRef.current = true;
+      lastInteractionRef.current = Date.now();
       if (userInteractTimerRef.current != null) {
         window.clearTimeout(userInteractTimerRef.current);
       }
@@ -137,15 +150,24 @@ export default function HomeGlobe({
       }, 2500);
     };
 
+    const handleMapError = (event: mapboxgl.ErrorEvent) => {
+      if (hasLoggedErrorRef.current) return;
+      hasLoggedErrorRef.current = true;
+      console.error("Home globe: map error", event?.error ?? event);
+    };
+
     map.on("dragstart", markInteracted);
     map.on("zoomstart", markInteracted);
     map.on("rotatestart", markInteracted);
     map.on("pitchstart", markInteracted);
+    map.on("click", markInteracted);
+    map.on("error", handleMapError);
 
     mapRef.current = map;
 
     return () => {
       if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
+      map.off("error", handleMapError);
       map.remove();
       mapRef.current = null;
     };
@@ -164,7 +186,8 @@ export default function HomeGlobe({
 
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px", closeButton: false });
       const popupNode = document.createElement("div");
-      popupNode.className = "space-y-2 text-sm text-slate-700";
+      popupNode.className =
+        "space-y-2 text-sm text-slate-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
 
       if (marker.eyebrow) {
         const eyebrowEl = document.createElement("p");
@@ -239,7 +262,10 @@ export default function HomeGlobe({
       activeMarkerRef.current = null;
     }
     lastSwitchRef.current = 0;
-  }, [mode]);
+    if (debugEnabled) {
+      setDebugState({ mode, featuredId: null });
+    }
+  }, [debugEnabled, mode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -282,6 +308,10 @@ export default function HomeGlobe({
       const current = activeMarkerRef.current;
       const center = map.getCenter();
 
+      if (now - lastInteractionRef.current < INTERACTION_COOLDOWN_MS) {
+        return;
+      }
+
       if (current && isMarkerInView(current, center)) {
         return;
       }
@@ -304,6 +334,9 @@ export default function HomeGlobe({
       choice.marker.getPopup()?.addTo(map);
       activeMarkerRef.current = choice;
       lastSwitchRef.current = now;
+      if (debugEnabled) {
+        setDebugState({ mode, featuredId: choice.id });
+      }
 
       recentIdsRef.current[mode] = [choice.id, ...(recentIdsRef.current[mode] ?? [])].slice(
         0,
@@ -312,9 +345,9 @@ export default function HomeGlobe({
     };
 
     pickFeatured();
-    const interval = window.setInterval(pickFeatured, 1000);
+    const interval = window.setInterval(pickFeatured, POPUP_CHECK_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [mode, reducedMotion]);
+  }, [debugEnabled, mode, reducedMotion]);
 
   useEffect(() => {
     if (!reducedMotion) return;
@@ -339,14 +372,38 @@ export default function HomeGlobe({
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+    <div
+      className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm"
+      role="region"
+      aria-label="Rotating globe showing approved projects, funding opportunities, and watchdog issues."
+    >
       <div ref={containerRef} className="h-full w-full" />
+      <span className="sr-only">
+        The globe rotates automatically and highlights a featured item when it is in view. Use the mode controls to
+        switch between projects, funding, and issues.
+      </span>
       <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-2xl bg-white/85 p-4 text-sm text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           {FEATURED_COPY[mode].title}
         </div>
         <p className="mt-1 text-sm text-slate-600">{FEATURED_COPY[mode].description}</p>
       </div>
+      {debugEnabled ? (
+        <div className="pointer-events-none absolute left-6 top-6 rounded-2xl bg-slate-900/85 px-4 py-3 text-xs text-slate-100 shadow-lg ring-1 ring-black/10">
+          <div className="font-semibold uppercase tracking-wide text-emerald-200">Globe debug</div>
+          <div className="mt-1 space-y-1">
+            <div>
+              <span className="text-slate-300">Mode:</span> {debugState?.mode ?? mode}
+            </div>
+            <div>
+              <span className="text-slate-300">Featured:</span> {debugState?.featuredId ?? "—"}
+            </div>
+            <div>
+              <span className="text-slate-300">In-view threshold:</span> {IN_VIEW_THRESHOLD}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
