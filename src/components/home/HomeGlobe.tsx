@@ -163,7 +163,7 @@ export default function HomeGlobe({
 
   const lastSwitchRef = useRef<number>(0);
 
-  // rotation state
+  // rotation
   const rotationFrameRef = useRef<number | null>(null);
   const lastRotationTimeRef = useRef<number | null>(null);
   const pausedUntilRef = useRef<number>(0);
@@ -182,20 +182,48 @@ export default function HomeGlobe({
 
   const mapMarkers = useMemo(() => pointsByMode[mode] ?? [], [mode, pointsByMode]);
 
+  const stopRotation = useCallback(() => {
+    if (rotationFrameRef.current != null) {
+      window.cancelAnimationFrame(rotationFrameRef.current);
+      rotationFrameRef.current = null;
+    }
+    lastRotationTimeRef.current = null;
+  }, []);
+
+  const startRotation = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    stopRotation();
+    if (reducedMotion) return;
+
+    const animate = (time: number) => {
+      rotationFrameRef.current = window.requestAnimationFrame(animate);
+
+      if (lastRotationTimeRef.current == null) lastRotationTimeRef.current = time;
+      const dt = (time - lastRotationTimeRef.current) / 1000;
+      lastRotationTimeRef.current = time;
+
+      if (Date.now() < pausedUntilRef.current) return;
+
+      const nextBearing = map.getBearing() + ROTATION_SPEED_DEG_PER_SEC * dt;
+      map.setBearing(nextBearing % 360);
+    };
+
+    rotationFrameRef.current = window.requestAnimationFrame(animate);
+  }, [reducedMotion, stopRotation]);
+
   const markInteracted = useCallback(() => {
     const now = Date.now();
     lastInteractionRef.current = now;
     pausedUntilRef.current = Math.max(pausedUntilRef.current, now + ROTATION_RESUME_DELAY_MS);
 
-    if (userInteractTimerRef.current != null) {
-      window.clearTimeout(userInteractTimerRef.current);
-    }
+    if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
     userInteractTimerRef.current = window.setTimeout(() => {
       userInteractTimerRef.current = null;
     }, 2500);
   }, []);
 
-  // Map init (zoomed in more on load)
+  // Init map (zoomed in more)
   useEffect(() => {
     if (!HAS_MAPBOX_TOKEN) return;
     if (!containerRef.current) return;
@@ -206,7 +234,7 @@ export default function HomeGlobe({
       style: "mapbox://styles/mapbox/outdoors-v12",
       projection: { name: "globe" },
 
-      // ✅ Zoomed in more + nicer framing
+      // ✅ Zoomed in & framed nicely
       center: [10, 15],
       zoom: 2.05,
       pitch: 25,
@@ -217,22 +245,15 @@ export default function HomeGlobe({
 
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
 
-    map.on("style.load", () => {
-      map.setFog({
-        color: "rgb(236, 253, 245)",
-        "high-color": "rgb(13, 148, 136)",
-        "space-color": "rgb(15, 23, 42)",
-        "horizon-blend": 0.2,
-      });
-    });
-
     const handleMapError = (event: mapboxgl.ErrorEvent) => {
       if (hasLoggedErrorRef.current) return;
       hasLoggedErrorRef.current = true;
       console.error("Home globe: map error", event?.error ?? event);
     };
 
-    // Pause rotation on interaction
+    map.on("error", handleMapError);
+
+    // pause rotation on interaction
     map.on("dragstart", markInteracted);
     map.on("zoomstart", markInteracted);
     map.on("rotatestart", markInteracted);
@@ -240,27 +261,71 @@ export default function HomeGlobe({
     map.on("mousedown", markInteracted);
     map.on("touchstart", markInteracted);
     map.on("click", markInteracted);
-    map.on("error", handleMapError);
+
+    // ✅ Critical: resize after load & after layout settles (fixes “grey map”)
+    const onLoaded = () => {
+      try {
+        map.resize();
+      } catch {
+        // ignore
+      }
+      window.requestAnimationFrame(() => {
+        try {
+          map.resize();
+        } catch {
+          // ignore
+        }
+      });
+
+      // fog is safer after load/style is ready
+      try {
+        map.setFog({
+          color: "rgb(236, 253, 245)",
+          "high-color": "rgb(13, 148, 136)",
+          "space-color": "rgb(15, 23, 42)",
+          "horizon-blend": 0.2,
+        });
+      } catch {
+        // ignore if style not ready
+      }
+
+      // start rotation after confirmed load
+      startRotation();
+    };
+
+    if (map.loaded()) onLoaded();
+    else map.once("load", onLoaded);
+
+    const handleResize = () => {
+      try {
+        map.resize();
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("resize", handleResize);
 
     mapRef.current = map;
 
     return () => {
+      window.removeEventListener("resize", handleResize);
       if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
-
-      // stop rotation raf
-      if (rotationFrameRef.current != null) {
-        window.cancelAnimationFrame(rotationFrameRef.current);
-        rotationFrameRef.current = null;
-      }
-      lastRotationTimeRef.current = null;
-
+      stopRotation();
       map.off("error", handleMapError);
       map.remove();
       mapRef.current = null;
     };
-  }, [markInteracted]);
+  }, [markInteracted, startRotation, stopRotation]);
 
-  // Markers/popup setup per mode
+  // If reduced motion toggles, start/stop rotation
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (reducedMotion) stopRotation();
+    else startRotation();
+  }, [reducedMotion, startRotation, stopRotation]);
+
+  // Build markers for current mode
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -273,6 +338,7 @@ export default function HomeGlobe({
       if (!Number.isFinite(marker.lng) || !Number.isFinite(marker.lat)) return;
 
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px", closeButton: false });
+
       const popupNode = document.createElement("div");
       popupNode.className =
         "space-y-2 text-sm text-slate-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
@@ -347,7 +413,7 @@ export default function HomeGlobe({
     });
   }, [mapMarkers, markInteracted]);
 
-  // Reset featured when switching mode
+  // Reset featured on mode switch
   useEffect(() => {
     const current = activeMarkerRef.current;
     if (current) {
@@ -357,52 +423,6 @@ export default function HomeGlobe({
     lastSwitchRef.current = 0;
     if (debugEnabled) setDebugState({ mode, featuredId: null });
   }, [debugEnabled, mode]);
-
-  // ✅ Idle rotation (starts after map load, pauses on interaction, resumes)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // stop any previous loop
-    if (rotationFrameRef.current != null) {
-      window.cancelAnimationFrame(rotationFrameRef.current);
-      rotationFrameRef.current = null;
-    }
-    lastRotationTimeRef.current = null;
-
-    if (reducedMotion) return;
-
-    const start = () => {
-      const animate = (time: number) => {
-        rotationFrameRef.current = window.requestAnimationFrame(animate);
-
-        if (lastRotationTimeRef.current == null) lastRotationTimeRef.current = time;
-        const dt = (time - lastRotationTimeRef.current) / 1000;
-        lastRotationTimeRef.current = time;
-
-        // respect interaction pause window
-        if (Date.now() < pausedUntilRef.current) return;
-
-        // rotate
-        const nextBearing = map.getBearing() + ROTATION_SPEED_DEG_PER_SEC * dt;
-        map.setBearing(nextBearing % 360);
-      };
-
-      rotationFrameRef.current = window.requestAnimationFrame(animate);
-    };
-
-    // ensure we start only after fully loaded (prevents “does nothing” cases)
-    if (map.loaded()) start();
-    else map.once("load", start);
-
-    return () => {
-      if (rotationFrameRef.current != null) {
-        window.cancelAnimationFrame(rotationFrameRef.current);
-        rotationFrameRef.current = null;
-      }
-      lastRotationTimeRef.current = null;
-    };
-  }, [reducedMotion]);
 
   // Featured popup picker
   useEffect(() => {
@@ -488,8 +508,8 @@ export default function HomeGlobe({
       role="region"
       aria-label="Rotating globe showing approved projects, funding opportunities, and watchdog issues."
     >
-      {/* Important: absolute inset ensures it fills full-bleed hero container reliably */}
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* ✅ Back to normal sizing (fixes grey map cases) */}
+      <div ref={containerRef} className="h-full w-full" />
 
       <span className="sr-only">
         The globe rotates automatically and highlights a featured item when it is in view. Use the mode controls to
