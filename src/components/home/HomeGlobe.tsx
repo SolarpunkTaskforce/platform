@@ -12,6 +12,8 @@ const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length
 mapboxgl.accessToken = MAPBOX_TOKEN || "";
 
 const ROTATION_SPEED_DEG_PER_SEC = 1.25;
+const ROTATION_RESUME_DELAY_MS = 1500;
+
 const MIN_SWITCH_MS = 10000;
 const POPUP_CHECK_INTERVAL_MS = 1500;
 const INTERACTION_COOLDOWN_MS = 25000;
@@ -101,7 +103,7 @@ const scoreFeaturedCandidate = (point: HomeGlobePoint, now: number) => {
 };
 
 const pickWeightedCandidate = (candidates: MarkerObject[], now: number) => {
-  const weighted = candidates.map(candidate => ({
+  const weighted = candidates.map((candidate) => ({
     candidate,
     weight: scoreFeaturedCandidate(candidate.point, now),
   }));
@@ -146,43 +148,54 @@ export default function HomeGlobe({
 }) {
   const reducedMotion = usePrefersReducedMotion();
   const searchParams = useSearchParams();
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+
   const markerObjs = useRef<MarkerObject[]>([]);
   const activeMarkerRef = useRef<MarkerObject | null>(null);
+
   const recentIdsRef = useRef<Record<HomeGlobeMode, Array<{ id: string; timestamp: number }>>>({
     projects: [],
     funding: [],
     issues: [],
   });
+
   const lastSwitchRef = useRef<number>(0);
+
+  // rotation state
   const rotationFrameRef = useRef<number | null>(null);
   const lastRotationTimeRef = useRef<number | null>(null);
-  const userInteractedRef = useRef(false);
+  const pausedUntilRef = useRef<number>(0);
+
+  // interaction
   const userInteractTimerRef = useRef<number | null>(null);
   const lastInteractionRef = useRef<number>(0);
+
   const hasLoggedErrorRef = useRef(false);
+
   const [debugState, setDebugState] = useState<{ mode: HomeGlobeMode; featuredId?: string | null } | null>(
     null,
   );
 
-  const debugEnabled =
-    searchParams?.get("globeDebug") === "1" || searchParams?.get("globe_debug") === "1";
+  const debugEnabled = searchParams?.get("globeDebug") === "1" || searchParams?.get("globe_debug") === "1";
 
   const mapMarkers = useMemo(() => pointsByMode[mode] ?? [], [mode, pointsByMode]);
 
   const markInteracted = useCallback(() => {
-    userInteractedRef.current = true;
-    lastInteractionRef.current = Date.now();
+    const now = Date.now();
+    lastInteractionRef.current = now;
+    pausedUntilRef.current = Math.max(pausedUntilRef.current, now + ROTATION_RESUME_DELAY_MS);
+
     if (userInteractTimerRef.current != null) {
       window.clearTimeout(userInteractTimerRef.current);
     }
     userInteractTimerRef.current = window.setTimeout(() => {
-      userInteractedRef.current = false;
       userInteractTimerRef.current = null;
     }, 2500);
   }, []);
 
+  // Map init (zoomed in more on load)
   useEffect(() => {
     if (!HAS_MAPBOX_TOKEN) return;
     if (!containerRef.current) return;
@@ -191,9 +204,14 @@ export default function HomeGlobe({
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/outdoors-v12",
-      center: [0, 0],
-      zoom: 1.15,
       projection: { name: "globe" },
+
+      // ✅ Zoomed in more + nicer framing
+      center: [10, 15],
+      zoom: 2.05,
+      pitch: 25,
+      bearing: 0,
+
       preserveDrawingBuffer: false,
     });
 
@@ -214,10 +232,13 @@ export default function HomeGlobe({
       console.error("Home globe: map error", event?.error ?? event);
     };
 
+    // Pause rotation on interaction
     map.on("dragstart", markInteracted);
     map.on("zoomstart", markInteracted);
     map.on("rotatestart", markInteracted);
     map.on("pitchstart", markInteracted);
+    map.on("mousedown", markInteracted);
+    map.on("touchstart", markInteracted);
     map.on("click", markInteracted);
     map.on("error", handleMapError);
 
@@ -225,21 +246,30 @@ export default function HomeGlobe({
 
     return () => {
       if (userInteractTimerRef.current != null) window.clearTimeout(userInteractTimerRef.current);
+
+      // stop rotation raf
+      if (rotationFrameRef.current != null) {
+        window.cancelAnimationFrame(rotationFrameRef.current);
+        rotationFrameRef.current = null;
+      }
+      lastRotationTimeRef.current = null;
+
       map.off("error", handleMapError);
       map.remove();
       mapRef.current = null;
     };
   }, [markInteracted]);
 
+  // Markers/popup setup per mode
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    markerObjs.current.forEach(obj => obj.marker.remove());
+    markerObjs.current.forEach((obj) => obj.marker.remove());
     markerObjs.current = [];
     activeMarkerRef.current = null;
 
-    mapMarkers.forEach(marker => {
+    mapMarkers.forEach((marker) => {
       if (!Number.isFinite(marker.lng) || !Number.isFinite(marker.lat)) return;
 
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px", closeButton: false });
@@ -317,6 +347,7 @@ export default function HomeGlobe({
     });
   }, [mapMarkers, markInteracted]);
 
+  // Reset featured when switching mode
   useEffect(() => {
     const current = activeMarkerRef.current;
     if (current) {
@@ -324,32 +355,45 @@ export default function HomeGlobe({
       activeMarkerRef.current = null;
     }
     lastSwitchRef.current = 0;
-    if (debugEnabled) {
-      setDebugState({ mode, featuredId: null });
-    }
+    if (debugEnabled) setDebugState({ mode, featuredId: null });
   }, [debugEnabled, mode]);
 
+  // ✅ Idle rotation (starts after map load, pauses on interaction, resumes)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || reducedMotion) return;
+    if (!map) return;
 
-    const animate = (time: number) => {
-      if (lastRotationTimeRef.current == null) {
+    // stop any previous loop
+    if (rotationFrameRef.current != null) {
+      window.cancelAnimationFrame(rotationFrameRef.current);
+      rotationFrameRef.current = null;
+    }
+    lastRotationTimeRef.current = null;
+
+    if (reducedMotion) return;
+
+    const start = () => {
+      const animate = (time: number) => {
+        rotationFrameRef.current = window.requestAnimationFrame(animate);
+
+        if (lastRotationTimeRef.current == null) lastRotationTimeRef.current = time;
+        const dt = (time - lastRotationTimeRef.current) / 1000;
         lastRotationTimeRef.current = time;
-      }
-      const last = lastRotationTimeRef.current;
-      const delta = (time - last) / 1000;
-      lastRotationTimeRef.current = time;
 
-      if (!userInteractedRef.current) {
-        const nextBearing = map.getBearing() + ROTATION_SPEED_DEG_PER_SEC * delta;
+        // respect interaction pause window
+        if (Date.now() < pausedUntilRef.current) return;
+
+        // rotate
+        const nextBearing = map.getBearing() + ROTATION_SPEED_DEG_PER_SEC * dt;
         map.setBearing(nextBearing % 360);
-      }
+      };
 
       rotationFrameRef.current = window.requestAnimationFrame(animate);
     };
 
-    rotationFrameRef.current = window.requestAnimationFrame(animate);
+    // ensure we start only after fully loaded (prevents “does nothing” cases)
+    if (map.loaded()) start();
+    else map.once("load", start);
 
     return () => {
       if (rotationFrameRef.current != null) {
@@ -360,6 +404,7 @@ export default function HomeGlobe({
     };
   }, [reducedMotion]);
 
+  // Featured popup picker
   useEffect(() => {
     if (reducedMotion) return;
     const map = mapRef.current;
@@ -370,13 +415,9 @@ export default function HomeGlobe({
       const current = activeMarkerRef.current;
       const center = map.getCenter();
 
-      if (now - lastInteractionRef.current < INTERACTION_COOLDOWN_MS) {
-        return;
-      }
+      if (now - lastInteractionRef.current < INTERACTION_COOLDOWN_MS) return;
 
-      if (current && isMarkerInView(current, center)) {
-        return;
-      }
+      if (current && isMarkerInView(current, center)) return;
 
       if (current) {
         current.marker.getPopup()?.remove();
@@ -385,16 +426,17 @@ export default function HomeGlobe({
 
       if (now - lastSwitchRef.current < MIN_SWITCH_MS) return;
 
-      const candidates = markerObjs.current.filter(marker => isMarkerInView(marker, center));
+      const candidates = markerObjs.current.filter((marker) => isMarkerInView(marker, center));
       if (!candidates.length) return;
 
       const recentEntries = recentIdsRef.current[mode] ?? [];
       const recent = new Set(
         recentEntries
-          .filter(entry => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS)
-          .map(entry => entry.id),
+          .filter((entry) => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS)
+          .map((entry) => entry.id),
       );
-      const fresh = candidates.filter(marker => !recent.has(marker.id));
+
+      const fresh = candidates.filter((marker) => !recent.has(marker.id));
       if (!fresh.length) return;
 
       const choice = pickWeightedCandidate(fresh, now);
@@ -403,13 +445,12 @@ export default function HomeGlobe({
       choice.marker.getPopup()?.addTo(map);
       activeMarkerRef.current = choice;
       lastSwitchRef.current = now;
-      if (debugEnabled) {
-        setDebugState({ mode, featuredId: choice.id });
-      }
+
+      if (debugEnabled) setDebugState({ mode, featuredId: choice.id });
 
       recentIdsRef.current[mode] = [
         { id: choice.id, timestamp: now },
-        ...recentEntries.filter(entry => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS),
+        ...recentEntries.filter((entry) => now - entry.timestamp < FEATURED_REPEAT_BLOCK_MS),
       ];
     };
 
@@ -418,6 +459,7 @@ export default function HomeGlobe({
     return () => window.clearInterval(interval);
   }, [debugEnabled, mode, reducedMotion]);
 
+  // Clear popups if reduced motion toggles on
   useEffect(() => {
     if (!reducedMotion) return;
     const current = activeMarkerRef.current;
@@ -429,7 +471,7 @@ export default function HomeGlobe({
 
   if (!HAS_MAPBOX_TOKEN) {
     return (
-      <div className="grid h-full w-full place-items-center rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
+      <div className="grid h-full w-full place-items-center bg-slate-50 p-6 text-center">
         <div className="space-y-2">
           <div className="text-sm font-semibold text-slate-900">Globe view unavailable</div>
           <div className="text-sm text-slate-600">
@@ -442,21 +484,25 @@ export default function HomeGlobe({
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm"
+      className="relative h-full w-full overflow-hidden"
       role="region"
       aria-label="Rotating globe showing approved projects, funding opportunities, and watchdog issues."
     >
-      <div ref={containerRef} className="h-full w-full" />
+      {/* Important: absolute inset ensures it fills full-bleed hero container reliably */}
+      <div ref={containerRef} className="absolute inset-0" />
+
       <span className="sr-only">
         The globe rotates automatically and highlights a featured item when it is in view. Use the mode controls to
         switch between projects, funding, and issues.
       </span>
+
       <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-2xl bg-white/85 p-4 text-sm text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           {FEATURED_COPY[mode].title}
         </div>
         <p className="mt-1 text-sm text-slate-600">{FEATURED_COPY[mode].description}</p>
       </div>
+
       {debugEnabled ? (
         <div className="pointer-events-none absolute left-6 top-6 rounded-2xl bg-slate-900/85 px-4 py-3 text-xs text-slate-100 shadow-lg ring-1 ring-black/10">
           <div className="font-semibold uppercase tracking-wide text-emerald-200">Globe debug</div>

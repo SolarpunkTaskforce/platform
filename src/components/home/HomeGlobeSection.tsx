@@ -200,13 +200,13 @@ export default function HomeGlobeSection({
       {/* Globe background */}
       <div id="home-globe" className="absolute inset-0 z-0">
         <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
       </div>
 
       {/* Overlay UI (IMPORTANT: allow globe interaction by default) */}
       <div className="pointer-events-none relative z-10 flex h-full w-full flex-col">
         {/* Top content */}
-        <div className="px-6 pt-8">
+        <div className="px-6 sm:px-8 lg:px-12 pt-8">
           {/* Intro copy */}
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
@@ -291,9 +291,9 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Stats overlays (re-enable pointer events so users can select text/click links if any) */}
+        {/* Stats overlays */}
         <div className="relative flex-1">
-          <div className="absolute inset-0 flex items-end justify-between gap-6 px-6 pb-8">
+          <div className="absolute inset-0 flex items-end justify-between gap-6 px-6 sm:px-8 lg:px-12 pb-8">
             <div className="pointer-events-auto hidden w-[min(420px,34vw)] lg:block">
               <HomeStatsPanel
                 key={`${mode}-left`}
@@ -314,7 +314,7 @@ export default function HomeGlobeSection({
             </div>
           </div>
 
-          <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 lg:hidden">
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 sm:px-8 lg:px-12 pb-6 lg:hidden">
             <div className="grid gap-4 md:grid-cols-2">
               <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
               <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
