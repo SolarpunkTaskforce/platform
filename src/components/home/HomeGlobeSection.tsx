@@ -200,14 +200,14 @@ export default function HomeGlobeSection({
       {/* Globe background */}
       <div id="home-globe" className="absolute inset-0 z-0">
         <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
       </div>
 
-      {/* Overlay UI */}
-      <div className="relative z-10 flex h-full w-full flex-col">
-        {/* Intro + Buttons */}
+      {/* Overlay UI (IMPORTANT: allow globe interaction by default) */}
+      <div className="pointer-events-none relative z-10 flex h-full w-full flex-col">
+        {/* Top content */}
         <div className="px-6 pt-8">
-          {/* Intro copy now lives INSIDE the hero */}
+          {/* Intro copy */}
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
               Solarpunk Taskforce
@@ -221,8 +221,8 @@ export default function HomeGlobeSection({
             </p>
           </div>
 
-          <div className="mt-6">
-            {/* Desktop buttons */}
+          {/* Buttons (re-enable pointer events) */}
+          <div className="mt-6 pointer-events-auto">
             <div
               ref={buttonRowRef}
               className="hidden flex-wrap gap-3 md:flex"
@@ -252,7 +252,6 @@ export default function HomeGlobeSection({
               })}
             </div>
 
-            {/* Mobile selector */}
             <div className="mt-4 flex flex-col gap-3 md:hidden">
               <div
                 className="grid grid-cols-3 rounded-2xl border border-white/25 bg-white/10 p-1 backdrop-blur-md"
@@ -292,10 +291,10 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Side stats overlays */}
+        {/* Stats overlays (re-enable pointer events so users can select text/click links if any) */}
         <div className="relative flex-1">
           <div className="absolute inset-0 flex items-end justify-between gap-6 px-6 pb-8">
-            <div className="hidden w-[min(420px,34vw)] lg:block">
+            <div className="pointer-events-auto hidden w-[min(420px,34vw)] lg:block">
               <HomeStatsPanel
                 key={`${mode}-left`}
                 title={activeStats.leftTitle}
@@ -304,7 +303,7 @@ export default function HomeGlobeSection({
               />
             </div>
 
-            <div className="hidden w-[min(420px,34vw)] lg:block">
+            <div className="pointer-events-auto hidden w-[min(420px,34vw)] lg:block">
               <HomeStatsPanel
                 key={`${mode}-right`}
                 title={activeStats.rightTitle}
@@ -315,7 +314,7 @@ export default function HomeGlobeSection({
             </div>
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 px-6 pb-6 lg:hidden">
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 lg:hidden">
             <div className="grid gap-4 md:grid-cols-2">
               <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
               <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
