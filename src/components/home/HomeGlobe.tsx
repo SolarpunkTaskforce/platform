@@ -124,21 +124,6 @@ const isMarkerInView = (marker: MarkerObject, center: mapboxgl.LngLat) => {
   return dot > IN_VIEW_THRESHOLD;
 };
 
-const FEATURED_COPY: Record<HomeGlobeMode, { title: string; description: string }> = {
-  projects: {
-    title: "Featured projects",
-    description: "The globe highlights approved projects as they rotate into view.",
-  },
-  funding: {
-    title: "Featured funding",
-    description: "Highlighted funding opportunities refresh as the globe spins.",
-  },
-  issues: {
-    title: "Featured issues",
-    description: "Reviewed watchdog issues surface as they rotate into view.",
-  },
-};
-
 export default function HomeGlobe({
   mode,
   pointsByMode,
@@ -512,16 +497,9 @@ export default function HomeGlobe({
       <div ref={containerRef} className="h-full w-full" />
 
       <span className="sr-only">
-        The globe rotates automatically and highlights a featured item when it is in view. Use the mode controls to
-        switch between projects, funding, and issues.
+        The globe rotates automatically. Use the mode controls to switch between projects, funding, and issues.
       </span>
 
-      <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-2xl bg-white/85 p-4 text-sm text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur-sm">
-        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          {FEATURED_COPY[mode].title}
-        </div>
-        <p className="mt-1 text-sm text-slate-600">{FEATURED_COPY[mode].description}</p>
-      </div>
 
       {debugEnabled ? (
         <div className="pointer-events-none absolute left-6 top-6 rounded-2xl bg-slate-900/85 px-4 py-3 text-xs text-slate-100 shadow-lg ring-1 ring-black/10">
