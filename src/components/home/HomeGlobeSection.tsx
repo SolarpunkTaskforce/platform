@@ -466,6 +466,16 @@ export default function HomeGlobeSection({
 
         {/* Stats overlays */}
         <div ref={statsContainerRef} className="relative flex-1">
+          <div className="absolute right-6 top-5 z-20 hidden lg:block">
+            <button
+              type="button"
+              onClick={resetLayout}
+              className="pointer-events-auto rounded-full border border-white/20 bg-slate-950/35 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md transition hover:bg-slate-950/55 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            >
+              Reset layout
+            </button>
+          </div>
+
           {panelLayout ? (
             <>
               <DraggableStatsPanel
@@ -476,17 +486,16 @@ export default function HomeGlobeSection({
                 layout={panelLayout.left}
                 onDragStop={onPanelDragStop}
                 onResizeStop={onPanelResizeStop}
-                onResetLayout={resetLayout}
               />
               <DraggableStatsPanel
                 panelKey="right"
                 title={activeStats.rightTitle}
                 items={activeStats.right}
                 footnote={activeStats.footnote}
+                align="right"
                 layout={panelLayout.right}
                 onDragStop={onPanelDragStop}
                 onResizeStop={onPanelResizeStop}
-                onResetLayout={resetLayout}
               />
             </>
           ) : null}
@@ -503,9 +512,9 @@ export default function HomeGlobeSection({
               type="button"
               onClick={scrollToNextSection}
               aria-label="Scroll to next section"
-              className="pointer-events-auto inline-flex h-10 w-14 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
             >
-              <ChevronDown className="h-5 w-6" aria-hidden="true" />
+              <ChevronDown className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -519,15 +528,16 @@ function DraggableStatsPanel({
   title,
   items,
   footnote,
+  align = "left",
   layout,
   onDragStop,
   onResizeStop,
-  onResetLayout,
 }: {
   panelKey: PanelKey;
   title: string;
   items: StatItem[];
   footnote?: string;
+  align?: "left" | "right";
   layout: PanelLayout;
   onDragStop: (panelKey: PanelKey, event: RndDragEvent, dragData: DraggableData) => void;
   onResizeStop: (
@@ -538,7 +548,6 @@ function DraggableStatsPanel({
     delta: unknown,
     position: { x: number; y: number },
   ) => void;
-  onResetLayout: () => void;
 }) {
   return (
     <Rnd
@@ -578,13 +587,7 @@ function DraggableStatsPanel({
         topLeft: "home-panel-resize-handle",
       }}
     >
-      <HomeStatsPanel
-        title={title}
-        items={items}
-        footnote={footnote}
-        draggable
-        onResetLayout={onResetLayout}
-      />
+      <HomeStatsPanel title={title} items={items} footnote={footnote} align={align} draggable />
     </Rnd>
   );
 }
@@ -593,14 +596,14 @@ function HomeStatsPanel({
   title,
   items,
   footnote,
+  align = "left",
   draggable = false,
-  onResetLayout,
 }: {
   title: string;
   items: StatItem[];
   footnote?: string;
+  align?: "left" | "right";
   draggable?: boolean;
-  onResetLayout?: () => void;
 }) {
   if (!items.length) return null;
 
@@ -608,28 +611,20 @@ function HomeStatsPanel({
     <div
       className={cn(
         "group relative flex h-full w-full flex-col gap-4 rounded-3xl border border-white/25 bg-white/10 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
-        "lg:text-left",
+        align === "right" ? "lg:text-right" : "lg:text-left",
       )}
     >
       <div
         className={cn(
-          "flex items-start justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100",
+          "flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100",
           draggable ? `${PANEL_HANDLE_CLASS} cursor-move touch-none rounded-xl px-1 py-1` : "",
         )}
       >
-        <div className="flex items-center gap-2">
+        <span>{title}</span>
+        <span className="hidden items-center gap-1 text-white/70 lg:inline-flex">
           {draggable ? <GripHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> : null}
-          <span>{title}</span>
-        </div>
-        {draggable ? (
-          <button
-            type="button"
-            onClick={onResetLayout}
-            className="pointer-events-auto rounded-full border border-white/20 bg-slate-950/35 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/80 transition hover:bg-slate-950/55 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          >
-            Reset
-          </button>
-        ) : null}
+          <span>Live aggregates</span>
+        </span>
       </div>
       <div className="grid gap-4">
         {items.map((item) => (
