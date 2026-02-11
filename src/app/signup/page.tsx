@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SignupTabs from "@/components/auth/SignupTabs";
 
 export default function SignupPage() {
@@ -8,6 +9,12 @@ export default function SignupPage() {
         <p className="text-sm text-slate-600">
           Choose the signup flow that matches you. Individuals can link to a verified
           organisation or continue independently.
+        </p>
+        <p className="text-sm text-slate-600">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-[#11526D] hover:underline">
+            Sign in
+          </Link>
         </p>
       </div>
       <SignupTabs />

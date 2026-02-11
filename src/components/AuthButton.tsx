@@ -20,9 +20,14 @@ export default function AuthButton() {
 
   if (!userEmail) {
     return (
-      <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">
-        Sign in
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/login" className="rounded-xl border px-3 py-1 text-sm">
+          Sign in
+        </Link>
+        <Link href="/signup" className="rounded-xl bg-slate-900 px-3 py-1 text-sm text-white">
+          Register
+        </Link>
+      </div>
     );
   }
 

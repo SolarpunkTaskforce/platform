@@ -259,8 +259,11 @@ export default function Header() {
               {profileControls}
             </>
           ) : (
-            <Link href="/auth" className="rounded-xl border px-3 py-1 text-sm">
+            <Link href="/login" className="rounded-xl border px-3 py-1 text-sm">
               Sign in
+            </Link>
+            <Link href="/signup" className="rounded-xl bg-slate-900 px-3 py-1 text-sm text-white">
+              Register
             </Link>
           )}
         </div>
