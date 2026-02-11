@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Grip } from "lucide-react";
+import { ChevronDown, GripHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { FocusEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,15 +21,15 @@ type PanelKey = "left" | "right";
 type PanelLayout = { x: number; y: number; width: number; height: number };
 type PanelLayoutMap = Record<PanelKey, PanelLayout>;
 
-const PANEL_DEFAULT_WIDTH = 380;
-const PANEL_DEFAULT_HEIGHT = 220;
-const PANEL_MIN_WIDTH = PANEL_DEFAULT_WIDTH;
+const PANEL_MIN_WIDTH = 260;
 const PANEL_MAX_WIDTH = 520;
-const PANEL_MIN_HEIGHT = PANEL_DEFAULT_HEIGHT;
+const PANEL_MIN_HEIGHT = 176;
 const PANEL_MAX_HEIGHT = 360;
 const PANEL_GAP = 24;
 const PANEL_PADDING_X = 48;
 const PANEL_PADDING_BOTTOM = 32;
+const PANEL_DEFAULT_WIDTH = 380;
+const PANEL_DEFAULT_HEIGHT = 220;
 
 const MODE_CONFIG: Record<
   HomeGlobeMode,
@@ -89,9 +89,6 @@ const formatStatValue = (item: StatItem) => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-const getPanelScale = (layout: PanelLayout) =>
-  clamp(Math.min(layout.width / PANEL_DEFAULT_WIDTH, layout.height / PANEL_DEFAULT_HEIGHT), 1, 1.45);
 
 const getDefaultLayout = (containerWidth: number, containerHeight: number): PanelLayoutMap => {
   const width = clamp(PANEL_DEFAULT_WIDTH, PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, containerWidth));
@@ -469,6 +466,16 @@ export default function HomeGlobeSection({
 
         {/* Stats overlays */}
         <div ref={statsContainerRef} className="relative flex-1">
+          <div className="absolute right-6 top-5 z-20 hidden lg:block">
+            <button
+              type="button"
+              onClick={resetLayout}
+              className="pointer-events-auto rounded-full border border-white/20 bg-slate-950/35 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md transition hover:bg-slate-950/55 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            >
+              Reset layout
+            </button>
+          </div>
+
           {panelLayout ? (
             <>
               <DraggableStatsPanel
@@ -485,6 +492,7 @@ export default function HomeGlobeSection({
                 title={activeStats.rightTitle}
                 items={activeStats.right}
                 footnote={activeStats.footnote}
+                align="right"
                 layout={panelLayout.right}
                 onDragStop={onPanelDragStop}
                 onResizeStop={onPanelResizeStop}
@@ -499,24 +507,14 @@ export default function HomeGlobeSection({
             </div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-20 flex justify-center">
-            <button
-              type="button"
-              onClick={resetLayout}
-              className="pointer-events-auto rounded-full border border-white/20 bg-slate-950/35 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md transition hover:bg-slate-950/55 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-            >
-              Reset layout
-            </button>
-          </div>
-
           <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
             <button
               type="button"
               onClick={scrollToNextSection}
               aria-label="Scroll to next section"
-              className="pointer-events-auto inline-flex h-10 w-14 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
             >
-              <ChevronDown className="h-5 w-6" aria-hidden="true" />
+              <ChevronDown className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -530,6 +528,7 @@ function DraggableStatsPanel({
   title,
   items,
   footnote,
+  align = "left",
   layout,
   onDragStop,
   onResizeStop,
@@ -538,6 +537,7 @@ function DraggableStatsPanel({
   title: string;
   items: StatItem[];
   footnote?: string;
+  align?: "left" | "right";
   layout: PanelLayout;
   onDragStop: (panelKey: PanelKey, event: RndDragEvent, dragData: DraggableData) => void;
   onResizeStop: (
@@ -587,7 +587,7 @@ function DraggableStatsPanel({
         topLeft: "home-panel-resize-handle",
       }}
     >
-      <HomeStatsPanel title={title} items={items} footnote={footnote} draggable scale={getPanelScale(layout)} />
+      <HomeStatsPanel title={title} items={items} footnote={footnote} align={align} draggable />
     </Rnd>
   );
 }
@@ -596,14 +596,14 @@ function HomeStatsPanel({
   title,
   items,
   footnote,
+  align = "left",
   draggable = false,
-  scale = 1,
 }: {
   title: string;
   items: StatItem[];
   footnote?: string;
+  align?: "left" | "right";
   draggable?: boolean;
-  scale?: number;
 }) {
   if (!items.length) return null;
 
@@ -611,29 +611,30 @@ function HomeStatsPanel({
     <div
       className={cn(
         "group relative flex h-full w-full flex-col gap-4 rounded-3xl border border-white/25 bg-white/10 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
-        "lg:text-left",
+        align === "right" ? "lg:text-right" : "lg:text-left",
       )}
     >
       <div
         className={cn(
-          "flex items-start justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100",
+          "flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100",
           draggable ? `${PANEL_HANDLE_CLASS} cursor-move touch-none rounded-xl px-1 py-1` : "",
         )}
       >
-        <div className="flex items-center gap-2">
-          {draggable ? <Grip className="h-3.5 w-3.5" aria-hidden="true" /> : null}
-          <span style={{ fontSize: `${0.72 * scale}rem` }}>{title}</span>
-        </div>
+        <span>{title}</span>
+        <span className="hidden items-center gap-1 text-white/70 lg:inline-flex">
+          {draggable ? <GripHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+          <span>Live aggregates</span>
+        </span>
       </div>
       <div className="grid gap-4">
         {items.map((item) => (
           <div key={item.label} className="flex flex-col items-start gap-1">
-            <div className="font-semibold text-white/85" style={{ fontSize: `${0.9 * scale}rem` }}>{item.label}</div>
-            <div className="font-semibold text-white" style={{ fontSize: `${1.55 * scale}rem`, lineHeight: 1.15 }}>{formatStatValue(item)}</div>
+            <div className="text-sm font-semibold text-white/85">{item.label}</div>
+            <div className="text-2xl font-semibold text-white sm:text-3xl">{formatStatValue(item)}</div>
           </div>
         ))}
       </div>
-      {footnote ? <p className="text-white/70" style={{ fontSize: `${0.72 * scale}rem` }}>{footnote}</p> : null}
+      {footnote ? <p className="text-xs text-white/70">{footnote}</p> : null}
       {draggable ? (
         <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/25 group-focus-within:ring-white/25" />
       ) : null}
