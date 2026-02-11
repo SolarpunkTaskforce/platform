@@ -55,7 +55,10 @@ export default async function HomePage() {
 
       {/* Below-the-fold content */}
       <div className="flex flex-col gap-8 px-4 py-8 sm:gap-12 sm:px-6 sm:py-10">
-        <section className="grid gap-8 border-t border-slate-100 pt-8 sm:gap-10 sm:pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <section
+          id="home-next-section"
+          className="grid gap-8 border-t border-slate-100 pt-8 sm:gap-10 sm:pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]"
+        >
           <div className="space-y-6">
             <header className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
