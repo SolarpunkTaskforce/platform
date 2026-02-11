@@ -75,7 +75,7 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <table className="min-w-[800px] divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
               <th className="px-4 py-3">Funding opportunity</th>
@@ -100,17 +100,17 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
 
               return (
                 <tr key={grant.id} className="align-top">
-                  <td className="px-4 py-4">
+                  <td className="max-w-[280px] px-4 py-4">
                     <Link
                       className="font-semibold text-emerald-700 hover:text-emerald-800"
                       href={`/funding/${encodeURIComponent(slugForPath)}`}
                     >
                       {grant.title}
                     </Link>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 truncate text-xs text-slate-500">
                       {grant.funder_name ? `Funder: ${grant.funder_name}` : "Funder not listed"}
                     </p>
-                    {grant.summary ? <p className="mt-2 text-xs text-slate-500">{grant.summary}</p> : null}
+                    {grant.summary ? <p className="mt-2 line-clamp-2 text-xs text-slate-500">{grant.summary}</p> : null}
                   </td>
                   <td className="px-4 py-4 text-slate-600">
                     <div className="capitalize">{grant.funding_type}</div>

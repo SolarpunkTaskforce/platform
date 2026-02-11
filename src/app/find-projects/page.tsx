@@ -47,10 +47,10 @@ export default async function FindProjectsPage({
   }
 
   return (
-    <main className="flex-1 min-h-0 px-6 py-8 flex flex-col gap-6">
+    <main className="flex-1 min-h-0 px-4 py-6 flex flex-col gap-4 sm:px-6 sm:py-8 sm:gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-slate-900">Find Projects</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Find Projects</h1>
           <p className="text-sm text-slate-600">
             Browse projects submitted to the Solarpunk Taskforce. Filter across environmental and humanitarian work.
           </p>
