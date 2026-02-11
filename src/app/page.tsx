@@ -44,7 +44,7 @@ export default async function HomePage() {
   return (
     <main className="flex flex-col">
       {/* Full-viewport hero */}
-      <Suspense fallback={<div className="h-[calc(100vh-3.5rem)] w-full bg-slate-50" />}>
+      <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-slate-50" />}>
         <HomeGlobeSection
           projectMarkers={markers}
           grantMarkers={grantMarkers}
@@ -54,8 +54,8 @@ export default async function HomePage() {
       </Suspense>
 
       {/* Below-the-fold content */}
-      <div className="flex flex-col gap-12 px-6 py-10">
-        <section className="grid gap-10 border-t border-slate-100 pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+      <div className="flex flex-col gap-8 px-4 py-8 sm:gap-12 sm:px-6 sm:py-10">
+        <section className="grid gap-8 border-t border-slate-100 pt-8 sm:gap-10 sm:pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div className="space-y-6">
             <header className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">

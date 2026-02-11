@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 
 import Map from "@/components/Map";
 import WatchdogFilters from "@/components/watchdog/WatchdogFilters";
 import type { WatchdogFilterOptions, WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
 
+const MOBILE_BREAKPOINT = 768;
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 type Props = {
@@ -35,6 +37,15 @@ const formatPlaceName = (marker: WatchdogIssueMarker) => {
 
 export default function WatchdogGlobeSplitView({ markers, totalCount, focusId, options }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const draggingRef = useRef(false);
   const dragPointerIdRef = useRef<number | null>(null);
@@ -236,6 +247,52 @@ export default function WatchdogGlobeSplitView({ markers, totalCount, focusId, o
       })),
     [markers],
   );
+
+  if (isMobile) {
+    return (
+      <section className="relative h-full w-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="h-full w-full">
+          <Map
+            markers={mapMarkers}
+            markerColor="#10b981"
+            focusSlug={focusId}
+            ctaLabel="View details"
+            recenterNonce={recenterNonce}
+            freeze={false}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileFiltersOpen(o => !o)}
+          className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg ring-1 ring-black/10"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+        </button>
+
+        {mobileFiltersOpen && (
+          <>
+            <div className="absolute inset-0 z-20 bg-black/20" onClick={() => setMobileFiltersOpen(false)} />
+            <div className="absolute bottom-0 left-0 right-0 z-30 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-900">Filters</span>
+                <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg p-1 hover:bg-slate-100">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <WatchdogFilters options={options} basePath="/watchdog" showSorting={false} variant="inline" />
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  {markers.length} mapped · {totalCount} total
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section

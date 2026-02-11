@@ -143,7 +143,7 @@ export default async function FeedPage({
     .limit(5);
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-10">
+    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
       <header className="space-y-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Activity feed</h1>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, User } from "lucide-react";
+import { Bell, Menu, User, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UserMenu from "@/components/UserMenu";
 import CreateMenuButton from "@/components/CreateMenuButton";
@@ -32,9 +32,15 @@ export default function Header() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -154,7 +160,7 @@ export default function Header() {
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 flex-col bg-[#11526D] p-4 text-sm text-white">
+          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 max-w-[80vw] flex-col bg-[#11526D] p-4 text-sm text-white">
             <UserMenu onNavigate={() => setProfileOpen(false)} />
           </nav>
         </>
@@ -179,12 +185,23 @@ export default function Header() {
 
   return (
     <header className="relative z-10 border-b bg-white">
-      <div className="flex h-14 items-center justify-between px-6">
-        <div className="flex items-center gap-6">
+      <div className="flex h-14 items-center justify-between px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-4 sm:gap-6">
+          {/* Mobile hamburger toggle */}
+          <button
+            type="button"
+            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg hover:bg-slate-100 md:hidden"
+            onClick={() => setMobileNavOpen(o => !o)}
+            aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileNavOpen}
+          >
+            {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="text-lg font-semibold"
+            className="truncate text-base font-semibold sm:text-lg"
             aria-label="Home"
           >
             Solarpunk Taskforce
@@ -251,7 +268,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
           {sessionUserId ? (
             <>
               {addButton}
@@ -263,7 +280,7 @@ export default function Header() {
               <Link href="/login" className="rounded-xl border px-3 py-1 text-sm">
                 Sign in
               </Link>
-              <Link href="/signup" className="rounded-xl bg-slate-900 px-3 py-1 text-sm text-white">
+              <Link href="/signup" className="hidden rounded-xl bg-slate-900 px-3 py-1 text-sm text-white sm:inline-flex">
                 Register
               </Link>
             </>
@@ -271,58 +288,73 @@ export default function Header() {
         </div>
       </div>
 
-      <nav className="flex flex-col gap-2 px-6 pb-4 md:hidden" aria-label="Primary">
-        {navItems.map(item => {
-          if (item.type === "link") {
-            const active = isActive(item.href);
-            return (
+      {/* Mobile nav - collapsible via hamburger */}
+      {mobileNavOpen && (
+        <nav className="border-t border-slate-100 px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
+          <div className="flex flex-col gap-1">
+            {navItems.map(item => {
+              if (item.type === "link") {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
+                      active ? "bg-slate-100 text-[#11526D]" : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              const active = isDropdownActive(item.items);
+
+              return (
+                <details key={item.label} className="rounded-lg" open={active}>
+                  <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <span className="flex items-center justify-between">
+                      {item.label}
+                      <span aria-hidden="true" className="text-xs text-slate-500">
+                        &#9662;
+                      </span>
+                    </span>
+                  </summary>
+
+                  <div className="flex flex-col gap-1 pb-1 pl-3">
+                    {item.items.map(link => {
+                      const childActive = isActive(link.href);
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className={`rounded-md px-3 py-2 text-sm ${
+                            childActive ? "bg-slate-100 text-[#11526D]" : "text-slate-600 hover:bg-slate-50"
+                          }`}
+                          aria-current={childActive ? "page" : undefined}
+                        >
+                          {link.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
+
+            {/* Show Register link in mobile nav if not logged in */}
+            {!sessionUserId && (
               <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                  active ? "bg-slate-100 text-[#11526D]" : "text-slate-700"
-                }`}
-                aria-current={active ? "page" : undefined}
+                href="/signup"
+                className="mt-2 rounded-lg bg-slate-900 px-3 py-2.5 text-center text-sm font-medium text-white sm:hidden"
               >
-                {item.label}
+                Register
               </Link>
-            );
-          }
-
-          const active = isDropdownActive(item.items);
-
-          return (
-            <details key={item.label} className="rounded-lg border" open={active}>
-              <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-slate-700">
-                <span className="flex items-center justify-between">
-                  {item.label}
-                  <span aria-hidden="true" className="text-xs text-slate-500">
-                    ▾
-                  </span>
-                </span>
-              </summary>
-
-              <div className="flex flex-col gap-1 pb-2">
-                {item.items.map(link => {
-                  const childActive = isActive(link.href);
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`mx-2 rounded-md px-3 py-2 text-sm ${
-                        childActive ? "bg-slate-100 text-[#11526D]" : "text-slate-600"
-                      }`}
-                      aria-current={childActive ? "page" : undefined}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </details>
-          );
-        })}
-      </nav>
+            )}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }

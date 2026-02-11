@@ -78,17 +78,17 @@ export default async function OrganisationPage({
   const isVerified = organisation.verification_status === "verified";
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-8 px-4 py-10">
+    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {organisation.logo_url ? (
             <img
               src={organisation.logo_url}
               alt={organisation.name}
-              className="h-20 w-20 rounded-2xl border border-slate-200 object-cover"
+              className="h-14 w-14 rounded-2xl border border-slate-200 object-cover sm:h-20 sm:w-20"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500 sm:h-20 sm:w-20">
               —
             </div>
           )}
