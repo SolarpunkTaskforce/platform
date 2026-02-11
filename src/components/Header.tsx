@@ -18,13 +18,25 @@ type Profile = {
 
 function initials(p: Profile | null) {
   if (!p) return "•";
-  if (p.kind === "organisation") return (p.organisation_name ?? "Org").slice(0, 2).toUpperCase();
+  if (p.kind === "organisation")
+    return (p.organisation_name ?? "Org").slice(0, 2).toUpperCase();
   const name = [p.full_name, p.surname].filter(Boolean).join(" ");
-  return name ? name.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase() : "U";
+  return name
+    ? name
+        .split(" ")
+        .map((s) => s[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "U";
 }
 
 type NavLinkItem = { type: "link"; href: string; label: string };
-type NavDropdownItem = { type: "dropdown"; label: string; items: Array<{ href: string; label: string }> };
+type NavDropdownItem = {
+  type: "dropdown";
+  label: string;
+  items: Array<{ href: string; label: string }>;
+};
 type NavItem = NavLinkItem | NavDropdownItem;
 
 export default function Header() {
@@ -65,26 +77,14 @@ export default function Header() {
       return;
     }
 
+    // NOTE: Keep this simple + reliable: fetch by id only.
+    // The previous `.eq("id,kind", ...)` is not valid for PostgREST and can cause issues.
     supabase
       .from("profiles")
       .select("id, kind, full_name, surname, organisation_name")
-      .eq("id,kind", `${sessionUserId},individual`) // harmless if kind differs; but avoid: remove if you want exact existing behavior
+      .eq("id", sessionUserId)
       .single()
-      .then(({ data, error }) => {
-        // If the above filter causes issues in your schema, remove the .eq("id,kind"...)
-        // and keep only .eq("id", sessionUserId) like you had before.
-        if (error) {
-          // fallback to original behavior
-          supabase
-            .from("profiles")
-            .select("id, kind, full_name, surname, organisation_name")
-            .eq("id", sessionUserId)
-            .single()
-            .then(({ data: data2 }) => setProfile((data2 ?? null) as Profile | null));
-          return;
-        }
-        setProfile((data ?? null) as Profile | null);
-      });
+      .then(({ data }) => setProfile((data ?? null) as Profile | null));
   }, [sessionUserId]);
 
   useEffect(() => {
@@ -137,24 +137,28 @@ export default function Header() {
     []
   );
 
-  // Accept optional just in case, but our NavItem typing guarantees href for link items.
   const isActive = (href?: string) => {
     if (!href) return false;
     return pathname === href;
   };
 
-  const isDropdownActive = (items: { href: string }[]) => items.some(item => pathname === item.href);
+  const isDropdownActive = (items: { href: string }[]) =>
+    items.some((item) => pathname === item.href);
 
   const addButton = <CreateMenuButton />;
 
   const profileControls = (
     <div className="relative">
       <button
-        onClick={() => setProfileOpen(o => !o)}
+        onClick={() => setProfileOpen((o) => !o)}
         className="grid h-9 w-9 place-items-center rounded-full border"
         aria-label="Account"
       >
-        {profile ? <span className="text-xs font-semibold">{initials(profile)}</span> : <User className="h-4 w-4" />}
+        {profile ? (
+          <span className="text-xs font-semibold">{initials(profile)}</span>
+        ) : (
+          <User className="h-4 w-4" />
+        )}
       </button>
 
       {profileOpen && (
@@ -190,8 +194,8 @@ export default function Header() {
           {/* Mobile hamburger toggle */}
           <button
             type="button"
-            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg hover:bg-slate-100 md:hidden"
-            onClick={() => setMobileNavOpen(o => !o)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-slate-100 md:hidden"
+            onClick={() => setMobileNavOpen((o) => !o)}
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileNavOpen}
           >
@@ -208,11 +212,9 @@ export default function Header() {
           </button>
 
           <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
-            {navItems.map(item => {
+            {navItems.map((item) => {
               if (item.type === "link") {
-                // item.href is guaranteed by NavLinkItem typing
                 const active = isActive(item.href);
-
                 return (
                   <Link
                     key={item.href}
@@ -246,7 +248,7 @@ export default function Header() {
                   </button>
 
                   <div className="invisible absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border bg-white py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-                    {item.items.map(link => {
+                    {item.items.map((link) => {
                       const childActive = isActive(link.href);
                       return (
                         <Link
@@ -268,7 +270,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {sessionUserId ? (
             <>
               {addButton}
@@ -280,7 +282,12 @@ export default function Header() {
               <Link href="/login" className="rounded-xl border px-3 py-1 text-sm">
                 Sign in
               </Link>
-              <Link href="/signup" className="hidden rounded-xl bg-slate-900 px-3 py-1 text-sm text-white sm:inline-flex">
+
+              {/* ✅ Resolved: keep responsive "hidden ... sm:inline-flex" version from main */}
+              <Link
+                href="/signup"
+                className="hidden rounded-xl bg-slate-900 px-3 py-1 text-sm text-white sm:inline-flex"
+              >
                 Register
               </Link>
             </>
@@ -292,7 +299,7 @@ export default function Header() {
       {mobileNavOpen && (
         <nav className="border-t border-slate-100 px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
           <div className="flex flex-col gap-1">
-            {navItems.map(item => {
+            {navItems.map((item) => {
               if (item.type === "link") {
                 const active = isActive(item.href);
                 return (
@@ -323,14 +330,16 @@ export default function Header() {
                   </summary>
 
                   <div className="flex flex-col gap-1 pb-1 pl-3">
-                    {item.items.map(link => {
+                    {item.items.map((link) => {
                       const childActive = isActive(link.href);
                       return (
                         <Link
                           key={link.href}
                           href={link.href}
                           className={`rounded-md px-3 py-2 text-sm ${
-                            childActive ? "bg-slate-100 text-[#11526D]" : "text-slate-600 hover:bg-slate-50"
+                            childActive
+                              ? "bg-slate-100 text-[#11526D]"
+                              : "text-slate-600 hover:bg-slate-50"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
