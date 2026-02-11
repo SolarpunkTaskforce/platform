@@ -628,7 +628,7 @@ function HomeStatsPanel({
       </div>
       <div className="grid gap-4">
         {items.map((item) => (
-          <div key={item.label} className="flex items-baseline justify-between gap-4">
+          <div key={item.label} className="flex flex-col items-start gap-1">
             <div className="text-sm font-semibold text-white/85">{item.label}</div>
             <div className="text-2xl font-semibold text-white sm:text-3xl">{formatStatValue(item)}</div>
           </div>
