@@ -4,7 +4,6 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import type { FocusEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Rnd } from "react-rnd";
 
 import HomeGlobe, { type HomeGlobeMode, type HomeGlobePoint } from "@/components/home/HomeGlobe";
 import type { HomeStats } from "@/lib/homeStats";
@@ -14,20 +13,19 @@ import type { ProjectMarker } from "@/lib/projects/findProjectsQuery";
 import type { WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
 
 const DEFAULT_MODE: HomeGlobeMode = "projects";
-const STATS_LAYOUT_STORAGE_KEY = "home-globe-panel-layout-v2";
+const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v3";
 
 type PanelKey = "left" | "right";
-type PanelLayout = { x: number; y: number; width: number; height: number };
-type PanelLayoutMap = Record<PanelKey, PanelLayout>;
+type PanelSize = { width: number; height: number };
 
-const PANEL_MIN_WIDTH = 280;
-const PANEL_MAX_WIDTH = 560;
-const PANEL_MIN_HEIGHT = 200;
-const PANEL_MAX_HEIGHT = 400;
-const PANEL_PADDING_X = 48;
+const PANEL_MIN_WIDTH = 260;
+const PANEL_MAX_WIDTH = 520;
+const PANEL_MIN_HEIGHT = 180;
+const PANEL_MAX_HEIGHT = 380;
+const PANEL_DEFAULT_WIDTH = 340;
+const PANEL_DEFAULT_HEIGHT = 220;
+const PANEL_PADDING_X = 32;
 const PANEL_PADDING_BOTTOM = 32;
-const PANEL_DEFAULT_WIDTH = 380;
-const PANEL_DEFAULT_HEIGHT = 240;
 
 const MODE_CONFIG: Record<
   HomeGlobeMode,
@@ -77,54 +75,24 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 });
 
 const formatStatValue = (item: StatItem) => {
-  if (typeof item.value !== "number" || Number.isNaN(item.value)) {
-    return "—";
-  }
-  if (item.format === "currency") {
-    return currencyFormatter.format(item.value);
-  }
+  if (typeof item.value !== "number" || Number.isNaN(item.value)) return "—";
+  if (item.format === "currency") return currencyFormatter.format(item.value);
   return numberFormatter.format(item.value);
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const getDefaultLayout = (containerWidth: number, containerHeight: number): PanelLayoutMap => {
-  const width = clamp(PANEL_DEFAULT_WIDTH, PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, containerWidth));
-  const height = clamp(PANEL_DEFAULT_HEIGHT, PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, containerHeight));
-  return {
-    left: {
-      x: clamp(PANEL_PADDING_X, 0, Math.max(0, containerWidth - width)),
-      y: clamp(containerHeight - height - PANEL_PADDING_BOTTOM, 0, Math.max(0, containerHeight - height)),
-      width,
-      height,
-    },
-    right: {
-      x: clamp(containerWidth - width - PANEL_PADDING_X, 0, Math.max(0, containerWidth - width)),
-      y: clamp(containerHeight - height - PANEL_PADDING_BOTTOM, 0, Math.max(0, containerHeight - height)),
-      width,
-      height,
-    },
-  };
-};
+const defaultSize = (): PanelSize => ({
+  width: PANEL_DEFAULT_WIDTH,
+  height: PANEL_DEFAULT_HEIGHT,
+});
 
-const clampPanel = (panel: PanelLayout, containerWidth: number, containerHeight: number): PanelLayout => {
-  const maxWidth = Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, containerWidth));
-  const maxHeight = Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, containerHeight));
-  const width = clamp(panel.width, PANEL_MIN_WIDTH, maxWidth);
-  const height = clamp(panel.height, PANEL_MIN_HEIGHT, maxHeight);
-  return {
-    width,
-    height,
-    x: clamp(panel.x, 0, Math.max(0, containerWidth - width)),
-    y: clamp(panel.y, 0, Math.max(0, containerHeight - height)),
-  };
-};
+const clampSize = (s: PanelSize): PanelSize => ({
+  width: clamp(s.width, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH),
+  height: clamp(s.height, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT),
+});
 
-const normalizeLayout = (layout: PanelLayoutMap, containerWidth: number, containerHeight: number): PanelLayoutMap => {
-  const left = clampPanel(layout.left, containerWidth, containerHeight);
-  const right = clampPanel(layout.right, containerWidth, containerHeight);
-  return { left, right };
-};
+// ─── Main section ────────────────────────────────────────────────────────────
 
 export default function HomeGlobeSection({
   projectMarkers,
@@ -138,10 +106,33 @@ export default function HomeGlobeSection({
   homeStats: HomeStats | null;
 }) {
   const [mode, setMode] = useState<HomeGlobeMode>(DEFAULT_MODE);
-  const [panelLayout, setPanelLayout] = useState<PanelLayoutMap | null>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const buttonRowRef = useRef<HTMLDivElement | null>(null);
-  const statsContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Single shared size for both panels — they always match.
+  const [panelSize, setPanelSize] = useState<PanelSize>(() => {
+    if (typeof window === "undefined") return defaultSize();
+    try {
+      const saved = localStorage.getItem(STATS_SIZE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<PanelSize>;
+        if (typeof parsed.width === "number" && typeof parsed.height === "number") {
+          return clampSize({ width: parsed.width, height: parsed.height });
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return defaultSize();
+  });
+
+  // Persist size changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STATS_SIZE_STORAGE_KEY, JSON.stringify(panelSize));
+    } catch {
+      // ignore
+    }
+  }, [panelSize]);
 
   const pointsByMode = useMemo<Record<HomeGlobeMode, HomeGlobePoint[]>>(
     () => ({
@@ -247,95 +238,12 @@ export default function HomeGlobeSection({
 
   const activeStats = statsByMode[mode];
 
-  useEffect(() => {
-    const node = statsContainerRef.current;
-    if (!node) return;
-
-    const updateSize = () => {
-      setContainerSize({ width: node.clientWidth, height: node.clientHeight });
-    };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(node);
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!containerSize.width || !containerSize.height) return;
-
-    const defaults = getDefaultLayout(containerSize.width, containerSize.height);
-    let nextLayout = defaults;
-
-    const savedLayout = localStorage.getItem(STATS_LAYOUT_STORAGE_KEY);
-    if (savedLayout) {
-      try {
-        const parsed = JSON.parse(savedLayout) as Partial<PanelLayoutMap>;
-        if (parsed.left && parsed.right) {
-          nextLayout = {
-            left: {
-              x: Number(parsed.left.x),
-              y: Number(parsed.left.y),
-              width: Number(parsed.left.width),
-              height: Number(parsed.left.height),
-            },
-            right: {
-              x: Number(parsed.right.x),
-              y: Number(parsed.right.y),
-              width: Number(parsed.right.width),
-              height: Number(parsed.right.height),
-            },
-          };
-        }
-      } catch {
-        nextLayout = defaults;
-      }
-    }
-
-    setPanelLayout(normalizeLayout(nextLayout, containerSize.width, containerSize.height));
-  }, [containerSize.height, containerSize.width]);
-
-  useEffect(() => {
-    if (!panelLayout) return;
-    localStorage.setItem(STATS_LAYOUT_STORAGE_KEY, JSON.stringify(panelLayout));
-  }, [panelLayout]);
-
   const handleRowBlur = (event: FocusEvent<HTMLDivElement>) => {
     const nextFocus = event.relatedTarget;
     if (!nextFocus || !buttonRowRef.current?.contains(nextFocus as Node)) {
       setMode(DEFAULT_MODE);
     }
   };
-
-  // Both panels always stay the same size — mirror new dimensions to both,
-  // but keep each panel anchored to its default x/y position.
-  const onPanelResizeStop = useCallback(
-    (
-      _panelKey: PanelKey,
-      _event: MouseEvent | TouchEvent,
-      _direction: string,
-      ref: HTMLElement,
-      _delta: unknown,
-      _position: { x: number; y: number },
-    ) => {
-      const newWidth = ref.offsetWidth;
-      const newHeight = ref.offsetHeight;
-      setPanelLayout((_current) => {
-        if (!containerSize.width || !containerSize.height) return _current;
-        const defaults = getDefaultLayout(containerSize.width, containerSize.height);
-        return normalizeLayout(
-          {
-            left: { ...defaults.left, width: newWidth, height: newHeight },
-            right: { ...defaults.right, width: newWidth, height: newHeight },
-          },
-          containerSize.width,
-          containerSize.height,
-        );
-      });
-    },
-    [containerSize.height, containerSize.width],
-  );
 
   const scrollToNextSection = useCallback(() => {
     const next = document.getElementById("home-next-section");
@@ -350,21 +258,22 @@ export default function HomeGlobeSection({
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
       </div>
 
-      {/* Overlay UI (IMPORTANT: allow globe interaction by default) */}
+      {/* Overlay UI */}
       <div className="pointer-events-none relative z-10 flex h-full w-full flex-col">
         {/* Top content */}
         <div className="px-6 pt-8 sm:px-8 lg:px-12">
-          {/* Intro copy */}
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Solarpunk Taskforce</p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Discover regenerative projects around the globe.</h1>
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+              Discover regenerative projects around the globe.
+            </h1>
             <p className="text-base text-white/80">
               Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk
               Taskforce ecosystem.
             </p>
           </div>
 
-          {/* Buttons (re-enable pointer events) */}
+          {/* Mode buttons */}
           <div className="pointer-events-auto mt-6">
             <div
               ref={buttonRowRef}
@@ -395,6 +304,7 @@ export default function HomeGlobeSection({
               })}
             </div>
 
+            {/* Mobile tab bar */}
             <div className="mt-4 flex flex-col gap-3 md:hidden">
               <div
                 className="grid grid-cols-3 rounded-2xl border border-white/25 bg-white/10 p-1 backdrop-blur-md"
@@ -423,7 +333,6 @@ export default function HomeGlobeSection({
                   );
                 })}
               </div>
-
               <Link
                 href={MODE_CONFIG[mode].href}
                 className="inline-flex h-11 items-center justify-center rounded-2xl bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
@@ -434,198 +343,258 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Stats overlays */}
-        <div ref={statsContainerRef} className="relative flex-1">
-          {panelLayout ? (
-            <>
-              <DraggableStatsPanel
-                panelKey="left"
-                title={activeStats.leftTitle}
-                items={activeStats.left}
-                footnote={activeStats.footnote}
-                layout={panelLayout.left}
-                onResizeStop={onPanelResizeStop}
-              />
-              <DraggableStatsPanel
-                panelKey="right"
-                title={activeStats.rightTitle}
-                items={activeStats.right}
-                footnote={activeStats.footnote}
-                align="right"
-                layout={panelLayout.right}
-                onResizeStop={onPanelResizeStop}
-              />
-            </>
-          ) : null}
+        {/* ── Desktop stat panels — pinned to bottom corners ── */}
 
-          {/* Mobile snapshot (shown below lg) */}
-          <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden lg:px-12">
-            <div className="grid gap-4 md:grid-cols-2">
-              <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
-              <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
-            </div>
-          </div>
+        {/* Left panel */}
+        <div
+          className="pointer-events-none absolute hidden lg:block"
+          style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
+        >
+          <PinnedStatsPanel
+            panelKey="left"
+            title={activeStats.leftTitle}
+            items={activeStats.left}
+            footnote={activeStats.footnote}
+            align="left"
+            size={panelSize}
+            onResize={setPanelSize}
+          />
+        </div>
 
-          {/* Scroll chevron */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
-            <button
-              type="button"
-              onClick={scrollToNextSection}
-              aria-label="Scroll to next section"
-              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-            >
-              <ChevronDown className="h-5 w-5" aria-hidden="true" />
-            </button>
+        {/* Right panel */}
+        <div
+          className="pointer-events-none absolute hidden lg:block"
+          style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
+        >
+          <PinnedStatsPanel
+            panelKey="right"
+            title={activeStats.rightTitle}
+            items={activeStats.right}
+            footnote={activeStats.footnote}
+            align="right"
+            size={panelSize}
+            onResize={setPanelSize}
+          />
+        </div>
+
+        {/* Mobile snapshot */}
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden">
+          <div className="grid gap-4 md:grid-cols-2">
+            <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
+            <HomeStatsPanel key={`${mode}-snapshot-right`} title="Snapshot" items={activeStats.right} />
           </div>
+        </div>
+
+        {/* Scroll chevron */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
+          <button
+            type="button"
+            onClick={scrollToNextSection}
+            aria-label="Scroll to next section"
+            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          >
+            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </section>
   );
 }
 
-// ─── DraggableStatsPanel ────────────────────────────────────────────────────
-// Panels are fixed in place. Only the single corner facing the globe
-// (top-right for left panel, top-left for right panel) is resizeable.
-// Resizing one panel mirrors the new size to both panels simultaneously.
+// ─── PinnedStatsPanel ─────────────────────────────────────────────────────────
+// Positioned with CSS (bottom + left/right), never moves.
+// Resize is handled by a raw pointermove listener on the corner handle so that
+// both panels mirror each other live — every frame while dragging.
 
-function DraggableStatsPanel({
+function PinnedStatsPanel({
   panelKey,
   title,
   items,
   footnote,
   align,
-  layout,
-  onResizeStop,
+  size,
+  onResize,
 }: {
   panelKey: PanelKey;
   title: string;
   items: StatItem[];
   footnote?: string;
-  align?: "left" | "right";
-  layout: PanelLayout;
-  onResizeStop: (
-    panelKey: PanelKey,
-    event: MouseEvent | TouchEvent,
-    direction: string,
-    ref: HTMLElement,
-    delta: unknown,
-    position: { x: number; y: number },
-  ) => void;
+  align: "left" | "right";
+  size: PanelSize;
+  onResize: (s: PanelSize) => void;
 }) {
-  // Left panel sits on the left edge → its globe-facing corner is top-right.
-  // Right panel sits on the right edge → its globe-facing corner is top-left.
-  const enableResizing = {
-    top: false,
-    right: false,
-    bottom: false,
-    left: false,
-    topRight: panelKey === "left",
-    bottomRight: false,
-    bottomLeft: false,
-    topLeft: panelKey === "right",
-  };
+  // Keep a stable ref to onResize so the pointermove closure never stales.
+  const onResizeRef = useRef(onResize);
+  useEffect(() => { onResizeRef.current = onResize; }, [onResize]);
 
-  const cornerStyle = { width: "20px", height: "20px", opacity: 1, zIndex: 20 };
+  // Capture start position and panel size at drag start.
+  const dragStartRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragStartRef.current = { px: e.clientX, py: e.clientY, w: size.width, h: size.height };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      document.body.style.cursor = "nwse-resize";
+      document.body.style.userSelect = "none";
+    },
+    [size],
+  );
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (!dragStartRef.current) return;
+      const { px, py, w, h } = dragStartRef.current;
+      const dx = e.clientX - px;
+      const dy = e.clientY - py;
+
+      // Left panel corner is top-right: drag right → wider, drag up → taller.
+      // Right panel corner is top-left: drag left → wider, drag up → taller.
+      const newWidth = clamp(
+        panelKey === "left" ? w + dx : w - dx,
+        PANEL_MIN_WIDTH,
+        PANEL_MAX_WIDTH,
+      );
+      const newHeight = clamp(h - dy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+
+      onResizeRef.current({ width: newWidth, height: newHeight });
+    },
+    [panelKey],
+  );
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    dragStartRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  // Scale text proportionally to panel width, clamped 75%–140%.
+  const scale = clamp(size.width / PANEL_DEFAULT_WIDTH, 0.75, 1.4);
+
+  // Corner handle sits at the globe-facing corner.
+  const cornerClass = panelKey === "left" ? "-top-2.5 -right-2.5" : "-top-2.5 -left-2.5";
+
+  if (!items.length) return null;
 
   return (
-    <Rnd
-      className="pointer-events-auto z-10 hidden lg:block"
-      disableDragging
-      bounds="parent"
-      size={{ width: layout.width, height: layout.height }}
-      position={{ x: layout.x, y: layout.y }}
-      minWidth={PANEL_MIN_WIDTH}
-      maxWidth={PANEL_MAX_WIDTH}
-      minHeight={PANEL_MIN_HEIGHT}
-      maxHeight={PANEL_MAX_HEIGHT}
-      onResizeStop={(event, direction, ref, delta, position) =>
-        onResizeStop(panelKey, event, direction, ref, delta, position)
-      }
-      enableResizing={enableResizing}
-      resizeHandleStyles={{
-        topRight: cornerStyle,
-        topLeft: cornerStyle,
-      }}
-      resizeHandleClasses={{
-        topRight: "home-panel-resize-handle",
-        topLeft: "home-panel-resize-handle",
-      }}
+    <div
+      className="pointer-events-auto group relative overflow-hidden rounded-3xl border border-white/25 bg-white/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none"
+      style={{ width: size.width, height: size.height }}
     >
-      <HomeStatsPanel title={title} items={items} footnote={footnote} align={align} panelSize={layout} />
-    </Rnd>
+      {/* Content */}
+      <div
+        className={cn(
+          "flex h-full w-full flex-col gap-4 p-5",
+          align === "right" ? "items-end text-right" : "items-start text-left",
+        )}
+      >
+        {/* Header */}
+        <div
+          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-emerald-100"
+          style={{ fontSize: `${0.7 * scale}rem` }}
+        >
+          <span>{title}</span>
+          <span className="text-white/50">Live aggregates</span>
+        </div>
+
+        {/* Stats */}
+        <div className="flex flex-col gap-4 overflow-hidden">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}
+            >
+              <div className="font-medium text-white/75" style={{ fontSize: `${0.8 * scale}rem` }}>
+                {item.label}
+              </div>
+              <div
+                className="font-semibold leading-none text-white"
+                style={{ fontSize: `${1.9 * scale}rem` }}
+              >
+                {formatStatValue(item)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footnote */}
+        {footnote ? (
+          <p className="mt-auto text-white/50" style={{ fontSize: `${0.68 * scale}rem` }}>
+            {footnote}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Corner resize handle */}
+      <button
+        type="button"
+        aria-label="Resize panel"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className={cn(
+          "group/handle absolute z-20 flex h-7 w-7 items-center justify-center rounded-full",
+          "border border-white/30 bg-slate-900/60 backdrop-blur-sm",
+          "transition hover:border-white/60 hover:bg-slate-900/80",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+          "cursor-nwse-resize",
+          cornerClass,
+        )}
+      >
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          fill="none"
+          className="text-white/60 transition group-hover/handle:text-white"
+          aria-hidden="true"
+        >
+          <line x1="1" y1="9" x2="9" y2="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="5" y1="9" x2="9" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+
+      {/* Hover ring */}
+      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/20" />
+    </div>
   );
 }
 
-// ─── HomeStatsPanel ─────────────────────────────────────────────────────────
-// Renders the frosted-glass card. Text scales proportionally with panel width.
+// ─── HomeStatsPanel (mobile only) ────────────────────────────────────────────
 
 function HomeStatsPanel({
   title,
   items,
   footnote,
   align = "left",
-  panelSize,
 }: {
   title: string;
   items: StatItem[];
   footnote?: string;
   align?: "left" | "right";
-  panelSize?: PanelLayout;
 }) {
   if (!items.length) return null;
-
-  // Scale relative to default width, clamped between 75% and 140%.
-  const scale = panelSize
-    ? clamp(panelSize.width / PANEL_DEFAULT_WIDTH, 0.75, 1.4)
-    : 1;
 
   return (
     <div
       className={cn(
-        "group relative flex h-full w-full flex-col gap-4 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
-        align === "right" ? "lg:text-right" : "lg:text-left",
+        "relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-4 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
+        align === "right" ? "items-end text-right" : "items-start text-left",
       )}
     >
-      {/* Header row */}
-      <div
-        className="flex items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-emerald-100"
-        style={{ fontSize: `${0.75 * scale}rem` }}
-      >
-        <span>{title}</span>
-        <span className="hidden items-center gap-1 text-white/70 lg:inline-flex">
-          <span>Live aggregates</span>
-        </span>
-      </div>
-
-      {/* Stat rows */}
-      <div className="grid gap-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">{title}</div>
+      <div className="flex flex-col gap-3">
         {items.map((item) => (
-          <div key={item.label} className="flex flex-col items-start gap-1">
-            <div
-              className="font-semibold text-white/85"
-              style={{ fontSize: `${0.875 * scale}rem` }}
-            >
-              {item.label}
-            </div>
-            <div
-              className="font-semibold text-white"
-              style={{ fontSize: `${2 * scale}rem`, lineHeight: 1.1 }}
-            >
-              {formatStatValue(item)}
-            </div>
+          <div key={item.label} className="flex flex-col gap-0.5">
+            <div className="text-xs font-medium text-white/75">{item.label}</div>
+            <div className="text-2xl font-semibold leading-none text-white">{formatStatValue(item)}</div>
           </div>
         ))}
       </div>
-
-      {/* Footnote */}
-      {footnote ? (
-        <p className="text-white/70" style={{ fontSize: `${0.75 * scale}rem` }}>
-          {footnote}
-        </p>
-      ) : null}
-
-      {/* Hover ring */}
-      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/25 group-focus-within:ring-white/25" />
+      {footnote ? <p className="text-xs text-white/50">{footnote}</p> : null}
     </div>
   );
 }
