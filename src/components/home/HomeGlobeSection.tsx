@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronDown, GripHorizontal } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import type { FocusEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Rnd, type DraggableData, type RndDragEvent } from "react-rnd";
+import { Rnd } from "react-rnd";
 
 import HomeGlobe, { type HomeGlobeMode, type HomeGlobePoint } from "@/components/home/HomeGlobe";
 import type { HomeStats } from "@/lib/homeStats";
@@ -14,22 +14,20 @@ import type { ProjectMarker } from "@/lib/projects/findProjectsQuery";
 import type { WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
 
 const DEFAULT_MODE: HomeGlobeMode = "projects";
-const STATS_LAYOUT_STORAGE_KEY = "home-globe-panel-layout-v1";
-const PANEL_HANDLE_CLASS = "home-stats-panel-handle";
+const STATS_LAYOUT_STORAGE_KEY = "home-globe-panel-layout-v2";
 
 type PanelKey = "left" | "right";
 type PanelLayout = { x: number; y: number; width: number; height: number };
 type PanelLayoutMap = Record<PanelKey, PanelLayout>;
 
-const PANEL_MIN_WIDTH = 260;
-const PANEL_MAX_WIDTH = 520;
-const PANEL_MIN_HEIGHT = 176;
-const PANEL_MAX_HEIGHT = 360;
-const PANEL_GAP = 24;
+const PANEL_MIN_WIDTH = 280;
+const PANEL_MAX_WIDTH = 560;
+const PANEL_MIN_HEIGHT = 200;
+const PANEL_MAX_HEIGHT = 400;
 const PANEL_PADDING_X = 48;
 const PANEL_PADDING_BOTTOM = 32;
 const PANEL_DEFAULT_WIDTH = 380;
-const PANEL_DEFAULT_HEIGHT = 220;
+const PANEL_DEFAULT_HEIGHT = 240;
 
 const MODE_CONFIG: Record<
   HomeGlobeMode,
@@ -125,12 +123,6 @@ const clampPanel = (panel: PanelLayout, containerWidth: number, containerHeight:
 const normalizeLayout = (layout: PanelLayoutMap, containerWidth: number, containerHeight: number): PanelLayoutMap => {
   const left = clampPanel(layout.left, containerWidth, containerHeight);
   const right = clampPanel(layout.right, containerWidth, containerHeight);
-
-  // Keep a minimum horizontal gap so the panels stay distinct by default.
-  if (Math.abs(right.x - left.x) < PANEL_GAP && Math.abs(right.y - left.y) < PANEL_GAP) {
-    right.x = clamp(right.x + PANEL_GAP, 0, Math.max(0, containerWidth - right.width));
-  }
-
   return { left, right };
 };
 
@@ -276,7 +268,6 @@ export default function HomeGlobeSection({
     const defaults = getDefaultLayout(containerSize.width, containerSize.height);
     let nextLayout = defaults;
 
-    // Persist x/y/width/height so panel layout survives refreshes.
     const savedLayout = localStorage.getItem(STATS_LAYOUT_STORAGE_KEY);
     if (savedLayout) {
       try {
@@ -317,55 +308,34 @@ export default function HomeGlobeSection({
     }
   };
 
-  const updatePanel = useCallback(
-    (key: PanelKey, update: Partial<PanelLayout>) => {
-      setPanelLayout((current) => {
-        if (!current || !containerSize.width || !containerSize.height) return current;
-        const candidate = {
-          ...current,
-          [key]: {
-            ...current[key],
-            ...update,
-          },
-        };
-        return normalizeLayout(candidate, containerSize.width, containerSize.height);
-      });
-    },
-    [containerSize.height, containerSize.width],
-  );
-
-  const onPanelDragStop = useCallback(
-    (panelKey: PanelKey, _event: RndDragEvent, dragData: DraggableData) => {
-      updatePanel(panelKey, { x: dragData.x, y: dragData.y });
-    },
-    [updatePanel],
-  );
-
+  // Both panels always stay the same size — mirror new dimensions to both,
+  // but keep each panel anchored to its default x/y position.
   const onPanelResizeStop = useCallback(
     (
-      panelKey: PanelKey,
+      _panelKey: PanelKey,
       _event: MouseEvent | TouchEvent,
       _direction: string,
       ref: HTMLElement,
       _delta: unknown,
-      position: { x: number; y: number },
+      _position: { x: number; y: number },
     ) => {
-      updatePanel(panelKey, {
-        x: position.x,
-        y: position.y,
-        width: ref.offsetWidth,
-        height: ref.offsetHeight,
+      const newWidth = ref.offsetWidth;
+      const newHeight = ref.offsetHeight;
+      setPanelLayout((_current) => {
+        if (!containerSize.width || !containerSize.height) return _current;
+        const defaults = getDefaultLayout(containerSize.width, containerSize.height);
+        return normalizeLayout(
+          {
+            left: { ...defaults.left, width: newWidth, height: newHeight },
+            right: { ...defaults.right, width: newWidth, height: newHeight },
+          },
+          containerSize.width,
+          containerSize.height,
+        );
       });
     },
-    [updatePanel],
+    [containerSize.height, containerSize.width],
   );
-
-  const resetLayout = useCallback(() => {
-    if (!containerSize.width || !containerSize.height) return;
-    const defaults = getDefaultLayout(containerSize.width, containerSize.height);
-    setPanelLayout(defaults);
-    localStorage.removeItem(STATS_LAYOUT_STORAGE_KEY);
-  }, [containerSize.height, containerSize.width]);
 
   const scrollToNextSection = useCallback(() => {
     const next = document.getElementById("home-next-section");
@@ -466,16 +436,6 @@ export default function HomeGlobeSection({
 
         {/* Stats overlays */}
         <div ref={statsContainerRef} className="relative flex-1">
-          <div className="absolute right-6 top-5 z-20 hidden lg:block">
-            <button
-              type="button"
-              onClick={resetLayout}
-              className="pointer-events-auto rounded-full border border-white/20 bg-slate-950/35 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md transition hover:bg-slate-950/55 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-            >
-              Reset layout
-            </button>
-          </div>
-
           {panelLayout ? (
             <>
               <DraggableStatsPanel
@@ -484,7 +444,6 @@ export default function HomeGlobeSection({
                 items={activeStats.left}
                 footnote={activeStats.footnote}
                 layout={panelLayout.left}
-                onDragStop={onPanelDragStop}
                 onResizeStop={onPanelResizeStop}
               />
               <DraggableStatsPanel
@@ -494,12 +453,12 @@ export default function HomeGlobeSection({
                 footnote={activeStats.footnote}
                 align="right"
                 layout={panelLayout.right}
-                onDragStop={onPanelDragStop}
                 onResizeStop={onPanelResizeStop}
               />
             </>
           ) : null}
 
+          {/* Mobile snapshot (shown below lg) */}
           <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden lg:px-12">
             <div className="grid gap-4 md:grid-cols-2">
               <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
@@ -507,6 +466,7 @@ export default function HomeGlobeSection({
             </div>
           </div>
 
+          {/* Scroll chevron */}
           <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
             <button
               type="button"
@@ -523,14 +483,18 @@ export default function HomeGlobeSection({
   );
 }
 
+// ─── DraggableStatsPanel ────────────────────────────────────────────────────
+// Panels are fixed in place. Only the single corner facing the globe
+// (top-right for left panel, top-left for right panel) is resizeable.
+// Resizing one panel mirrors the new size to both panels simultaneously.
+
 function DraggableStatsPanel({
   panelKey,
   title,
   items,
   footnote,
-  align = "left",
+  align,
   layout,
-  onDragStop,
   onResizeStop,
 }: {
   panelKey: PanelKey;
@@ -539,7 +503,6 @@ function DraggableStatsPanel({
   footnote?: string;
   align?: "left" | "right";
   layout: PanelLayout;
-  onDragStop: (panelKey: PanelKey, event: RndDragEvent, dragData: DraggableData) => void;
   onResizeStop: (
     panelKey: PanelKey,
     event: MouseEvent | TouchEvent,
@@ -549,10 +512,25 @@ function DraggableStatsPanel({
     position: { x: number; y: number },
   ) => void;
 }) {
+  // Left panel sits on the left edge → its globe-facing corner is top-right.
+  // Right panel sits on the right edge → its globe-facing corner is top-left.
+  const enableResizing = {
+    top: false,
+    right: false,
+    bottom: false,
+    left: false,
+    topRight: panelKey === "left",
+    bottomRight: false,
+    bottomLeft: false,
+    topLeft: panelKey === "right",
+  };
+
+  const cornerStyle = { width: "20px", height: "20px", opacity: 1, zIndex: 20 };
+
   return (
     <Rnd
       className="pointer-events-auto z-10 hidden lg:block"
-      dragHandleClassName={PANEL_HANDLE_CLASS}
+      disableDragging
       bounds="parent"
       size={{ width: layout.width, height: layout.height }}
       position={{ x: layout.x, y: layout.y }}
@@ -560,87 +538,94 @@ function DraggableStatsPanel({
       maxWidth={PANEL_MAX_WIDTH}
       minHeight={PANEL_MIN_HEIGHT}
       maxHeight={PANEL_MAX_HEIGHT}
-      onDragStop={(event, dragData) => onDragStop(panelKey, event, dragData)}
       onResizeStop={(event, direction, ref, delta, position) =>
         onResizeStop(panelKey, event, direction, ref, delta, position)
       }
-      enableResizing={{
-        top: true,
-        right: true,
-        bottom: true,
-        left: true,
-        topRight: true,
-        bottomRight: true,
-        bottomLeft: true,
-        topLeft: true,
-      }}
+      enableResizing={enableResizing}
       resizeHandleStyles={{
-        bottomRight: { width: "11px", height: "11px", opacity: 0.8 },
-        bottomLeft: { width: "11px", height: "11px", opacity: 0.8 },
-        topRight: { width: "11px", height: "11px", opacity: 0.8 },
-        topLeft: { width: "11px", height: "11px", opacity: 0.8 },
+        topRight: cornerStyle,
+        topLeft: cornerStyle,
       }}
       resizeHandleClasses={{
-        bottomRight: "home-panel-resize-handle",
-        bottomLeft: "home-panel-resize-handle",
         topRight: "home-panel-resize-handle",
         topLeft: "home-panel-resize-handle",
       }}
     >
-      <HomeStatsPanel title={title} items={items} footnote={footnote} align={align} draggable />
+      <HomeStatsPanel title={title} items={items} footnote={footnote} align={align} panelSize={layout} />
     </Rnd>
   );
 }
+
+// ─── HomeStatsPanel ─────────────────────────────────────────────────────────
+// Renders the frosted-glass card. Text scales proportionally with panel width.
 
 function HomeStatsPanel({
   title,
   items,
   footnote,
   align = "left",
-  draggable = false,
+  panelSize,
 }: {
   title: string;
   items: StatItem[];
   footnote?: string;
   align?: "left" | "right";
-  draggable?: boolean;
+  panelSize?: PanelLayout;
 }) {
   if (!items.length) return null;
+
+  // Scale relative to default width, clamped between 75% and 140%.
+  const scale = panelSize
+    ? clamp(panelSize.width / PANEL_DEFAULT_WIDTH, 0.75, 1.4)
+    : 1;
 
   return (
     <div
       className={cn(
-        "group relative flex h-full w-full flex-col gap-4 rounded-3xl border border-white/25 bg-white/10 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
+        "group relative flex h-full w-full flex-col gap-4 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-5 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
         align === "right" ? "lg:text-right" : "lg:text-left",
       )}
     >
+      {/* Header row */}
       <div
-        className={cn(
-          "flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100",
-          draggable ? `${PANEL_HANDLE_CLASS} cursor-move touch-none rounded-xl px-1 py-1` : "",
-        )}
+        className="flex items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-emerald-100"
+        style={{ fontSize: `${0.75 * scale}rem` }}
       >
         <span>{title}</span>
         <span className="hidden items-center gap-1 text-white/70 lg:inline-flex">
-          {draggable ? <GripHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> : null}
           <span>Live aggregates</span>
         </span>
       </div>
+
+      {/* Stat rows */}
       <div className="grid gap-4">
         {items.map((item) => (
           <div key={item.label} className="flex flex-col items-start gap-1">
-            <div className="text-sm font-semibold text-white/85">{item.label}</div>
-            <div className="text-2xl font-semibold text-white sm:text-3xl">{formatStatValue(item)}</div>
+            <div
+              className="font-semibold text-white/85"
+              style={{ fontSize: `${0.875 * scale}rem` }}
+            >
+              {item.label}
+            </div>
+            <div
+              className="font-semibold text-white"
+              style={{ fontSize: `${2 * scale}rem`, lineHeight: 1.1 }}
+            >
+              {formatStatValue(item)}
+            </div>
           </div>
         ))}
       </div>
-      {footnote ? <p className="text-xs text-white/70">{footnote}</p> : null}
-      {draggable ? (
-        <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/25 group-focus-within:ring-white/25" />
+
+      {/* Footnote */}
+      {footnote ? (
+        <p className="text-white/70" style={{ fontSize: `${0.75 * scale}rem` }}>
+          {footnote}
+        </p>
       ) : null}
-      {draggable ? (
-        <div className="pointer-events-none absolute bottom-2 right-2 h-2.5 w-2.5 rounded-sm border border-white/50 opacity-0 transition group-hover:opacity-70 group-focus-within:opacity-70" />
-      ) : null}
+
+      {/* Hover ring */}
+      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/25 group-focus-within:ring-white/25" />
     </div>
   );
 }
