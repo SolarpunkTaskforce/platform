@@ -73,7 +73,7 @@ const initialOrganisation = {
 export default function SignupTabs() {
   if (!supabase) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+      <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-6 text-sm text-slate-600">
         {supabaseInitializationError?.message}
       </div>
     );
@@ -304,13 +304,13 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-2">
+    <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-[#EEF2F5] p-2">
         <button
           type="button"
           onClick={() => setActiveTab("individual")}
-          className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "individual" ? "bg-white shadow" : "text-slate-600"
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "individual" ? "bg-[#2E6B8A] text-white shadow" : "text-slate-600"
           }`}
         >
           Individual
@@ -318,8 +318,8 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         <button
           type="button"
           onClick={() => setActiveTab("organisation")}
-          className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "organisation" ? "bg-white shadow" : "text-slate-600"
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+            activeTab === "organisation" ? "bg-[#2E6B8A] text-white shadow" : "text-slate-600"
           }`}
         >
           Organisation
@@ -536,7 +536,7 @@ function Field({
         className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
           error
             ? "border-red-400 focus:ring-red-200"
-            : "border-slate-200 focus:ring-slate-200"
+            : "border-[#6B9FB8]/40 focus:border-[#6B9FB8] focus:ring-[#6B9FB8]/60"
         }`}
       />
       {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
@@ -574,7 +574,7 @@ function SelectField({
         className={`w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
           error
             ? "border-red-400 focus:ring-red-200"
-            : "border-slate-200 focus:ring-slate-200"
+            : "border-[#6B9FB8]/40 focus:border-[#6B9FB8] focus:ring-[#6B9FB8]/60"
         }`}
       >
         {options.map((option) => (
@@ -615,7 +615,7 @@ function TextAreaField({
         className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
           error
             ? "border-red-400 focus:ring-red-200"
-            : "border-slate-200 focus:ring-slate-200"
+            : "border-[#6B9FB8]/40 focus:border-[#6B9FB8] focus:ring-[#6B9FB8]/60"
         }`}
       />
       {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
@@ -643,7 +643,7 @@ function SocialLinksField({
         <button
           type="button"
           onClick={onAdd}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600"
+          className="rounded-full border border-[#6B9FB8]/40 px-3 py-1 text-xs font-medium text-[#2E6B8A] hover:bg-[#EEF2F5] transition-colors duration-150"
         >
           Add link
         </button>
@@ -654,7 +654,7 @@ function SocialLinksField({
             <select
               value={link.type}
               onChange={(event) => onChange(index, "type", event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
             >
               {socialLinkTypes.map((type) => (
                 <option key={type} value={type}>
@@ -667,12 +667,12 @@ function SocialLinksField({
               placeholder="https://"
               value={link.url}
               onChange={(event) => onChange(index, "url", event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[#6B9FB8]/40 px-3 py-2 text-sm focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
             />
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
+              className="rounded-full border border-[#6B9FB8]/40 px-3 py-1 text-xs text-[#8A9BAB] hover:bg-[#EEF2F5] transition-colors duration-150"
             >
               Remove
             </button>
@@ -695,14 +695,14 @@ function SubmitRow({
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+        className="w-full rounded-xl bg-[#2E6B8A] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1A3F54] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {loading ? "Creating account..." : "Create account"}
       </button>
       {message && (
         <p
           className={`text-sm font-medium ${
-            message.tone === "success" ? "text-emerald-600" : "text-red-600"
+            message.tone === "success" ? "text-[#2E6B8A]" : "text-red-600"
           }`}
         >
           {message.text}

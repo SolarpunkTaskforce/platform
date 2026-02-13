@@ -151,7 +151,7 @@ export default function Header() {
     <div className="relative">
       <button
         onClick={() => setProfileOpen((o) => !o)}
-        className="grid h-9 w-9 place-items-center rounded-full border"
+        className="grid h-9 w-9 place-items-center rounded-full bg-[#2E6B8A] text-white hover:bg-[#1A3F54] transition-all duration-200"
         aria-label="Account"
       >
         {profile ? (
@@ -164,7 +164,7 @@ export default function Header() {
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 max-w-[80vw] flex-col bg-[#11526D] p-4 text-sm text-white">
+          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 max-w-[80vw] flex-col bg-white p-4 text-sm text-[#1A2B38]">
             <UserMenu onNavigate={() => setProfileOpen(false)} />
           </nav>
         </>
@@ -175,7 +175,7 @@ export default function Header() {
   const notificationsButton = (
     <Link
       href="/notifications"
-      className="relative grid h-9 w-9 place-items-center rounded-full border"
+      className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-[#EEF2F5] text-[#2E6B8A] transition-all duration-200"
       aria-label="Notifications"
     >
       <Bell className="h-4 w-4" />
@@ -188,13 +188,13 @@ export default function Header() {
   );
 
   return (
-    <header className="relative z-10 border-b bg-white">
+    <header className="relative z-50 soltas-header-glass">
       <div className="flex h-14 items-center justify-between px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-4 sm:gap-6">
           {/* Mobile hamburger toggle */}
           <button
             type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-slate-100 md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-[#EEF2F5] text-[#1A2B38] md:hidden"
             onClick={() => setMobileNavOpen((o) => !o)}
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileNavOpen}
@@ -205,7 +205,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="truncate text-base font-semibold sm:text-lg"
+            className="truncate text-base font-bold text-[#1A2B38] sm:text-lg"
             aria-label="Home"
           >
             Solarpunk Taskforce
@@ -219,8 +219,8 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-sm font-medium transition ${
-                      active ? "text-[#11526D]" : "text-slate-600 hover:text-slate-900"
+                    className={`text-sm font-medium transition-colors duration-200 ${
+                      active ? "text-[#2E6B8A]" : "text-slate-600 hover:text-[#2E6B8A]"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -235,8 +235,8 @@ export default function Header() {
                 <div key={item.label} className="group relative">
                   <button
                     type="button"
-                    className={`flex items-center gap-1 text-sm font-medium transition ${
-                      active ? "text-[#11526D]" : "text-slate-600 hover:text-slate-900"
+                    className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
+                      active ? "text-[#2E6B8A]" : "text-slate-600 hover:text-[#2E6B8A]"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
@@ -247,15 +247,15 @@ export default function Header() {
                     </span>
                   </button>
 
-                  <div className="invisible absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border bg-white py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <div className="glass-card invisible absolute left-0 top-full z-20 mt-2 w-56 py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     {item.items.map((link) => {
                       const childActive = isActive(link.href);
                       return (
                         <Link
                           key={link.href}
                           href={link.href}
-                          className={`block px-4 py-2 transition ${
-                            childActive ? "bg-slate-100 text-[#11526D]" : "hover:bg-slate-50"
+                          className={`block px-4 py-2 transition-colors duration-150 ${
+                            childActive ? "bg-[#EEF2F5] text-[#2E6B8A]" : "hover:bg-[#EEF2F5]"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -279,14 +279,14 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link href="/login" className="rounded-xl border px-3 py-1 text-sm">
+              <Link href="/login" className="rounded-xl border border-[#6B9FB8] px-3 py-1 text-sm text-[#2E6B8A] hover:bg-[#EEF2F5] transition-all duration-200">
                 Sign in
               </Link>
 
               {/* ✅ Resolved: keep responsive "hidden ... sm:inline-flex" version from main */}
               <Link
                 href="/signup"
-                className="hidden rounded-xl bg-slate-900 px-3 py-1 text-sm text-white sm:inline-flex"
+                className="hidden rounded-xl bg-[#2E6B8A] px-3 py-1 text-sm text-white hover:bg-[#1A3F54] transition-all duration-200 sm:inline-flex"
               >
                 Register
               </Link>
@@ -297,7 +297,7 @@ export default function Header() {
 
       {/* Mobile nav - collapsible via hamburger */}
       {mobileNavOpen && (
-        <nav className="border-t border-slate-100 px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
+        <nav className="border-t border-[#6B9FB8]/20 bg-white/95 backdrop-blur-xl px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
           <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               if (item.type === "link") {
@@ -307,7 +307,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      active ? "bg-slate-100 text-[#11526D]" : "text-slate-700 hover:bg-slate-50"
+                      active ? "bg-[#EEF2F5] text-[#2E6B8A]" : "text-slate-700 hover:bg-[#EEF2F5]"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -338,8 +338,8 @@ export default function Header() {
                           href={link.href}
                           className={`rounded-md px-3 py-2 text-sm ${
                             childActive
-                              ? "bg-slate-100 text-[#11526D]"
-                              : "text-slate-600 hover:bg-slate-50"
+                              ? "bg-[#EEF2F5] text-[#2E6B8A]"
+                              : "text-slate-600 hover:bg-[#EEF2F5]"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -356,7 +356,7 @@ export default function Header() {
             {!sessionUserId && (
               <Link
                 href="/signup"
-                className="mt-2 rounded-lg bg-slate-900 px-3 py-2.5 text-center text-sm font-medium text-white sm:hidden"
+                className="mt-2 rounded-lg bg-[#2E6B8A] px-3 py-2.5 text-center text-sm font-medium text-white hover:bg-[#1A3F54] transition-all duration-200 sm:hidden"
               >
                 Register
               </Link>

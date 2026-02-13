@@ -138,17 +138,17 @@ export default async function OrganisationEditPage({
   const socialLinks = normalizeSocialLinks(organisation.social_links);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-3xl space-y-6 px-5 pb-20 pt-12">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Edit organisation</h1>
+        <h1 className="text-3xl font-semibold text-[#1A2B38]">Edit organisation</h1>
         <p className="text-sm text-slate-600">Update public organisation details.</p>
       </div>
 
       <form action={updateOrganisation} className="space-y-6">
         <input type="hidden" name="id" value={organisation.id} />
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <section className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-7 shadow-sm">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-[#8A9BAB]">
             Basic information
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -157,7 +157,7 @@ export default async function OrganisationEditPage({
               <input
                 name="name"
                 defaultValue={organisation.name ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -165,7 +165,7 @@ export default async function OrganisationEditPage({
               <input
                 name="country_based"
                 defaultValue={organisation.country_based ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -173,7 +173,7 @@ export default async function OrganisationEditPage({
               <input
                 name="existing_since"
                 defaultValue={organisation.existing_since ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -181,7 +181,7 @@ export default async function OrganisationEditPage({
               <input
                 name="website"
                 defaultValue={organisation.website ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
@@ -189,7 +189,7 @@ export default async function OrganisationEditPage({
               <input
                 name="logo_url"
                 defaultValue={organisation.logo_url ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
             {isAdmin ? (
@@ -198,7 +198,7 @@ export default async function OrganisationEditPage({
                 <select
                   name="verification_status"
                   defaultValue={organisation.verification_status ?? "pending"}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                  className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
                 >
                   <option value="pending">Pending</option>
                   <option value="verified">Verified</option>
@@ -209,20 +209,20 @@ export default async function OrganisationEditPage({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <section className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-7 shadow-sm">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-[#8A9BAB]">
             What we do
           </h2>
           <textarea
             name="what_we_do"
             defaultValue={organisation.what_we_do ?? ""}
             rows={5}
-            className="mt-4 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+            className="mt-4 w-full rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
           />
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <section className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-7 shadow-sm">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-[#8A9BAB]">
             Social links
           </h2>
           <div className="mt-4">
@@ -231,7 +231,7 @@ export default async function OrganisationEditPage({
         </section>
 
         <div className="flex justify-end">
-          <button className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button className="inline-flex items-center justify-center rounded-xl bg-[#2E6B8A] px-4 py-2 text-sm font-medium text-white hover:bg-[#1A3F54] transition-all duration-200">
             Save changes
           </button>
         </div>

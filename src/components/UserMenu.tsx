@@ -32,14 +32,14 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
     <>
       <Link
         href="/profile"
-        className="px-4 py-2 hover:bg-white/10"
+        className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
         onClick={onNavigate}
       >
         Profile
       </Link>
       <Link
         href="/settings"
-        className="px-4 py-2 hover:bg-white/10"
+        className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
         onClick={onNavigate}
       >
         Settings
@@ -48,14 +48,14 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         <>
           <Link
             href="/admin/registrations"
-            className="px-4 py-2 hover:bg-white/10"
+            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
             onClick={onNavigate}
           >
             Project Registrations
           </Link>
           <Link
             href="/admin/issue-registrations"
-            className="px-4 py-2 hover:bg-white/10"
+            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
             onClick={onNavigate}
           >
             Issue Registrations
@@ -65,7 +65,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       {isSuper && (
         <Link
           href="/admin/manage"
-          className="px-4 py-2 hover:bg-white/10"
+          className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
           onClick={onNavigate}
         >
           Manage Admins
@@ -76,7 +76,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           supabase.auth.signOut();
           onNavigate?.();
         }}
-        className="px-4 py-2 text-left hover:bg-white/10"
+        className="w-full rounded-lg px-3 py-2 text-left text-rose-600 hover:bg-rose-50 transition-colors duration-150"
       >
         Sign out
       </button>

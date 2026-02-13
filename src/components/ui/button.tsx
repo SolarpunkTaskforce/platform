@@ -6,10 +6,10 @@ type ButtonVariant = "default" | "outline" | "ghost" | "secondary" | "destructiv
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  default: "bg-emerald-600 text-white hover:bg-emerald-700",
-  outline: "border border-slate-200 text-slate-900 hover:bg-slate-100",
-  ghost: "text-slate-700 hover:bg-slate-100",
-  secondary: "bg-slate-900 text-white hover:bg-slate-800",
+  default: "bg-[#2E6B8A] text-white hover:bg-[#1A3F54] transition-all duration-200 shadow-sm",
+  outline: "border border-[#6B9FB8] text-[#2E6B8A] hover:bg-[#EEF2F5] transition-all duration-200",
+  ghost: "text-[#2E6B8A] hover:bg-[#EEF2F5] transition-all duration-200",
+  secondary: "bg-[#2E6B8A] text-white hover:bg-[#1A3F54] transition-all duration-200",
   destructive: "bg-rose-600 text-white hover:bg-rose-700",
 };
 
@@ -32,7 +32,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E6B8A] disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
           className,
