@@ -18,12 +18,14 @@ const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v3";
 type PanelKey = "left" | "right";
 type PanelSize = { width: number; height: number };
 
-const PANEL_MIN_WIDTH = 260;
-const PANEL_MAX_WIDTH = 520;
-const PANEL_MIN_HEIGHT = 180;
-const PANEL_MAX_HEIGHT = 380;
+const PANEL_MIN_WIDTH = 300;
+const PANEL_MAX_WIDTH = 560;
+const PANEL_MIN_HEIGHT = 200;
+const PANEL_MAX_HEIGHT = 420;
 const PANEL_DEFAULT_WIDTH = 340;
 const PANEL_DEFAULT_HEIGHT = 220;
+// Aspect ratio the panel locks to during diagonal resize
+const PANEL_ASPECT_RATIO = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
 const PANEL_PADDING_X = 32;
 const PANEL_PADDING_BOTTOM = 32;
 
@@ -449,14 +451,17 @@ function PinnedStatsPanel({
       const dx = e.clientX - px;
       const dy = e.clientY - py;
 
-      // Left panel corner is top-right: drag right → wider, drag up → taller.
-      // Right panel corner is top-left: drag left → wider, drag up → taller.
-      const newWidth = clamp(
-        panelKey === "left" ? w + dx : w - dx,
-        PANEL_MIN_WIDTH,
-        PANEL_MAX_WIDTH,
-      );
-      const newHeight = clamp(h - dy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+      // Force diagonal: use whichever raw axis moved more, then derive
+      // the other axis from the panel's locked aspect ratio.
+      // Left panel: drag right/up to grow. Right panel: drag left/up to grow.
+      const signedDx = panelKey === "left" ? dx : -dx;
+      const signedDy = -dy; // up = positive
+
+      // Pick the dominant axis and derive a single scalar delta.
+      const delta = Math.abs(signedDx) >= Math.abs(signedDy) ? signedDx : signedDy * PANEL_ASPECT_RATIO;
+
+      const newWidth = clamp(w + delta, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
+      const newHeight = clamp(newWidth / PANEL_ASPECT_RATIO, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
 
       onResizeRef.current({ width: newWidth, height: newHeight });
     },
