@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import FollowButton from "@/components/FollowButton";
 import { SocialLinks } from "@/components/profiles/SocialLinks";
+import UpdatesSection, { type UpdateSummary } from "@/components/updates/UpdatesSection";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 function formatDate(value: string | null) {
@@ -76,6 +77,11 @@ export default async function OrganisationPage({
   const resolvedFollowerCount = followerCountError ? null : followerCount ?? 0;
   const isFollowing = Boolean(followEdge && !followEdgeError);
   const isVerified = organisation.verification_status === "verified";
+
+  // Phase 1: Placeholder updates array
+  // TODO: Fetch updates from database when available
+  // Expected shape: { id, title, summary, created_at, author_name, href }
+  const updates: UpdateSummary[] = [];
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
@@ -178,6 +184,12 @@ export default async function OrganisationPage({
           </div>
         </dl>
       </section>
+
+      <UpdatesSection
+        updates={updates}
+        isAuthenticated={Boolean(user)}
+        canPost={canEdit}
+      />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Stats</h2>
