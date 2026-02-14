@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium tracking-wide text-white/90">
+    <span className="inline-flex items-center rounded-full border border-soltas-glacial/30 bg-soltas-ocean/10 px-3 py-1 text-xs font-medium tracking-wide text-soltas-glacial">
       {children}
     </span>
   );
@@ -25,9 +25,9 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-      <h3 className="mb-3 text-lg font-semibold text-white">{title}</h3>
-      <div className="text-sm leading-6 text-white/80">{children}</div>
+    <section className="rounded-2xl border border-soltas-glacial/20 bg-soltas-ocean/5 p-6 backdrop-blur-sm">
+      <h3 className="mb-3 text-lg font-semibold text-soltas-glacial">{title}</h3>
+      <div className="text-sm leading-6 text-soltas-light">{children}</div>
     </section>
   );
 }
@@ -38,7 +38,7 @@ export default function AboutPage() {
       {/* Gradient background */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_60%_at_30%_20%,rgba(59,130,246,0.25),transparent_60%),radial-gradient(60%_60%_at_70%_40%,rgba(16,185,129,0.28),transparent_60%),linear-gradient(180deg,#0b1220,rgba(3,7,18,0.9))]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_60%_at_30%_20%,rgba(107,159,184,0.25),transparent_60%),radial-gradient(60%_60%_at_70%_40%,rgba(176,120,72,0.28),transparent_60%),linear-gradient(180deg,#1A3F54,rgba(59,32,13,0.9))]"
       />
       <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
         {/* Header */}
@@ -49,10 +49,10 @@ export default function AboutPage() {
             <Pill>Open Platform</Pill>
             <Pill>Global Community</Pill>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tight text-soltas-glacial sm:text-5xl">
             About Solarpunk Taskforce
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80 sm:text-base">
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-soltas-light sm:text-base">
             A unifying force in the global humanitarian and environmental
             movement. We connect people, projects, and organisations and make
             impact visible, trustworthy, and actionable.
@@ -60,7 +60,7 @@ export default function AboutPage() {
         </header>
 
         {/* Intro banner */}
-        <div className="mb-12 overflow-hidden rounded-2xl border border-white/10">
+        <div className="mb-12 overflow-hidden rounded-2xl border border-soltas-glacial/20">
           <div className="relative h-44 w-full sm:h-60">
             <Image
               src="/og/gradient-green-blue.png"
@@ -69,9 +69,9 @@ export default function AboutPage() {
               className="object-cover opacity-70"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-soltas-peat/40 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-              <p className="max-w-3xl text-sm text-white/90 sm:text-base">
+              <p className="max-w-3xl text-sm text-soltas-light sm:text-base">
                 The Solarpunk Taskforce platform is a living, transparent map
                 and database of humanitarian and environmental efforts, paired
                 with modern storytelling to bridge action and awareness.
@@ -153,7 +153,7 @@ export default function AboutPage() {
               ].map((v) => (
                 <li
                   key={v}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/90"
+                  className="rounded-full border border-soltas-glacial/20 bg-soltas-ocean/10 px-3 py-1 text-xs text-soltas-glacial"
                 >
                   {v}
                 </li>
@@ -186,12 +186,12 @@ export default function AboutPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-600/30 to-sky-600/30 p-6 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-soltas-glacial/20 bg-gradient-to-r from-soltas-ocean/30 to-soltas-clay/30 p-6 sm:flex-row sm:items-center">
           <div>
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-lg font-semibold text-soltas-glacial">
               Join the Solarpunk Taskforce
             </h3>
-            <p className="mt-1 text-sm text-white/80">
+            <p className="mt-1 text-sm text-soltas-light">
               Follow projects, add your initiative, or partner with us to make
               global impact more visible and effective.
             </p>
@@ -199,13 +199,13 @@ export default function AboutPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href="/find-projects"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/90 px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-xl bg-soltas-glacial px-4 py-2 text-sm font-semibold text-soltas-abyssal transition hover:bg-soltas-glacial/90"
             >
               Explore projects <ArrowRight size={16} />
             </Link>
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-soltas-glacial/30 bg-soltas-ocean/10 px-4 py-2 text-sm font-semibold text-soltas-glacial transition hover:bg-soltas-ocean/20"
             >
               Partner with ST
             </Link>
@@ -213,7 +213,7 @@ export default function AboutPage() {
         </div>
 
         {/* Footnote */}
-        <p className="mt-6 text-xs text-white/60">
+        <p className="mt-6 text-xs text-soltas-muted">
           Solarpunk Taskforce is building a modern, public platform for impact.
           Keep an eye on our roadmap and releases.
         </p>
