@@ -137,7 +137,7 @@ export default async function AdminProjectsPage({
         <main className="space-y-6 p-6">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">Project Approvals</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-soltas-muted">
               Review the latest pending projects and approve or reject them.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default async function AdminProjectsPage({
     <main className="space-y-6 p-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Project Approvals</h1>
-        <p className="text-sm text-slate-500">{views[selectedView].description}</p>
+        <p className="text-sm text-soltas-muted">{views[selectedView].description}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -217,8 +217,8 @@ export default async function AdminProjectsPage({
               className={cn(
                 "rounded-full border px-3 py-1 text-xs font-medium transition",
                 isActive
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                  ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean"
+                  : "border-slate-200 text-soltas-muted hover:border-slate-300 hover:text-soltas-bark"
               )}
             >
               {views[view].label}
@@ -229,7 +229,7 @@ export default async function AdminProjectsPage({
 
       <div className="overflow-x-auto rounded-xl border">
         <table className="min-w-full divide-y text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-soltas-muted">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Created</th>
@@ -249,7 +249,7 @@ export default async function AdminProjectsPage({
           <tbody className="divide-y">
             {projects.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-soltas-muted">
                   {views[selectedView].empty}
                 </td>
               </tr>
@@ -261,11 +261,11 @@ export default async function AdminProjectsPage({
                 return (
                   <tr key={project.id} className="align-top">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{project.name}</div>
-                      <div className="text-xs text-slate-500">{project.id}</div>
+                      <div className="font-medium text-soltas-bark">{project.name}</div>
+                      <div className="text-xs text-soltas-muted">{project.id}</div>
                       <Link
                         href={`/admin/projects/${project.id}`}
-                        className="mt-2 inline-flex text-xs font-medium text-emerald-600 hover:underline"
+                        className="mt-2 inline-flex text-xs font-medium text-soltas-ocean hover:underline"
                       >
                         View details
                       </Link>
@@ -286,13 +286,13 @@ export default async function AdminProjectsPage({
                         />
                       ) : null}
                       {selectedView === "approved" ? (
-                        <div className="space-y-2 text-xs text-slate-500">
+                        <div className="space-y-2 text-xs text-soltas-muted">
                           <div>
-                            <span className="font-medium text-slate-700">Approved:</span>{" "}
+                            <span className="font-medium text-soltas-text">Approved:</span>{" "}
                             {formatDate(project.approved_at)}
                           </div>
                           <div>
-                            <span className="font-medium text-slate-700">By:</span>{" "}
+                            <span className="font-medium text-soltas-text">By:</span>{" "}
                             {getApprovedBy(project)}
                           </div>
                           <ProjectApprovalActions
@@ -304,17 +304,17 @@ export default async function AdminProjectsPage({
                         </div>
                       ) : null}
                       {selectedView === "rejected" ? (
-                        <div className="space-y-2 text-xs text-slate-500">
+                        <div className="space-y-2 text-xs text-soltas-muted">
                           <div>
-                            <span className="font-medium text-slate-700">Rejected:</span>{" "}
+                            <span className="font-medium text-soltas-text">Rejected:</span>{" "}
                             {formatDate(project.rejected_at)}
                           </div>
                           <div>
-                            <span className="font-medium text-slate-700">By:</span>{" "}
+                            <span className="font-medium text-soltas-text">By:</span>{" "}
                             {getRejectedBy(project)}
                           </div>
                           {project.rejection_reason ? (
-                            <div className="rounded bg-rose-50 p-2 text-slate-600">
+                            <div className="rounded bg-rose-50 p-2 text-soltas-muted">
                               <span className="font-medium text-rose-600">Reason:</span>{" "}
                               {project.rejection_reason}
                             </div>

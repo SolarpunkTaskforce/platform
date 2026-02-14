@@ -326,37 +326,37 @@ export default function HomeGlobe({
 
       const popupNode = document.createElement("div");
       popupNode.className =
-        "space-y-2 text-sm text-slate-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
+        "space-y-2 text-sm text-soltas-text motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
 
       if (marker.eyebrow) {
         const eyebrowEl = document.createElement("p");
-        eyebrowEl.className = "text-xs font-semibold uppercase tracking-wide text-emerald-700";
+        eyebrowEl.className = "text-xs font-semibold uppercase tracking-wide text-soltas-ocean";
         eyebrowEl.textContent = marker.eyebrow;
         popupNode.appendChild(eyebrowEl);
       }
 
       const titleEl = document.createElement("h3");
-      titleEl.className = "text-base font-semibold text-slate-900";
+      titleEl.className = "text-base font-semibold text-soltas-bark";
       titleEl.textContent = marker.title;
       popupNode.appendChild(titleEl);
 
       if (marker.placeName) {
         const placeEl = document.createElement("p");
-        placeEl.className = "text-xs uppercase tracking-wide text-slate-500";
+        placeEl.className = "text-xs uppercase tracking-wide text-soltas-muted";
         placeEl.textContent = marker.placeName;
         popupNode.appendChild(placeEl);
       }
 
       if (marker.meta) {
         const metaEl = document.createElement("p");
-        metaEl.className = "text-xs font-medium text-slate-500";
+        metaEl.className = "text-xs font-medium text-soltas-muted";
         metaEl.textContent = marker.meta;
         popupNode.appendChild(metaEl);
       }
 
       if (marker.description) {
         const descriptionEl = document.createElement("p");
-        descriptionEl.className = "text-sm leading-snug text-slate-600";
+        descriptionEl.className = "text-sm leading-snug text-soltas-text";
         descriptionEl.textContent = truncate(marker.description);
         popupNode.appendChild(descriptionEl);
       }
@@ -364,7 +364,7 @@ export default function HomeGlobe({
       const cta = document.createElement("a");
       cta.href = marker.ctaHref;
       cta.className =
-        "mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800";
+        "mt-2 inline-flex w-full items-center justify-center rounded-md bg-soltas-ocean px-3 py-2 text-xs font-medium text-white hover:bg-soltas-abyssal";
       cta.textContent = marker.ctaLabel;
       popupNode.appendChild(cta);
 
@@ -476,10 +476,10 @@ export default function HomeGlobe({
 
   if (!HAS_MAPBOX_TOKEN) {
     return (
-      <div className="grid h-full w-full place-items-center bg-slate-50 p-6 text-center">
+      <div className="grid h-full w-full place-items-center bg-soltas-light p-6 text-center">
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-slate-900">Globe view unavailable</div>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm font-semibold text-soltas-bark">Globe view unavailable</div>
+          <div className="text-sm text-soltas-muted">
             This deployment is missing the Mapbox token (<code>NEXT_PUBLIC_MAPBOX_TOKEN</code>).
           </div>
         </div>
@@ -502,17 +502,17 @@ export default function HomeGlobe({
 
 
       {debugEnabled ? (
-        <div className="pointer-events-none absolute left-6 top-6 rounded-2xl bg-slate-900/85 px-4 py-3 text-xs text-slate-100 shadow-lg ring-1 ring-black/10">
-          <div className="font-semibold uppercase tracking-wide text-emerald-200">Globe debug</div>
+        <div className="pointer-events-none absolute left-6 top-6 rounded-2xl bg-soltas-peat/85 px-4 py-3 text-xs text-soltas-light shadow-lg ring-1 ring-soltas-bark/10">
+          <div className="font-semibold uppercase tracking-wide text-soltas-glacial">Globe debug</div>
           <div className="mt-1 space-y-1">
             <div>
-              <span className="text-slate-300">Mode:</span> {debugState?.mode ?? mode}
+              <span className="text-soltas-glacial/80">Mode:</span> {debugState?.mode ?? mode}
             </div>
             <div>
-              <span className="text-slate-300">Featured:</span> {debugState?.featuredId ?? "—"}
+              <span className="text-soltas-glacial/80">Featured:</span> {debugState?.featuredId ?? "—"}
             </div>
             <div>
-              <span className="text-slate-300">In-view threshold:</span> {IN_VIEW_THRESHOLD}
+              <span className="text-soltas-glacial/80">In-view threshold:</span> {IN_VIEW_THRESHOLD}
             </div>
           </div>
         </div>

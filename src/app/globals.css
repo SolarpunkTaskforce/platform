@@ -51,19 +51,48 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Glass morphism effects - Apple-inspired */
 .glass-card {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(107, 159, 184, 0.18);
-  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(107, 159, 184, 0.2);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(26, 59, 84, 0.08);
 }
 
 .soltas-header-glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(107, 159, 184, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(107, 159, 184, 0.15);
+}
+
+/* Enhanced card styles with better spacing */
+.card {
+  @apply rounded-3xl border border-soltas-glacial/25 bg-white shadow-sm transition-all duration-200;
+}
+
+.card:hover {
+  @apply shadow-md border-soltas-glacial/35;
+}
+
+/* Improved focus styles */
+*:focus-visible {
+  outline: 2px solid var(--soltas-ocean);
+  outline-offset: 2px;
+}
+
+/* Better spacing for content sections */
+.content-section {
+  @apply py-12 px-6 sm:py-16 sm:px-8;
+}
+
+/* Smooth transitions */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

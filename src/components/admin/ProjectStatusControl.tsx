@@ -54,7 +54,7 @@ export function ProjectStatusControl({
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <label className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
         Status
       </label>
       <select
@@ -69,7 +69,7 @@ export function ProjectStatusControl({
           </option>
         ))}
       </select>
-      {isPending ? <span className="text-xs text-slate-500">Saving…</span> : null}
+      {isPending ? <span className="text-xs text-soltas-muted">Saving…</span> : null}
     </div>
   );
 }

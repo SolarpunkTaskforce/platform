@@ -83,11 +83,11 @@ export default async function FindOrganisationsPage({
     <main className="flex-1 min-h-0 px-4 py-6 flex flex-col gap-4 sm:px-6 sm:py-8 sm:gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Find Organisations</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-soltas-bark sm:text-3xl">Find Organisations</h1>
+          <p className="text-sm text-soltas-muted">
             Discover verified organisations on the Solarpunk Taskforce and explore their global reach, impact, and needs.
           </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-soltas-muted">
             Showing {rows.length} of {count} organisations · {PAGE_SIZE} per page
           </p>
         </div>
@@ -110,7 +110,7 @@ export default async function FindOrganisationsPage({
 
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-soltas-muted">
                 Showing {rows.length} of {count} organisations · {PAGE_SIZE} per page
               </p>
               <OrganisationsPagination page={page} pageCount={pageCount} searchParams={params} />
@@ -118,7 +118,7 @@ export default async function FindOrganisationsPage({
 
             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
               <table className="min-w-[900px] divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-soltas-muted">
                   <tr>
                     <th className="px-4 py-3">Organisation</th>
                     <th className="px-4 py-3">Location</th>
@@ -136,22 +136,22 @@ export default async function FindOrganisationsPage({
                     <tr key={organisation.id} className="align-top">
                       <td className="px-4 py-4">
                         <Link
-                          className="font-semibold text-emerald-700 hover:text-emerald-800"
+                          className="font-semibold text-soltas-ocean hover:text-soltas-abyssal transition-colors"
                           href={`/organisations/${organisation.id}`}
                         >
                           {organisation.name ?? "Untitled organisation"}
                         </Link>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-soltas-muted">
                           {organisation.description ?? "No description yet."}
                         </p>
                       </td>
 
-                      <td className="px-4 py-4 text-slate-600">{formatLocation(organisation)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_total_count)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.projects_ongoing_count)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatNumber(organisation.followers_count)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatFunding(organisation.funding_needed)}</td>
-                      <td className="px-4 py-4 text-slate-600">{formatAge(organisation.age_years)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatLocation(organisation)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatNumber(organisation.projects_total_count)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatNumber(organisation.projects_ongoing_count)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatNumber(organisation.followers_count)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatFunding(organisation.funding_needed)}</td>
+                      <td className="px-4 py-4 text-soltas-muted">{formatAge(organisation.age_years)}</td>
 
                       <td className="px-4 py-4 text-right">
                         <Link
@@ -168,7 +168,7 @@ export default async function FindOrganisationsPage({
             </div>
 
             {rows.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+              <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-soltas-muted">
                 No organisations match the selected filters.
               </div>
             ) : null}

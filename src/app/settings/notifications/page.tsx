@@ -43,8 +43,8 @@ export default async function NotificationSettingsPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 pb-16 pt-10">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Notifications</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-soltas-bark">Notifications</h1>
+        <p className="mt-1 text-sm text-soltas-muted">
           Control how Solarpunk Taskforce contacts you.
         </p>
       </div>
@@ -58,13 +58,13 @@ export default async function NotificationSettingsPage() {
             type="checkbox"
             name="enabled"
             defaultChecked={profile.email_notifications_enabled}
-            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-soltas-ocean focus:ring-soltas-ocean"
           />
           <div>
-            <div className="text-sm font-medium text-slate-900">
+            <div className="text-sm font-medium text-soltas-bark">
               Email notifications
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-soltas-muted">
               Receive emails when you are invited to collaborate, your role
               changes, or important project updates occur.
             </p>

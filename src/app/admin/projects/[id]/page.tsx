@@ -168,53 +168,53 @@ export default async function AdminProjectDetail({
     <main className="space-y-6 p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-semibold text-slate-900">{project.name}</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-3xl font-semibold text-soltas-bark">{project.name}</h1>
+          <p className="text-sm text-soltas-muted">
             Created {formatDateTime(project.created_at)} by {createdBy}
           </p>
-          <p className="text-xs text-slate-500">Project ID: {project.id}</p>
+          <p className="text-xs text-soltas-muted">Project ID: {project.id}</p>
         </div>
         <ProjectApprovalActions projectId={project.id} projectName={project.name} layout="inline" />
       </div>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Overview</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Overview</h2>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</dt>
-            <dd className="text-sm text-slate-900">{project.status}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">Status</dt>
+            <dd className="text-sm text-soltas-bark">{project.status}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Lifecycle status
             </dt>
-            <dd className="text-sm text-slate-900">{project.lifecycle_status ?? "—"}</dd>
+            <dd className="text-sm text-soltas-bark">{project.lifecycle_status ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Review status
             </dt>
-            <dd className="text-sm text-slate-900">{project.review_status ?? "—"}</dd>
+            <dd className="text-sm text-soltas-bark">{project.review_status ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Location
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {[project.place_name, project.region, project.country].filter(Boolean).join(", ") || "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Timeline</dt>
-            <dd className="text-sm text-slate-900">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">Timeline</dt>
+            <dd className="text-sm text-soltas-bark">
               {[formatDate(project.start_date), formatDate(project.end_date)]
                 .filter(value => value !== "—")
                 .join(" → ") || "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Funding</dt>
-            <dd className="text-sm text-slate-900">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">Funding</dt>
+            <dd className="text-sm text-soltas-bark">
               {fundingParts.length ? fundingParts.join(" · ") : "—"}
             </dd>
           </div>
@@ -222,17 +222,17 @@ export default async function AdminProjectDetail({
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Description</h2>
-        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Description</h2>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-soltas-text">
           {project.description || "No description provided."}
         </p>
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Links</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Links</h2>
         <div className="space-y-2 text-sm">
           {project.project_links.length === 0 && jsonLinks.length === 0 ? (
-            <p className="text-slate-500">No links submitted.</p>
+            <p className="text-soltas-muted">No links submitted.</p>
           ) : (
             <ul className="space-y-2">
               {project.project_links.map(link => (
@@ -241,7 +241,7 @@ export default async function AdminProjectDetail({
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-emerald-600 hover:underline"
+                    className="text-soltas-ocean hover:underline"
                   >
                     {link.label || link.url}
                   </a>
@@ -254,12 +254,12 @@ export default async function AdminProjectDetail({
                       href={link.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-emerald-600 hover:underline"
+                      className="text-soltas-ocean hover:underline"
                     >
                       {link.label || link.url}
                     </a>
                   ) : (
-                    <span className="text-slate-500">{link.label}</span>
+                    <span className="text-soltas-muted">{link.label}</span>
                   )}
                 </li>
               ))}
@@ -269,9 +269,9 @@ export default async function AdminProjectDetail({
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Partners</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Partners</h2>
         {project.project_partners.length === 0 && !project.partner_org_ids?.length ? (
-          <p className="text-sm text-slate-500">No partner organisations listed.</p>
+          <p className="text-sm text-soltas-muted">No partner organisations listed.</p>
         ) : (
           <ul className="space-y-1 text-sm">
             {project.project_partners.map(partner => (
@@ -285,18 +285,18 @@ export default async function AdminProjectDetail({
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Sustainable Development Goals</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Sustainable Development Goals</h2>
         {project.project_sdgs.length === 0 && !project.sdgs?.length ? (
-          <p className="text-sm text-slate-500">No SDGs specified.</p>
+          <p className="text-sm text-soltas-muted">No SDGs specified.</p>
         ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             {project.project_sdgs.map(item => (
-              <span key={item.sdg_id} className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+              <span key={item.sdg_id} className="rounded-full bg-soltas-glacial/15 px-3 py-1 text-soltas-ocean">
                 {item.sdg?.name ?? `SDG ${item.sdg_id}`}
               </span>
             ))}
             {project.sdgs?.map(code => (
-              <span key={`sdg-${code}`} className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+              <span key={`sdg-${code}`} className="rounded-full bg-soltas-glacial/15 px-3 py-1 text-soltas-ocean">
                 {code}
               </span>
             ))}
@@ -305,9 +305,9 @@ export default async function AdminProjectDetail({
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">IFRC Global Challenges</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">IFRC Global Challenges</h2>
         {project.project_ifrc_challenges.length === 0 && !project.ifrc_global_challenges?.length ? (
-          <p className="text-sm text-slate-500">No IFRC challenges specified.</p>
+          <p className="text-sm text-soltas-muted">No IFRC challenges specified.</p>
         ) : (
           <div className="flex flex-wrap gap-2 text-sm">
             {project.project_ifrc_challenges.map(item => (
@@ -325,16 +325,16 @@ export default async function AdminProjectDetail({
       </section>
 
       <section className="rounded-xl border p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Media</h2>
+        <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Media</h2>
         {project.project_media.length === 0 ? (
-          <p className="text-sm text-slate-500">No media uploaded.</p>
+          <p className="text-sm text-soltas-muted">No media uploaded.</p>
         ) : (
           <ul className="space-y-2 text-sm">
             {project.project_media.map(item => (
               <li key={item.id} className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium text-slate-900">{item.caption || item.path}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="font-medium text-soltas-bark">{item.caption || item.path}</div>
+                  <div className="text-xs text-soltas-muted">
                     {item.mime_type || "Unknown type"} · {formatDateTime(item.created_at)}
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default async function AdminProjectDetail({
                   href={item.path}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-medium text-emerald-600 hover:underline"
+                  className="text-xs font-medium text-soltas-ocean hover:underline"
                 >
                   View
                 </Link>
@@ -354,8 +354,8 @@ export default async function AdminProjectDetail({
 
       {hasLocation ? (
         <section className="rounded-xl border p-4">
-          <h2 className="mb-3 text-lg font-semibold text-slate-900">Location</h2>
-          <p className="mb-3 text-sm text-slate-500">
+          <h2 className="mb-3 text-lg font-semibold text-soltas-bark">Location</h2>
+          <p className="mb-3 text-sm text-soltas-muted">
             Coordinates: {project.lat?.toFixed(4)}, {project.lng?.toFixed(4)}
           </p>
           <div className="h-64 overflow-hidden rounded-lg border">
@@ -375,7 +375,7 @@ export default async function AdminProjectDetail({
       ) : null}
 
       <div>
-        <Link href="/admin/projects" className="text-sm font-medium text-emerald-600 hover:underline">
+        <Link href="/admin/projects" className="text-sm font-medium text-soltas-ocean hover:underline">
           ← Back to approvals
         </Link>
       </div>

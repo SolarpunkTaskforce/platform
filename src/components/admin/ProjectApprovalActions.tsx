@@ -105,7 +105,7 @@ export function ProjectApprovalActions({
             }}
             disabled={disabled}
             className={cn(
-              "rounded bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-300",
+              "rounded bg-slate-200 px-3 py-1 text-xs font-medium text-soltas-text shadow-sm transition hover:bg-slate-300",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400",
               (disabled && pendingAction !== "unapprove") ||
                 (pendingAction === "unapprove" && isPending)
@@ -130,8 +130,8 @@ export function ProjectApprovalActions({
             onClick={() => runAction("approve")}
             disabled={disabled}
             className={cn(
-              "rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700",
-              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
+              "rounded bg-soltas-ocean px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-soltas-abyssal",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-soltas-ocean",
               (disabled && pendingAction !== "approve") ||
                 (pendingAction === "approve" && isPending)
                 ? "opacity-80"
@@ -180,7 +180,7 @@ export function ProjectApprovalActions({
           className={cn(
             "text-xs",
             message.kind === "success"
-              ? "text-emerald-600"
+              ? "text-soltas-ocean"
               : "text-rose-600"
           )}
         >

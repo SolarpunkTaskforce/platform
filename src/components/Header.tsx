@@ -220,7 +220,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-ocean" : "text-slate-600 hover:text-soltas-ocean"
+                      active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -236,7 +236,7 @@ export default function Header() {
                   <button
                     type="button"
                     className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-ocean" : "text-slate-600 hover:text-soltas-ocean"
+                      active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
@@ -247,7 +247,7 @@ export default function Header() {
                     </span>
                   </button>
 
-                  <div className="glass-card invisible absolute left-0 top-full z-20 mt-2 w-56 py-2 text-sm text-slate-700 shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <div className="glass-card invisible absolute left-0 top-full z-20 mt-2 w-56 py-2 text-sm text-soltas-text shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     {item.items.map((link) => {
                       const childActive = isActive(link.href);
                       return (
@@ -307,7 +307,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      active ? "bg-soltas-light text-soltas-ocean" : "text-slate-700 hover:bg-soltas-light"
+                      active ? "bg-soltas-light text-soltas-ocean" : "text-soltas-text hover:bg-soltas-light"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -320,10 +320,10 @@ export default function Header() {
 
               return (
                 <details key={item.label} className="rounded-lg" open={active}>
-                  <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-medium text-soltas-text hover:bg-slate-50">
                     <span className="flex items-center justify-between">
                       {item.label}
-                      <span aria-hidden="true" className="text-xs text-slate-500">
+                      <span aria-hidden="true" className="text-xs text-soltas-muted">
                         &#9662;
                       </span>
                     </span>
@@ -339,7 +339,7 @@ export default function Header() {
                           className={`rounded-md px-3 py-2 text-sm ${
                             childActive
                               ? "bg-soltas-light text-soltas-ocean"
-                              : "text-slate-600 hover:bg-soltas-light"
+                              : "text-soltas-muted hover:bg-soltas-light"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >

@@ -197,7 +197,7 @@ export default async function AdminRegistrationsPage({
             "mb-4 rounded-lg border px-4 py-3 text-sm",
             errorParam
               ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700",
+              : "border-soltas-glacial/30 bg-soltas-glacial/15 text-soltas-ocean",
           )}
         >
           {errorParam ? errorParam : messageParam}
@@ -348,7 +348,7 @@ export default async function AdminRegistrationsPage({
                         >
                           <input type="hidden" name="category" value={currentCategory} />
                           <input type="hidden" name="view" value={currentView} />
-                          <button className="rounded border border-emerald-500 px-3 py-1 text-emerald-600 transition hover:bg-emerald-50">
+                          <button className="rounded border border-soltas-ocean px-3 py-1 text-soltas-ocean transition hover:bg-soltas-glacial/15">
                             Approve
                           </button>
                         </form>

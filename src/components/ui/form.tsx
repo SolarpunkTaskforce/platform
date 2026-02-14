@@ -67,7 +67,7 @@ const FormLabel = React.forwardRef<React.ElementRef<typeof Label>, React.Compone
     return (
       <Label
         ref={ref}
-        className={cn("text-sm font-medium text-slate-900", error ? "text-rose-600" : null, className)}
+        className={cn("text-sm font-medium text-soltas-bark", error ? "text-rose-600" : null, className)}
         htmlFor={formItemId}
         {...props}
       />
@@ -99,7 +99,7 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className, ...props }, ref) => {
     const { formDescriptionId } = useFormField();
 
-    return <p ref={ref} id={formDescriptionId} className={cn("text-sm text-slate-500", className)} {...props} />;
+    return <p ref={ref} id={formDescriptionId} className={cn("text-sm text-soltas-muted", className)} {...props} />;
   },
 );
 FormDescription.displayName = "FormDescription";

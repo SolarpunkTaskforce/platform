@@ -438,8 +438,8 @@ export default async function ProjectEditPage({
   return (
     <main className="mx-auto max-w-4xl space-y-10 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Edit project</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-3xl font-semibold text-soltas-bark">Edit project</h1>
+        <p className="text-sm text-soltas-muted">
           Changes are saved under the same access rules (owner/admin/shared editors).
         </p>
       </div>
@@ -450,15 +450,15 @@ export default async function ProjectEditPage({
       <section id="sharing" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Sharing</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Sharing</h2>
+            <p className="mt-1 text-sm text-soltas-muted">
               Invite collaborators to view or edit this project. Access is enforced by Supabase RLS.
             </p>
           </div>
 
           <Link
             href={`/projects/${encodeURIComponent(projectSlugOrId)}`}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-soltas-bark hover:bg-slate-50"
           >
             View public page
           </Link>
@@ -470,7 +470,7 @@ export default async function ProjectEditPage({
           className="mt-5 flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-end"
         >
           <div className="flex-1">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Invite by email
             </label>
             <input
@@ -483,7 +483,7 @@ export default async function ProjectEditPage({
           </div>
 
           <div className="sm:w-44">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">Role</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-soltas-muted">Role</label>
             <select
               name="role"
               defaultValue="viewer"
@@ -504,7 +504,7 @@ export default async function ProjectEditPage({
 
         {/* List */}
         <div className="mt-5 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">Collaborators</h3>
+          <h3 className="text-sm font-semibold text-soltas-bark">Collaborators</h3>
 
           {collaborators.length ? (
             <ul className="space-y-2">
@@ -517,8 +517,8 @@ export default async function ProjectEditPage({
                     className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-900">{display}</div>
-                      <div className="truncate text-xs text-slate-500">{c.email ?? "—"}</div>
+                      <div className="truncate text-sm font-medium text-soltas-bark">{display}</div>
+                      <div className="truncate text-xs text-soltas-muted">{c.email ?? "—"}</div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -534,7 +534,7 @@ export default async function ProjectEditPage({
                         </select>
                         <button
                           type="submit"
-                          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-soltas-bark hover:bg-slate-50"
                         >
                           Update
                         </button>
@@ -555,12 +555,12 @@ export default async function ProjectEditPage({
               })}
             </ul>
           ) : (
-            <p className="text-sm text-slate-600">No collaborators yet.</p>
+            <p className="text-sm text-soltas-muted">No collaborators yet.</p>
           )}
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-soltas-muted">
             Notifications are generated automatically when collaborators change. Collaborators can check the bell icon or
-            visit <span className="font-medium text-slate-700">/notifications</span>.
+            visit <span className="font-medium text-soltas-text">/notifications</span>.
           </p>
         </div>
       </section>
@@ -568,16 +568,16 @@ export default async function ProjectEditPage({
       <section id="updates" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
               Updates
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-soltas-muted">
               Publish short project updates for followers. Public updates appear on the project page.
             </p>
           </div>
           <Link
             href={`/projects/${encodeURIComponent(projectSlugOrId)}#updates`}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-soltas-bark hover:bg-slate-50"
           >
             View public updates
           </Link>
@@ -588,7 +588,7 @@ export default async function ProjectEditPage({
           className="mt-5 space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4"
         >
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Title
             </label>
             <input
@@ -599,7 +599,7 @@ export default async function ProjectEditPage({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Update details
             </label>
             <textarea
@@ -611,7 +611,7 @@ export default async function ProjectEditPage({
             />
           </div>
           <div className="sm:w-56">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Visibility
             </label>
             <select
@@ -632,7 +632,7 @@ export default async function ProjectEditPage({
         </form>
 
         <div className="mt-5 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">Recent updates</h3>
+          <h3 className="text-sm font-semibold text-soltas-bark">Recent updates</h3>
           {projectUpdates && projectUpdates.length > 0 ? (
             <ul className="space-y-3">
               {projectUpdates.map((update) => (
@@ -641,20 +641,20 @@ export default async function ProjectEditPage({
                   className="rounded-xl border border-slate-100 bg-white px-4 py-3"
                 >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm font-medium text-slate-900">{update.title}</div>
-                    <span className="text-xs text-slate-500">
+                    <div className="text-sm font-medium text-soltas-bark">{update.title}</div>
+                    <span className="text-xs text-soltas-muted">
                       {formatDate(update.published_at)}
                     </span>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{update.body}</p>
-                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-soltas-text">{update.body}</p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-soltas-muted">
                     Visibility: {update.visibility}
                   </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-600">No updates yet.</p>
+            <p className="text-sm text-soltas-muted">No updates yet.</p>
           )}
         </div>
       </section>

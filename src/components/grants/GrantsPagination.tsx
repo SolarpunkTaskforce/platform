@@ -57,7 +57,7 @@ export default function GrantsPagination({
 
   return (
     <nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Pagination">
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-soltas-muted">
         Page {safePage} of {pageCount}
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -67,7 +67,7 @@ export default function GrantsPagination({
           className={`rounded border px-3 py-1 text-sm ${
             safePage === 1
               ? "pointer-events-none border-slate-200 text-slate-400"
-              : "border-slate-300 text-slate-700 hover:border-slate-400"
+              : "border-slate-300 text-soltas-text hover:border-slate-400"
           }`}
         >
           Prev
@@ -78,8 +78,8 @@ export default function GrantsPagination({
             href={buildSearchParams(searchParams, value, basePath)}
             className={`rounded border px-3 py-1 text-sm ${
               value === safePage
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                : "border-slate-300 text-slate-700 hover:border-slate-400"
+                ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean"
+                : "border-slate-300 text-soltas-text hover:border-slate-400"
             }`}
           >
             {value}
@@ -91,7 +91,7 @@ export default function GrantsPagination({
           className={`rounded border px-3 py-1 text-sm ${
             safePage === pageCount
               ? "pointer-events-none border-slate-200 text-slate-400"
-              : "border-slate-300 text-slate-700 hover:border-slate-400"
+              : "border-slate-300 text-soltas-text hover:border-slate-400"
           }`}
         >
           Next

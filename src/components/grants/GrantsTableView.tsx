@@ -55,7 +55,7 @@ const buttonSizes = {
 
 const buttonVariants = {
   secondary: "bg-slate-900 text-white hover:bg-slate-800",
-  outline: "border border-slate-200 text-slate-900 hover:bg-slate-100",
+  outline: "border border-slate-200 text-soltas-bark hover:bg-slate-100",
 } as const;
 
 type GrantsTableViewProps = {
@@ -70,13 +70,13 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">Showing {rows.length} of {count} funding opportunities</p>
+        <p className="text-sm text-soltas-muted">Showing {rows.length} of {count} funding opportunities</p>
         <GrantsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/funding" />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-[800px] divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-soltas-muted">
             <tr>
               <th className="px-4 py-3">Funding opportunity</th>
               <th className="px-4 py-3">Funding</th>
@@ -102,31 +102,31 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
                 <tr key={grant.id} className="align-top">
                   <td className="max-w-[280px] px-4 py-4">
                     <Link
-                      className="font-semibold text-emerald-700 hover:text-emerald-800"
+                      className="font-semibold text-soltas-ocean hover:text-soltas-abyssal transition-colors"
                       href={`/funding/${encodeURIComponent(slugForPath)}`}
                     >
                       {grant.title}
                     </Link>
-                    <p className="mt-1 truncate text-xs text-slate-500">
+                    <p className="mt-1 truncate text-xs text-soltas-muted">
                       {grant.funder_name ? `Funder: ${grant.funder_name}` : "Funder not listed"}
                     </p>
-                    {grant.summary ? <p className="mt-2 line-clamp-2 text-xs text-slate-500">{grant.summary}</p> : null}
+                    {grant.summary ? <p className="mt-2 line-clamp-2 text-xs text-soltas-muted">{grant.summary}</p> : null}
                   </td>
-                  <td className="px-4 py-4 text-slate-600">
+                  <td className="px-4 py-4 text-soltas-muted">
                     <div className="capitalize">{grant.funding_type}</div>
                     <div className="text-xs text-slate-400">Status: {grant.status}</div>
                   </td>
-                  <td className="px-4 py-4 text-slate-600">
+                  <td className="px-4 py-4 text-soltas-muted">
                     <Badge variant="outline" className="capitalize">
                       {grant.project_type}
                     </Badge>
                   </td>
-                  <td className="px-4 py-4 text-slate-600">{formatEligibility(grant)}</td>
-                  <td className="px-4 py-4 text-slate-600">
+                  <td className="px-4 py-4 text-soltas-muted">{formatEligibility(grant)}</td>
+                  <td className="px-4 py-4 text-soltas-muted">
                     <div>{formatDate(grant.deadline)}</div>
                     <div className="text-xs text-slate-400">Open: {formatDate(grant.open_date)}</div>
                   </td>
-                  <td className="px-4 py-4 text-slate-600">{formatAmountRange(grant)}</td>
+                  <td className="px-4 py-4 text-soltas-muted">{formatAmountRange(grant)}</td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
                       <Link
@@ -148,7 +148,7 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-soltas-muted">
           No funding opportunities match the selected filters.
         </div>
       ) : null}

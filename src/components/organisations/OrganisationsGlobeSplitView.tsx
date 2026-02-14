@@ -241,7 +241,7 @@ export default function OrganisationsGlobeSplitView({
         <button
           type="button"
           onClick={() => setMobileFiltersOpen(o => !o)}
-          className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg ring-1 ring-black/10"
+          className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-soltas-text shadow-lg ring-1 ring-black/10"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filters
@@ -250,17 +250,17 @@ export default function OrganisationsGlobeSplitView({
         {/* Mobile filters drawer */}
         {mobileFiltersOpen && (
           <>
-            <div className="absolute inset-0 z-20 bg-black/20" onClick={() => setMobileFiltersOpen(false)} />
+            <div className="absolute inset-0 z-20 bg-soltas-peat/20" onClick={() => setMobileFiltersOpen(false)} />
             <div className="absolute bottom-0 left-0 right-0 z-30 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900">Filters</span>
+                <span className="text-sm font-semibold text-soltas-bark">Filters</span>
                 <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg p-1 hover:bg-slate-100">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-4">
                 <OrganisationsFilters options={options} />
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-soltas-muted">
                   {markers.length} mapped · {totalCount} total
                 </div>
               </div>
@@ -291,7 +291,7 @@ export default function OrganisationsGlobeSplitView({
           <div className="h-full overflow-y-auto p-4">
             <div className="space-y-4">
               <OrganisationsFilters options={options} />
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-soltas-muted">
                 {markers.length} organisations mapped · {totalCount} total matching filters
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function OrganisationsGlobeSplitView({
             type="button"
             aria-label={collapsed ? "Open filters panel" : "Close filters panel"}
             onClick={toggleCollapsed}
-            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-soltas-ocean px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-soltas-abyssal focus:outline-none focus:ring-2 focus:ring-soltas-glacial"
           >
             {collapsed ? "Show" : "Hide"}
           </button>

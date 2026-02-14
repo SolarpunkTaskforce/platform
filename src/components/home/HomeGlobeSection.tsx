@@ -265,7 +265,7 @@ export default function HomeGlobeSection({
         {/* Top content */}
         <div className="px-6 pt-8 sm:px-8 lg:px-12">
           <div className="max-w-2xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Solarpunk Taskforce</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">Solarpunk Taskforce</p>
             <h1 className="text-3xl font-semibold text-white sm:text-4xl">
               Discover regenerative projects around the globe.
             </h1>
@@ -293,9 +293,9 @@ export default function HomeGlobeSection({
                     onMouseEnter={() => setMode(key)}
                     onFocus={() => setMode(key)}
                     className={cn(
-                      "inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+                      "inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
                       isActive
-                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        ? "bg-soltas-ocean text-white hover:bg-soltas-abyssal"
                         : "border border-white/25 bg-white/10 text-white backdrop-blur-md hover:bg-white/15",
                     )}
                     aria-current={isActive ? "true" : undefined}
@@ -323,8 +323,8 @@ export default function HomeGlobeSection({
                       type="button"
                       onClick={() => setMode(key)}
                       className={cn(
-                        "h-10 rounded-2xl text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
-                        isActive ? "bg-emerald-600 text-white" : "text-white/90 hover:bg-white/10",
+                        "h-10 rounded-2xl text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
+                        isActive ? "bg-soltas-ocean text-white" : "text-white/90 hover:bg-white/10",
                       )}
                       role="tab"
                       aria-selected={isActive}
@@ -337,7 +337,7 @@ export default function HomeGlobeSection({
               </div>
               <Link
                 href={MODE_CONFIG[mode].href}
-                className="inline-flex h-11 items-center justify-center rounded-2xl bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean"
               >
                 Open {MODE_CONFIG[mode].mobileLabel}
               </Link>
@@ -393,7 +393,7 @@ export default function HomeGlobeSection({
             type="button"
             onClick={scrollToNextSection}
             aria-label="Scroll to next section"
-            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/35 text-white/90 backdrop-blur-md transition hover:bg-slate-950/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-soltas-peat/35 text-white/90 backdrop-blur-md transition hover:bg-soltas-peat/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-glacial"
           >
             <ChevronDown className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -497,7 +497,7 @@ function PinnedStatsPanel({
       >
         {/* Header */}
         <div
-          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-emerald-100"
+          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-soltas-glacial"
           style={{ fontSize: `${0.7 * scale}rem` }}
         >
           <span>{title}</span>
@@ -542,9 +542,9 @@ function PinnedStatsPanel({
         onPointerCancel={onPointerUp}
         className={cn(
           "group/handle absolute z-20 flex h-7 w-7 items-center justify-center rounded-full",
-          "border border-white/30 bg-slate-900/60 backdrop-blur-sm",
-          "transition hover:border-white/60 hover:bg-slate-900/80",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+          "border border-white/30 bg-soltas-peat/60 backdrop-blur-sm",
+          "transition hover:border-white/60 hover:bg-soltas-peat/80",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
           "cursor-nwse-resize",
           cornerClass,
         )}
@@ -590,7 +590,7 @@ function HomeStatsPanel({
         align === "right" ? "items-end text-right" : "items-start text-left",
       )}
     >
-      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">{title}</div>
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">{title}</div>
       <div className="flex flex-col gap-3">
         {items.map((item) => (
           <div key={item.label} className="flex flex-col gap-0.5">

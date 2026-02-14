@@ -187,23 +187,23 @@ export default function Map({
       const popup = new mapboxgl.Popup({ offset: 12, maxWidth: "320px" })
 
       const popupNode = document.createElement("div")
-      popupNode.className = "space-y-2 text-sm text-slate-700"
+      popupNode.className = "space-y-2 text-sm text-soltas-text"
 
       const titleEl = document.createElement("h3")
-      titleEl.className = "text-base font-semibold text-slate-900"
+      titleEl.className = "text-base font-semibold text-soltas-bark"
       titleEl.textContent = m.title
       popupNode.appendChild(titleEl)
 
       if (m.placeName) {
         const placeEl = document.createElement("p")
-        placeEl.className = "text-xs uppercase tracking-wide text-slate-500"
+        placeEl.className = "text-xs uppercase tracking-wide text-soltas-muted"
         placeEl.textContent = m.placeName
         popupNode.appendChild(placeEl)
       }
 
       if (m.description) {
         const descriptionEl = document.createElement("p")
-        descriptionEl.className = "text-sm leading-snug text-slate-600"
+        descriptionEl.className = "text-sm leading-snug text-soltas-muted"
         descriptionEl.textContent = truncate(m.description)
         popupNode.appendChild(descriptionEl)
       }
@@ -269,8 +269,8 @@ export default function Map({
     return (
       <div className="grid h-full w-full place-items-center rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-slate-900">Map view unavailable</div>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm font-semibold text-soltas-bark">Map view unavailable</div>
+          <div className="text-sm text-soltas-muted">
             This deployment is missing the Mapbox token (<code>NEXT_PUBLIC_MAPBOX_TOKEN</code>).
             Use the table view instead.
           </div>
@@ -288,7 +288,7 @@ export default function Map({
 
       {freeze ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <div className="rounded-xl bg-white/90 px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200">
+          <div className="rounded-xl bg-white/90 px-4 py-3 text-sm font-semibold text-soltas-text shadow-lg ring-1 ring-slate-200">
             Updating map…
           </div>
         </div>
