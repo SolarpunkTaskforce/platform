@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import type { Database } from "@/lib/database.types";
 import FollowButton from "@/components/FollowButton";
-import UpdatesSection, { type UpdateSummary } from "@/components/updates/UpdatesSection";
+import UpdatesSectionWithSocial, { type UpdateSummary } from "@/components/updates/UpdatesSectionWithSocial";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -253,7 +253,7 @@ export default async function ProjectDetailPage({
         </section>
       ) : null}
 
-      <UpdatesSection
+      <UpdatesSectionWithSocial
         updates={updates}
         isAuthenticated={Boolean(user)}
         canPost={Boolean(canEdit)}
