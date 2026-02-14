@@ -78,10 +78,22 @@ export default async function OrganisationPage({
   const isFollowing = Boolean(followEdge && !followEdgeError);
   const isVerified = organisation.verification_status === "verified";
 
-  // Phase 1: Placeholder updates array
-  // TODO: Fetch updates from database when available
-  // Expected shape: { id, title, summary, created_at, author_name, href }
-  const updates: UpdateSummary[] = [];
+  // Fetch organisation updates
+  const { data: organisationUpdates } = await supabase
+    .from("organisation_updates")
+    .select("id,organisation_id,author_user_id,title,body,visibility,published_at,created_at")
+    .eq("organisation_id", organisation.id)
+    .eq("visibility", "public")
+    .order("published_at", { ascending: false })
+    .limit(20);
+
+  // Map organisation_updates to UpdateSummary format
+  const updates: UpdateSummary[] = (organisationUpdates ?? []).map((update: any) => ({
+    id: update.id,
+    title: update.title,
+    summary: update.body,
+    created_at: update.published_at,
+  }));
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
