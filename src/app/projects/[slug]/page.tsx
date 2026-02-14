@@ -3,20 +3,11 @@ import { notFound } from "next/navigation";
 
 import type { Database } from "@/lib/database.types";
 import FollowButton from "@/components/FollowButton";
+import UpdatesSection, { type UpdateSummary } from "@/components/updates/UpdatesSection";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type OrganisationRow = Database["public"]["Tables"]["organisations"]["Row"];
-type ProjectUpdateRow = {
-  id: string;
-  project_id: string;
-  author_user_id: string;
-  title: string;
-  body: string;
-  visibility: string;
-  published_at: string;
-  created_at: string;
-};
 
 function formatMoney(amount: number | null, currency: string | null) {
   if (typeof amount !== "number") return null;
@@ -177,6 +168,14 @@ export default async function ProjectDetailPage({
   const donations = formatMoney(project.donations_received, project.currency);
   const needed = formatMoney(project.amount_needed, project.currency);
 
+  // Map project_updates to UpdateSummary format
+  const updates: UpdateSummary[] = (projectUpdates ?? []).map((update) => ({
+    id: update.id,
+    title: update.title,
+    summary: update.body,
+    created_at: update.published_at,
+  }));
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -254,30 +253,11 @@ export default async function ProjectDetailPage({
         </section>
       ) : null}
 
-      <section id="updates" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
-          Updates
-        </h2>
-        {projectUpdates && projectUpdates.length > 0 ? (
-          <div className="mt-4 space-y-4">
-            {(projectUpdates as ProjectUpdateRow[]).map((update) => (
-              <article key={update.id} className="rounded-xl border border-slate-200 p-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="text-base font-semibold text-soltas-bark">{update.title}</h3>
-                  <span className="text-xs text-soltas-muted">
-                    {formatDate(update.published_at)}
-                  </span>
-                </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-soltas-text">
-                  {update.body}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-soltas-muted">No public updates yet.</p>
-        )}
-      </section>
+      <UpdatesSection
+        updates={updates}
+        isAuthenticated={Boolean(user)}
+        canPost={Boolean(canEdit)}
+      />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Details</h2>
