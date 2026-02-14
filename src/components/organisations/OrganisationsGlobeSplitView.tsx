@@ -250,7 +250,7 @@ export default function OrganisationsGlobeSplitView({
         {/* Mobile filters drawer */}
         {mobileFiltersOpen && (
           <>
-            <div className="absolute inset-0 z-20 bg-black/20" onClick={() => setMobileFiltersOpen(false)} />
+            <div className="absolute inset-0 z-20 bg-soltas-peat/20" onClick={() => setMobileFiltersOpen(false)} />
             <div className="absolute bottom-0 left-0 right-0 z-30 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-900">Filters</span>

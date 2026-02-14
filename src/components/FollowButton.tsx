@@ -63,14 +63,14 @@ export default function FollowButton({
         disabled={!isAuthenticated || isPending}
         className={`inline-flex items-center justify-center rounded-lg border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
           isFollowing
-            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-            : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
+            ? "border-soltas-ocean/30 bg-soltas-glacial/15 text-soltas-ocean"
+            : "border-soltas-glacial/30 bg-white text-soltas-bark hover:bg-soltas-light"
         }`}
       >
         {isAuthenticated ? (isFollowing ? "Following" : "Follow") : "Sign in to follow"}
       </button>
       {typeof followerCount === "number" ? (
-        <div className="text-xs text-slate-500">{`${formatCount(followerCount)} followers`}</div>
+        <div className="text-xs text-soltas-muted">{`${formatCount(followerCount)} followers`}</div>
       ) : null}
       {error ? <p className="text-xs text-rose-600">{error}</p> : null}
     </div>

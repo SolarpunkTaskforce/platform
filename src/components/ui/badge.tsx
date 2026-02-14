@@ -2,12 +2,12 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-type BadgeVariant = "default" | "outline" | "emerald";
+type BadgeVariant = "default" | "outline" | "ocean";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-700",
-  outline: "border border-slate-200 text-slate-700",
-  emerald: "bg-emerald-100 text-emerald-700",
+  default: "bg-soltas-light text-soltas-bark",
+  outline: "border border-soltas-glacial/30 text-soltas-bark",
+  ocean: "bg-soltas-glacial/20 text-soltas-ocean",
 };
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
