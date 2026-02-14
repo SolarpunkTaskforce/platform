@@ -839,7 +839,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                       />
                     ) : null}
                     {field.value ? (
-                      <Badge variant="emerald" className="inline-flex items-center gap-2 text-sm">
+                      <Badge variant="ocean" className="inline-flex items-center gap-2 text-sm">
                         <MapPin className="h-4 w-4" /> {field.value.place_name}
                       </Badge>
                     ) : (
@@ -903,7 +903,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                   </Badge>
                 )}
                 {selectedInterventions.map(tag => (
-                  <Badge key={tag} variant="emerald" className="flex items-center gap-2">
+                  <Badge key={tag} variant="ocean" className="flex items-center gap-2">
                     {tag}
                     <button
                       type="button"
@@ -948,7 +948,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                   </Badge>
                 )}
                 {selectedThemes.map(tag => (
-                  <Badge key={tag} variant="emerald" className="flex items-center gap-2">
+                  <Badge key={tag} variant="ocean" className="flex items-center gap-2">
                     {tag}
                     <button
                       type="button"
