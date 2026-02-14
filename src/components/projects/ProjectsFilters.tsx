@@ -100,8 +100,8 @@ export default function ProjectsFilters({
     <section className={containerClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
-          <p className="text-sm text-slate-500">Use these controls to refine the project list.</p>
+          <h2 className="text-lg font-semibold text-soltas-bark">Filters</h2>
+          <p className="text-sm text-soltas-muted">Use these controls to refine the project list.</p>
         </div>
         <Button type="button" variant="ghost" onClick={clearFilters}>
           Clear filters
@@ -109,8 +109,8 @@ export default function ProjectsFilters({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Search</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Search</span>
           <Input
             value={qValue}
             placeholder="Project name or place"
@@ -118,8 +118,8 @@ export default function ProjectsFilters({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Project type</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Project type</span>
           <Select
             value={categoryValue || "all"}
             onValueChange={value =>
@@ -140,8 +140,8 @@ export default function ProjectsFilters({
           </Select>
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Country</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Country</span>
           <Input
             value={countryValue}
             placeholder="US, CA"
@@ -149,8 +149,8 @@ export default function ProjectsFilters({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Region</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Region</span>
           <Input
             value={regionValue}
             placeholder="Region names"
@@ -160,10 +160,10 @@ export default function ProjectsFilters({
       </div>
 
       <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">Advanced filters</summary>
+        <summary className="cursor-pointer text-sm font-medium text-soltas-text">Advanced filters</summary>
         <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Thematic areas</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Thematic areas</span>
             <Input
               value={thematicValue}
               placeholder="comma-separated"
@@ -171,8 +171,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Intervention types</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Intervention types</span>
             <Input
               value={interventionValue}
               placeholder="comma-separated"
@@ -180,8 +180,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Target demographics</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Target demographics</span>
             <Input
               value={demographicValue}
               placeholder="comma-separated"
@@ -189,8 +189,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Partner org IDs</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Partner org IDs</span>
             <Input
               value={partnerValue}
               placeholder="uuid, uuid"
@@ -198,8 +198,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Currency</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Currency</span>
             <Input
               value={currencyValue}
               placeholder="USD, EUR"
@@ -207,8 +207,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Min funding needed</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Min funding needed</span>
             <Input
               type="number"
               value={minNeededValue}
@@ -216,8 +216,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Max funding needed</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Max funding needed</span>
             <Input
               type="number"
               value={maxNeededValue}
@@ -225,8 +225,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Min funding received</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Min funding received</span>
             <Input
               type="number"
               value={minReceivedValue}
@@ -234,8 +234,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Max funding received</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Max funding received</span>
             <Input
               type="number"
               value={maxReceivedValue}
@@ -243,8 +243,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Min lives improved</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Min lives improved</span>
             <Input
               type="number"
               value={minLivesValue}
@@ -252,8 +252,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Max lives improved</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Max lives improved</span>
             <Input
               type="number"
               value={maxLivesValue}
@@ -261,8 +261,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Start date from</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Start date from</span>
             <Input
               type="date"
               value={startFromValue}
@@ -270,8 +270,8 @@ export default function ProjectsFilters({
             />
           </label>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">End date to</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">End date to</span>
             <Input
               type="date"
               value={endToValue}
@@ -281,8 +281,8 @@ export default function ProjectsFilters({
 
           {showSorting ? (
             <>
-              <label className="space-y-1 text-sm text-slate-600">
-                <span className="font-medium text-slate-900">Sort by</span>
+              <label className="space-y-1 text-sm text-soltas-muted">
+                <span className="font-medium text-soltas-bark">Sort by</span>
                 <Select value={sortValue} onValueChange={value => updateParams({ sort: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -297,8 +297,8 @@ export default function ProjectsFilters({
                 </Select>
               </label>
 
-              <label className="space-y-1 text-sm text-slate-600">
-                <span className="font-medium text-slate-900">Sort direction</span>
+              <label className="space-y-1 text-sm text-soltas-muted">
+                <span className="font-medium text-soltas-bark">Sort direction</span>
                 <Select value={dirValue} onValueChange={value => updateParams({ dir: value })}>
                   <SelectTrigger>
                     <SelectValue />

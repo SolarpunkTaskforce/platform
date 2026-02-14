@@ -46,7 +46,7 @@ export function SocialLinks({ links }: { links: unknown }) {
   const normalized = normalizeSocialLinks(links);
 
   if (normalized.length === 0) {
-    return <p className="text-sm text-slate-500">—</p>;
+    return <p className="text-sm text-soltas-muted">—</p>;
   }
 
   return (
@@ -57,7 +57,7 @@ export function SocialLinks({ links }: { links: unknown }) {
           <li key={`${label}-${link.url}`}>
             <Link
               href={link.url}
-              className="text-sm font-medium text-emerald-700 hover:underline"
+              className="text-sm font-medium text-soltas-ocean hover:underline"
               target="_blank"
               rel="noreferrer"
             >

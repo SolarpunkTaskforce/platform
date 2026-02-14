@@ -138,88 +138,88 @@ export default async function ProfileEditPage({
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Edit profile</h1>
-        <p className="text-sm text-slate-600">Update your public details.</p>
+        <h1 className="text-3xl font-semibold text-soltas-bark">Edit profile</h1>
+        <p className="text-sm text-soltas-muted">Update your public details.</p>
       </div>
 
       <form action={updateProfile} className="space-y-6">
         <input type="hidden" name="id" value={profile.id} />
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
             Basic information
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               First name
               <input
                 name="first_name"
                 defaultValue={profile.first_name ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Last name
               <input
                 name="last_name"
                 defaultValue={profile.last_name ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Country from
               <input
                 name="country_from"
                 defaultValue={profile.country_from ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Country based
               <input
                 name="country_based"
                 defaultValue={profile.country_based ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Occupation
               <input
                 name="occupation"
                 defaultValue={profile.occupation ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Avatar URL
               <input
                 name="avatar_url"
                 defaultValue={profile.avatar_url ?? ""}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
               />
             </label>
           </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Bio</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Bio</h2>
           <textarea
             name="bio"
             defaultValue={profile.bio ?? ""}
             rows={5}
-            className="mt-4 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+            className="mt-4 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
           />
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
             Organisation
           </h2>
           <div className="mt-4 space-y-2">
             <select
               name="organisation_id"
               defaultValue={selectedOrgId}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
             >
               <option value="independent">Independent</option>
               {(verifiedOrgs ?? []).map((org) => (
@@ -237,7 +237,7 @@ export default async function ProfileEditPage({
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
             Social links
           </h2>
           <div className="mt-4">

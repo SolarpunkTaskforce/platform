@@ -88,13 +88,13 @@ export default async function OrganisationPage({
               className="h-14 w-14 rounded-2xl border border-slate-200 object-cover sm:h-20 sm:w-20"
             />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500 sm:h-20 sm:w-20">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-soltas-muted sm:h-20 sm:w-20">
               —
             </div>
           )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-soltas-bark">
                 {organisation.name}
               </h1>
               {isVerified ? (
@@ -103,11 +103,11 @@ export default async function OrganisationPage({
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-soltas-muted">
               On Solarpunk Taskforce since {formatDate(organisation.created_at)}
             </p>
             {organisation.country_based ? (
-              <p className="mt-1 text-sm text-slate-600">Based in {organisation.country_based}</p>
+              <p className="mt-1 text-sm text-soltas-muted">Based in {organisation.country_based}</p>
             ) : null}
           </div>
         </div>
@@ -133,31 +133,31 @@ export default async function OrganisationPage({
       </header>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Overview</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Overview</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               What we do
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {organisation.what_we_do ?? "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Existing since
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {organisation.existing_since ?? "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Website</dt>
-            <dd className="text-sm text-slate-900">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">Website</dt>
+            <dd className="text-sm text-soltas-bark">
               {organisation.website ? (
                 <Link
                   href={organisation.website}
-                  className="font-medium text-emerald-700 hover:underline"
+                  className="font-medium text-soltas-ocean hover:underline"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -169,7 +169,7 @@ export default async function OrganisationPage({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Social links
             </dt>
             <dd className="mt-2">
@@ -180,29 +180,29 @@ export default async function OrganisationPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Stats</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Stats</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Members
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {resolvedMemberCount === null ? "—" : resolvedMemberCount}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Projects
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {resolvedProjectCount === null ? "—" : resolvedProjectCount}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Followers
             </dt>
-            <dd className="text-sm text-slate-900">
+            <dd className="text-sm text-soltas-bark">
               {resolvedFollowerCount === null ? "—" : resolvedFollowerCount}
             </dd>
           </div>

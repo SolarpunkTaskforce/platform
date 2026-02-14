@@ -141,7 +141,7 @@ export default async function OrganisationEditPage({
     <main className="mx-auto max-w-3xl space-y-6 px-5 pb-20 pt-12">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-[#1A2B38]">Edit organisation</h1>
-        <p className="text-sm text-slate-600">Update public organisation details.</p>
+        <p className="text-sm text-soltas-muted">Update public organisation details.</p>
       </div>
 
       <form action={updateOrganisation} className="space-y-6">
@@ -152,7 +152,7 @@ export default async function OrganisationEditPage({
             Basic information
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Organisation name
               <input
                 name="name"
@@ -160,7 +160,7 @@ export default async function OrganisationEditPage({
                 className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Country based
               <input
                 name="country_based"
@@ -168,7 +168,7 @@ export default async function OrganisationEditPage({
                 className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Existing since
               <input
                 name="existing_since"
@@ -176,7 +176,7 @@ export default async function OrganisationEditPage({
                 className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text">
               Website
               <input
                 name="website"
@@ -184,7 +184,7 @@ export default async function OrganisationEditPage({
                 className="rounded-xl border border-[#6B9FB8]/40 bg-white px-3 py-2 text-sm text-[#1A2B38] focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
+            <label className="grid gap-2 text-sm font-medium text-soltas-text sm:col-span-2">
               Logo URL
               <input
                 name="logo_url"
@@ -193,7 +193,7 @@ export default async function OrganisationEditPage({
               />
             </label>
             {isAdmin ? (
-              <label className="grid gap-2 text-sm font-medium text-slate-700">
+              <label className="grid gap-2 text-sm font-medium text-soltas-text">
                 Verification status
                 <select
                   name="verification_status"

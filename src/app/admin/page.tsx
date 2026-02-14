@@ -42,8 +42,8 @@ export default async function AdminIndexPage() {
   return (
     <main className="space-y-6 p-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold text-slate-900">Admin dashboard</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-3xl font-semibold text-soltas-bark">Admin dashboard</h1>
+        <p className="text-sm text-soltas-muted">
           Access moderation and configuration tools for the Solarpunk Taskforce platform.
         </p>
       </div>
@@ -53,10 +53,10 @@ export default async function AdminIndexPage() {
           <li key={link.href} className="rounded-xl border p-4 shadow-sm transition hover:shadow-md">
             <Link href={link.href} className="block space-y-2">
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-slate-900">{link.title}</h2>
-                <p className="text-sm text-slate-600">{link.description}</p>
+                <h2 className="text-lg font-semibold text-soltas-bark">{link.title}</h2>
+                <p className="text-sm text-soltas-muted">{link.description}</p>
               </div>
-              <span className="text-sm font-medium text-emerald-600">Go to {link.title.toLowerCase()}</span>
+              <span className="text-sm font-medium text-soltas-ocean">Go to {link.title.toLowerCase()}</span>
             </Link>
           </li>
         ))}

@@ -58,47 +58,47 @@ export default async function GrantDetailPage({
   return (
     <main className="mx-auto w-full max-w-4xl space-y-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       <header className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Funding opportunity</p>
-        <h1 className="text-3xl font-semibold text-slate-900">{grant.title}</h1>
-        {grant.summary ? <p className="text-base text-slate-600">{grant.summary}</p> : null}
+        <p className="text-sm font-semibold uppercase tracking-wide text-soltas-ocean">Funding opportunity</p>
+        <h1 className="text-3xl font-semibold text-soltas-bark">{grant.title}</h1>
+        {grant.summary ? <p className="text-base text-soltas-muted">{grant.summary}</p> : null}
       </header>
 
       <section className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Funder</h2>
-          <p className="text-base text-slate-900">{grant.funder_name ?? "Not listed"}</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Funder</h2>
+          <p className="text-base text-soltas-bark">{grant.funder_name ?? "Not listed"}</p>
           {grant.funder_website ? (
-            <Link href={grant.funder_website} className="text-sm text-emerald-700 hover:text-emerald-800">
+            <Link href={grant.funder_website} className="text-sm text-soltas-ocean hover:text-soltas-ocean">
               Visit funder website
             </Link>
           ) : null}
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Application</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Application</h2>
           <Link
             href={grant.application_url}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            className="inline-flex items-center justify-center rounded-2xl bg-soltas-ocean px-4 py-2 text-sm font-semibold text-white hover:bg-soltas-abyssal"
           >
             Apply now
           </Link>
-          {grant.contact_email ? <p className="text-sm text-slate-600">Contact: {grant.contact_email}</p> : null}
+          {grant.contact_email ? <p className="text-sm text-soltas-muted">Contact: {grant.contact_email}</p> : null}
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Funding</h2>
-          <p className="text-base text-slate-900 capitalize">{grant.funding_type}</p>
-          <p className="text-sm text-slate-600">Amount: {amountRange ?? "Not specified"}</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Funding</h2>
+          <p className="text-base text-soltas-bark capitalize">{grant.funding_type}</p>
+          <p className="text-sm text-soltas-muted">Amount: {amountRange ?? "Not specified"}</p>
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Focus</h2>
-          <p className="text-base text-slate-900 capitalize">{grant.project_type}</p>
-          <p className="text-sm text-slate-600">Status: {grant.status}</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Focus</h2>
+          <p className="text-base text-soltas-bark capitalize">{grant.project_type}</p>
+          <p className="text-sm text-soltas-muted">Status: {grant.status}</p>
         </div>
       </section>
 
       <section className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Key dates</h2>
-          <ul className="space-y-1 text-sm text-slate-600">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Key dates</h2>
+          <ul className="space-y-1 text-sm text-soltas-muted">
             <li>Open date: {openDate ?? "—"}</li>
             <li>Deadline: {deadline ?? "—"}</li>
             <li>Decision date: {decisionDate ?? "—"}</li>
@@ -106,19 +106,19 @@ export default async function GrantDetailPage({
           </ul>
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Eligibility</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Eligibility</h2>
+          <p className="text-sm text-soltas-muted">
             Eligible countries: {grant.eligible_countries?.length ? grant.eligible_countries.join(", ") : "Not specified"}
           </p>
-          <p className="text-sm text-slate-600">Remote friendly: {grant.remote_ok ? "Yes" : "No"}</p>
-          {grant.location_name ? <p className="text-sm text-slate-600">Location: {grant.location_name}</p> : null}
+          <p className="text-sm text-soltas-muted">Remote friendly: {grant.remote_ok ? "Yes" : "No"}</p>
+          {grant.location_name ? <p className="text-sm text-soltas-muted">Location: {grant.location_name}</p> : null}
         </div>
       </section>
 
       {grant.description ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Details</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">{grant.description}</p>
+          <h2 className="text-lg font-semibold text-soltas-bark">Details</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-soltas-muted">{grant.description}</p>
         </section>
       ) : null}
     </main>

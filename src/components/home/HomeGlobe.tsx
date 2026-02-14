@@ -326,7 +326,7 @@ export default function HomeGlobe({
 
       const popupNode = document.createElement("div");
       popupNode.className =
-        "space-y-2 text-sm text-slate-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
+        "space-y-2 text-sm text-soltas-text motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-reduce:animate-none";
 
       if (marker.eyebrow) {
         const eyebrowEl = document.createElement("p");

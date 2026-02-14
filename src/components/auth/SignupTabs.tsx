@@ -73,7 +73,7 @@ const initialOrganisation = {
 export default function SignupTabs() {
   if (!supabase) {
     return (
-      <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-6 text-sm text-slate-600">
+      <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-6 text-sm text-soltas-muted">
         {supabaseInitializationError?.message}
       </div>
     );
@@ -310,7 +310,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
           type="button"
           onClick={() => setActiveTab("individual")}
           className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "individual" ? "bg-[#2E6B8A] text-white shadow" : "text-slate-600"
+            activeTab === "individual" ? "bg-[#2E6B8A] text-white shadow" : "text-soltas-muted"
           }`}
         >
           Individual
@@ -319,7 +319,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
           type="button"
           onClick={() => setActiveTab("organisation")}
           className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "organisation" ? "bg-[#2E6B8A] text-white shadow" : "text-slate-600"
+            activeTab === "organisation" ? "bg-[#2E6B8A] text-white shadow" : "text-soltas-muted"
           }`}
         >
           Organisation
@@ -524,7 +524,7 @@ function Field({
   helperText?: string;
 }) {
   return (
-    <label className="space-y-1 text-sm text-slate-700">
+    <label className="space-y-1 text-sm text-soltas-text">
       <span className="font-medium">
         {label}
         {required ? " *" : ""}
@@ -539,7 +539,7 @@ function Field({
             : "border-[#6B9FB8]/40 focus:border-[#6B9FB8] focus:ring-[#6B9FB8]/60"
         }`}
       />
-      {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
+      {helperText && <p className="text-xs text-soltas-muted">{helperText}</p>}
       {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
     </label>
   );
@@ -563,7 +563,7 @@ function SelectField({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="space-y-1 text-sm text-slate-700">
+    <label className="space-y-1 text-sm text-soltas-text">
       <span className="font-medium">
         {label}
         {required ? " *" : ""}
@@ -583,7 +583,7 @@ function SelectField({
           </option>
         ))}
       </select>
-      {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
+      {helperText && <p className="text-xs text-soltas-muted">{helperText}</p>}
       {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
     </label>
   );
@@ -603,7 +603,7 @@ function TextAreaField({
   required?: boolean;
 }) {
   return (
-    <label className="space-y-1 text-sm text-slate-700">
+    <label className="space-y-1 text-sm text-soltas-text">
       <span className="font-medium">
         {label}
         {required ? " *" : ""}
@@ -639,7 +639,7 @@ function SocialLinksField({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-700">{title}</h3>
+        <h3 className="text-sm font-medium text-soltas-text">{title}</h3>
         <button
           type="button"
           onClick={onAdd}

@@ -137,7 +137,7 @@ export default async function IssueRegistrationsPage({
             "mb-4 rounded-lg border px-4 py-3 text-sm",
             errorParam
               ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700",
+              : "border-soltas-glacial/30 bg-soltas-glacial/15 text-soltas-ocean",
           )}
         >
           {errorParam ? errorParam : messageParam}
@@ -209,33 +209,33 @@ export default async function IssueRegistrationsPage({
                   <td className="px-4 py-3">{formatDate(issue.created_at)}</td>
                   <td className="px-4 py-3">
                     <details className="rounded-lg border border-slate-200 bg-white p-3">
-                      <summary className="cursor-pointer text-sm font-medium text-slate-700">View details</summary>
-                      <div className="mt-3 space-y-2 text-xs text-slate-600">
-                        <p className="text-sm text-slate-700">{issue.description ?? ""}</p>
+                      <summary className="cursor-pointer text-sm font-medium text-soltas-text">View details</summary>
+                      <div className="mt-3 space-y-2 text-xs text-soltas-muted">
+                        <p className="text-sm text-soltas-text">{issue.description ?? ""}</p>
                         <div>
-                          <span className="font-semibold text-slate-700">SDGs:</span> {issue.sdgs?.join(", ") || "—"}
+                          <span className="font-semibold text-soltas-text">SDGs:</span> {issue.sdgs?.join(", ") || "—"}
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-700">IFRC challenges:</span> {issue.global_challenges?.join(", ") || "—"}
+                          <span className="font-semibold text-soltas-text">IFRC challenges:</span> {issue.global_challenges?.join(", ") || "—"}
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-700">Affected demographics:</span> {issue.affected_demographics?.join(", ") || "—"}
+                          <span className="font-semibold text-soltas-text">Affected demographics:</span> {issue.affected_demographics?.join(", ") || "—"}
                         </div>
                         {issue.affected_groups_text ? (
                           <div>
-                            <span className="font-semibold text-slate-700">Affected groups (free text):</span> {issue.affected_groups_text}
+                            <span className="font-semibold text-soltas-text">Affected groups (free text):</span> {issue.affected_groups_text}
                           </div>
                         ) : null}
                         <div>
-                          <span className="font-semibold text-slate-700">Date observed:</span> {issue.date_observed ?? "—"}
+                          <span className="font-semibold text-soltas-text">Date observed:</span> {issue.date_observed ?? "—"}
                         </div>
                         {issue.evidence_links?.length ? (
                           <div>
-                            <span className="font-semibold text-slate-700">Evidence links:</span>
+                            <span className="font-semibold text-soltas-text">Evidence links:</span>
                             <ul className="mt-1 list-disc pl-4">
                               {issue.evidence_links.map(link => (
                                 <li key={link}>
-                                  <a className="text-emerald-700 underline" href={link} target="_blank" rel="noreferrer">
+                                  <a className="text-soltas-ocean underline" href={link} target="_blank" rel="noreferrer">
                                     {link}
                                   </a>
                                 </li>
@@ -245,14 +245,14 @@ export default async function IssueRegistrationsPage({
                         ) : null}
                         {issue.desired_outcome ? (
                           <div>
-                            <span className="font-semibold text-slate-700">Desired outcome:</span> {issue.desired_outcome}
+                            <span className="font-semibold text-soltas-text">Desired outcome:</span> {issue.desired_outcome}
                           </div>
                         ) : null}
                         <div>
-                          <span className="font-semibold text-slate-700">Contact allowed:</span> {issue.contact_allowed ? "Yes" : "No"}
+                          <span className="font-semibold text-soltas-text">Contact allowed:</span> {issue.contact_allowed ? "Yes" : "No"}
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-700">Reporter anonymous:</span> {issue.reporter_anonymous ? "Yes" : "No"}
+                          <span className="font-semibold text-soltas-text">Reporter anonymous:</span> {issue.reporter_anonymous ? "Yes" : "No"}
                         </div>
                       </div>
                     </details>
@@ -280,7 +280,7 @@ export default async function IssueRegistrationsPage({
                         method="post"
                         className="inline"
                       >
-                        <button className="rounded border border-emerald-500 px-3 py-1 text-emerald-600 transition hover:bg-emerald-50">
+                        <button className="rounded border border-emerald-500 px-3 py-1 text-soltas-ocean transition hover:bg-soltas-glacial/15">
                           Approve
                         </button>
                       </form>

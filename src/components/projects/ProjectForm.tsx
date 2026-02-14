@@ -581,8 +581,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Project overview</h2>
-              <p className="mt-1 text-sm text-slate-600">Tell us the basics so our reviewers understand what you are proposing.</p>
+              <h2 className="text-xl font-semibold text-soltas-bark">Project overview</h2>
+              <p className="mt-1 text-sm text-soltas-muted">Tell us the basics so our reviewers understand what you are proposing.</p>
             </div>
           </div>
 
@@ -604,12 +604,12 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                           variant={isSelected ? "default" : "outline"}
                           className={cn(
                             "flex h-full flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition",
-                            isSelected ? "border-emerald-500 bg-emerald-50 text-emerald-800" : "bg-white",
+                            isSelected ? "border-emerald-500 bg-soltas-glacial/15 text-soltas-ocean" : "bg-white",
                           )}
                           onClick={() => field.onChange(option.value)}
                         >
                           <span className="font-semibold">{option.label}</span>
-                          <span className="text-sm text-slate-600">{option.description}</span>
+                          <span className="text-sm text-soltas-muted">{option.description}</span>
                         </Button>
                       );
                     })}
@@ -683,8 +683,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-900">Supporting links</h3>
-                  <p className="text-sm text-slate-500">Include press, documentation, or public updates that help validate the project.</p>
+                  <h3 className="text-sm font-medium text-soltas-bark">Supporting links</h3>
+                  <p className="text-sm text-soltas-muted">Include press, documentation, or public updates that help validate the project.</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={() => linkArray.append({ url: "", label: undefined })}>
                   <Plus className="mr-1 h-4 w-4" /> Add link
@@ -692,7 +692,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
               </div>
 
               {linkArray.fields.length === 0 && (
-                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">No links added yet.</p>
+                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-soltas-muted">No links added yet.</p>
               )}
 
               <div className="space-y-3">
@@ -706,7 +706,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                       name={`links.${index}.url` as const}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium text-soltas-text">
                             <LinkIcon className="h-4 w-4 text-slate-400" /> URL
                           </FormLabel>
                           <FormControl>
@@ -721,7 +721,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                       name={`links.${index}.label` as const}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium text-slate-700">Label (optional)</FormLabel>
+                          <FormLabel className="text-sm font-medium text-soltas-text">Label (optional)</FormLabel>
                           <FormControl>
                             <Input placeholder="Document title" {...field} />
                           </FormControl>
@@ -811,8 +811,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Location & beneficiaries</h2>
-          <p className="mt-1 text-sm text-slate-600">Find the place where the project has the greatest impact.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Location & beneficiaries</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Find the place where the project has the greatest impact.</p>
 
           <div className="mt-6 space-y-6">
             <FormField
@@ -843,7 +843,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                         <MapPin className="h-4 w-4" /> {field.value.place_name}
                       </Badge>
                     ) : (
-                      <p className="text-sm text-slate-500">No location selected yet.</p>
+                      <p className="text-sm text-soltas-muted">No location selected yet.</p>
                     )}
                   </div>
                   <FormMessage />
@@ -892,13 +892,13 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-900">Type of intervention</h3>
-                  <p className="text-sm text-slate-500">Add tags that describe the intervention (e.g. Urban farming, Cooling, Renewable energy).</p>
+                  <h3 className="text-sm font-medium text-soltas-bark">Type of intervention</h3>
+                  <p className="text-sm text-soltas-muted">Add tags that describe the intervention (e.g. Urban farming, Cooling, Renewable energy).</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedInterventions.length === 0 && (
-                  <Badge variant="outline" className="text-slate-500">
+                  <Badge variant="outline" className="text-soltas-muted">
                     No tags added
                   </Badge>
                 )}
@@ -908,7 +908,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                     <button
                       type="button"
                       onClick={() => removeIntervention(tag)}
-                      className="rounded-full p-0.5 hover:bg-emerald-200"
+                      className="rounded-full p-0.5 hover:bg-soltas-glacial/30"
                       aria-label={`Remove ${tag}`}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -937,13 +937,13 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-900">Thematic areas</h3>
-                  <p className="text-sm text-slate-500">Capture themes that describe the work (e.g. Climate adaptation).</p>
+                  <h3 className="text-sm font-medium text-soltas-bark">Thematic areas</h3>
+                  <p className="text-sm text-soltas-muted">Capture themes that describe the work (e.g. Climate adaptation).</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedThemes.length === 0 && (
-                  <Badge variant="outline" className="text-slate-500">
+                  <Badge variant="outline" className="text-soltas-muted">
                     No thematic areas added
                   </Badge>
                 )}
@@ -953,7 +953,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                     <button
                       type="button"
                       onClick={() => removeTheme(tag)}
-                      className="rounded-full p-0.5 hover:bg-emerald-200"
+                      className="rounded-full p-0.5 hover:bg-soltas-glacial/30"
                       aria-label={`Remove ${tag}`}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -982,8 +982,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Timeline & funding</h2>
-          <p className="mt-1 text-sm text-slate-600">Share when the project runs and what support is still required.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Timeline & funding</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Share when the project runs and what support is still required.</p>
 
           <div className="mt-6 grid gap-6 md:grid-cols-2">
             <FormField
@@ -1099,17 +1099,17 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Project media</h2>
-          <p className="mt-1 text-sm text-slate-600">Upload images, video, or documents after submitting the form.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Project media</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Upload images, video, or documents after submitting the form.</p>
 
           <div className="mt-4 space-y-4">
             <label
               htmlFor="project-media"
-              className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50"
+              className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-soltas-muted transition hover:border-soltas-ocean/30 hover:bg-soltas-glacial/15"
             >
               <UploadCloud className="h-6 w-6" />
               <span className="text-sm font-semibold">Click to select files</span>
-              <span className="text-xs text-slate-500">Images, video, and documents are welcome. 100MB max per file.</span>
+              <span className="text-xs text-soltas-muted">Images, video, and documents are welcome. 100MB max per file.</span>
               <input
                 id="project-media"
                 type="file"
@@ -1121,7 +1121,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             </label>
 
             {files.length > 0 && (
-              <ul className="space-y-2 text-sm text-slate-600">
+              <ul className="space-y-2 text-sm text-soltas-muted">
                 {files.map(file => (
                   <li key={file.name} className="rounded-2xl border border-slate-200 bg-white px-4 py-2">
                     {file.name}
@@ -1135,11 +1135,11 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                 {uploads.map(upload => (
                   <li
                     key={`${upload.fileName}-${upload.status}`}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700"
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-soltas-text"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-medium">{upload.fileName}</span>
-                      <span className="text-xs uppercase tracking-wide text-slate-500">{upload.status}</span>
+                      <span className="text-xs uppercase tracking-wide text-soltas-muted">{upload.status}</span>
                     </div>
                     <div className="mt-2 h-2 rounded-full bg-slate-100">
                       <div
@@ -1162,7 +1162,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
             {isSubmitting ? (mode === "edit" ? "Saving" : "Submitting") : mode === "edit" ? "Save changes" : "Submit project"}
           </Button>
-          <p className="mt-2 text-center text-xs text-slate-500">
+          <p className="mt-2 text-center text-xs text-soltas-muted">
             Submission goes to the Solarpunk Taskforce team for review. You can add more media after approval.
           </p>
         </div>

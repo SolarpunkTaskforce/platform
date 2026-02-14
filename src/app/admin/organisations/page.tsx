@@ -173,7 +173,7 @@ export default async function AdminOrganisationsPage({
     <main className="space-y-6 p-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Organisation Verification</h1>
-        <p className="text-sm text-slate-500">{currentViewConfig.description}</p>
+        <p className="text-sm text-soltas-muted">{currentViewConfig.description}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -188,7 +188,7 @@ export default async function AdminOrganisationsPage({
               "rounded-full border px-3 py-1 text-xs font-medium transition",
               currentView === view.id
                 ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900",
+                : "border-slate-200 text-soltas-muted hover:border-slate-300 hover:text-soltas-bark",
             )}
           >
             {view.label}
@@ -198,7 +198,7 @@ export default async function AdminOrganisationsPage({
 
       <div className="overflow-x-auto rounded-xl border">
         <table className="min-w-full divide-y text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-soltas-muted">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Country based</th>
@@ -211,7 +211,7 @@ export default async function AdminOrganisationsPage({
           <tbody className="divide-y">
             {organisations.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-soltas-muted">
                   {currentViewConfig.empty}
                 </td>
               </tr>
@@ -233,8 +233,8 @@ export default async function AdminOrganisationsPage({
                 return (
                   <tr key={org.id}>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{org.name ?? "—"}</div>
-                      <div className="text-xs text-slate-500">{org.id}</div>
+                      <div className="font-medium text-soltas-bark">{org.name ?? "—"}</div>
+                      <div className="text-xs text-soltas-muted">{org.id}</div>
                     </td>
                     <td className="px-4 py-3">{org.country_based ?? "—"}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{formatDate(org.created_at)}</td>
@@ -262,7 +262,7 @@ export default async function AdminOrganisationsPage({
                           </form>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="text-xs text-soltas-muted">—</span>
                       )}
                     </td>
                   </tr>

@@ -64,7 +64,7 @@ const buttonSizes = {
 
 const buttonVariants = {
   secondary: "bg-slate-900 text-white hover:bg-slate-800",
-  outline: "border border-slate-200 text-slate-900 hover:bg-slate-100",
+  outline: "border border-slate-200 text-soltas-bark hover:bg-slate-100",
 } as const;
 
 type ProjectsTableViewProps = {
@@ -85,13 +85,13 @@ export default function ProjectsTableView({
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">Showing {rows.length} of {count} projects</p>
+        <p className="text-sm text-soltas-muted">Showing {rows.length} of {count} projects</p>
         <ProjectsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/find-projects" />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-[800px] divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-soltas-muted">
             <tr>
               <th className="px-4 py-3">Project</th>
               <th className="px-4 py-3">Category</th>
@@ -121,18 +121,18 @@ export default function ProjectsTableView({
                 <tr key={project.id} className="align-top">
                   <td className="px-4 py-4">
                     <Link
-                      className="font-semibold text-emerald-700 hover:text-emerald-800"
+                      className="font-semibold text-soltas-ocean hover:text-soltas-ocean"
                       href={`/projects/${encodeURIComponent(slugForPath)}`}
                     >
                       {project.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-4 capitalize text-slate-700">{project.category}</td>
-                  <td className="px-4 py-4 text-slate-600">{getLocationLabel(project)}</td>
-                  <td className="px-4 py-4 text-slate-600">
+                  <td className="px-4 py-4 capitalize text-soltas-text">{project.category}</td>
+                  <td className="px-4 py-4 text-soltas-muted">{getLocationLabel(project)}</td>
+                  <td className="px-4 py-4 text-soltas-muted">
                     {formatDateRange(project.start_date, project.end_date)}
                   </td>
-                  <td className="px-4 py-4 text-slate-600">
+                  <td className="px-4 py-4 text-soltas-muted">
                     <div>{formatCurrency(project.donations_received, project.currency)}</div>
                     <div className="text-xs text-slate-400">
                       of {formatCurrency(project.amount_needed, project.currency)}
@@ -172,7 +172,7 @@ export default function ProjectsTableView({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-soltas-muted">
           No projects match the selected filters.
         </div>
       ) : null}

@@ -24,7 +24,7 @@ try {
 export default function LoginForm() {
   if (!supabase) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
         {supabaseInitializationError?.message}
       </div>
     );
@@ -84,7 +84,7 @@ function LoginFormContent({ client }: { client: SupabaseClient }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="space-y-1 text-sm text-slate-700">
+        <label className="space-y-1 text-sm text-soltas-text">
           <span className="font-medium">Email *</span>
           <input
             type="email"
@@ -99,7 +99,7 @@ function LoginFormContent({ client }: { client: SupabaseClient }) {
           {errors.email && <p className="text-xs font-semibold text-red-600">{errors.email}</p>}
         </label>
 
-        <label className="space-y-1 text-sm text-slate-700">
+        <label className="space-y-1 text-sm text-soltas-text">
           <span className="font-medium">Password *</span>
           <input
             type="password"
@@ -127,7 +127,7 @@ function LoginFormContent({ client }: { client: SupabaseClient }) {
           {message && (
             <p
               className={`text-sm font-medium ${
-                message.tone === "success" ? "text-emerald-600" : "text-red-600"
+                message.tone === "success" ? "text-soltas-ocean" : "text-red-600"
               }`}
             >
               {message.text}
@@ -136,7 +136,7 @@ function LoginFormContent({ client }: { client: SupabaseClient }) {
         </div>
       </form>
 
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-soltas-muted">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="font-medium text-[#11526D] hover:underline">
           Create one

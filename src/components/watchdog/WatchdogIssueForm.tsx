@@ -256,8 +256,8 @@ export default function WatchdogIssueForm() {
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Issue details</h2>
-          <p className="mt-1 text-sm text-slate-600">Describe the issue and who it impacts.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Issue details</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Describe the issue and who it impacts.</p>
 
           <div className="mt-6 space-y-6">
             <FormField
@@ -339,9 +339,9 @@ export default function WatchdogIssueForm() {
               <FormLabel>Location search</FormLabel>
               <MapGeocoder onSelect={handleLocationSelect} />
               {selectedPlace ? (
-                <p className="text-xs text-slate-500">Selected: {selectedPlace}</p>
+                <p className="text-xs text-soltas-muted">Selected: {selectedPlace}</p>
               ) : (
-                <p className="text-xs text-slate-500">Search for a place to auto-fill latitude/longitude.</p>
+                <p className="text-xs text-soltas-muted">Search for a place to auto-fill latitude/longitude.</p>
               )}
             </div>
 
@@ -432,8 +432,8 @@ export default function WatchdogIssueForm() {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Issue tags</h2>
-          <p className="mt-1 text-sm text-slate-600">Tag the issue by topic, urgency, and date observed.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Issue tags</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Tag the issue by topic, urgency, and date observed.</p>
 
           <div className="mt-6 space-y-6">
             <FormField
@@ -454,7 +454,7 @@ export default function WatchdogIssueForm() {
                   </FormControl>
                   <FormMessage />
                   {sdgOptions.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">{renderSdgBadges}</div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-soltas-muted">{renderSdgBadges}</div>
                   ) : null}
                 </FormItem>
               )}
@@ -529,14 +529,14 @@ export default function WatchdogIssueForm() {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Evidence & desired outcome</h2>
-          <p className="mt-1 text-sm text-slate-600">Share sources and what support is needed.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Evidence & desired outcome</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Share sources and what support is needed.</p>
 
           <div className="mt-6 space-y-6">
             <div className="space-y-3">
               <FormLabel>Evidence links</FormLabel>
               {fields.length === 0 ? (
-                <p className="text-sm text-slate-500">Add links to articles, photos, or reports that document the issue.</p>
+                <p className="text-sm text-soltas-muted">Add links to articles, photos, or reports that document the issue.</p>
               ) : null}
 
               <div className="space-y-3">
@@ -571,7 +571,7 @@ export default function WatchdogIssueForm() {
                 Add link
               </Button>
 
-              <p className="text-xs text-slate-500">Uploads are not supported yet—use links to share evidence.</p>
+              <p className="text-xs text-soltas-muted">Uploads are not supported yet—use links to share evidence.</p>
             </div>
 
             <FormField
@@ -595,8 +595,8 @@ export default function WatchdogIssueForm() {
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Contact preferences</h2>
-          <p className="mt-1 text-sm text-slate-600">Control how the Solarpunk Taskforce may follow up.</p>
+          <h2 className="text-xl font-semibold text-soltas-bark">Contact preferences</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Control how the Solarpunk Taskforce may follow up.</p>
 
           <div className="mt-6 space-y-6">
             <FormField
@@ -644,7 +644,7 @@ export default function WatchdogIssueForm() {
         ) : null}
 
         {submitSuccess ? (
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="rounded-3xl border border-soltas-glacial/30 bg-soltas-glacial/15 px-4 py-3 text-sm text-soltas-ocean">
             Issue submitted. Our team will review it before publishing it to the Watchdog Community map.
           </div>
         ) : null}
@@ -654,7 +654,7 @@ export default function WatchdogIssueForm() {
             {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
             {isSubmitting ? "Submitting" : "Submit issue"}
           </Button>
-          <p className="mt-2 text-center text-xs text-slate-500">
+          <p className="mt-2 text-center text-xs text-soltas-muted">
             Your report is private until reviewed. Approved issues appear on the public Watchdog map and table.
           </p>
           {Object.keys(errors).length > 0 ? (

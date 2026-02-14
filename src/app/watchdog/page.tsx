@@ -59,11 +59,11 @@ export default async function WatchdogPage({
     <main className="flex-1 min-h-0 px-4 py-6 flex flex-col gap-4 sm:px-6 sm:py-8 sm:gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Watchdog Community</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-soltas-bark sm:text-3xl">Watchdog Community</h1>
+          <p className="text-sm text-soltas-muted">
             Community-reported issues that have been reviewed by the Solarpunk Taskforce.
           </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-soltas-muted">
             Showing {rows.length} of {count} issues · {PAGE_SIZE} per page
           </p>
         </div>

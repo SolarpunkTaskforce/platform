@@ -121,8 +121,8 @@ export default function WatchdogFilters({
     <section className={containerClassName}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-lg font-semibold text-soltas-bark">Filters</h2>
+          <p className="text-sm text-soltas-muted">
             Filter Watchdog reports by topic, demographics, and location.
           </p>
         </div>
@@ -132,8 +132,8 @@ export default function WatchdogFilters({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Search</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Search</span>
           <Input
             value={searchValue}
             placeholder="Title or description"
@@ -141,8 +141,8 @@ export default function WatchdogFilters({
           />
         </label>
 
-        <div className="space-y-2 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Countries</span>
+        <div className="space-y-2 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Countries</span>
           <MultiSelect
             options={options.countries}
             value={countryValue}
@@ -153,8 +153,8 @@ export default function WatchdogFilters({
           />
         </div>
 
-        <div className="space-y-2 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Regions</span>
+        <div className="space-y-2 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Regions</span>
           <MultiSelect
             options={options.regions}
             value={regionValue}
@@ -167,8 +167,8 @@ export default function WatchdogFilters({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-2 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">UN SDGs</span>
+        <div className="space-y-2 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">UN SDGs</span>
           <MultiSelect
             options={options.sdgs}
             value={sdgsValue}
@@ -179,8 +179,8 @@ export default function WatchdogFilters({
           />
         </div>
 
-        <div className="space-y-2 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">IFRC Global Challenges</span>
+        <div className="space-y-2 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">IFRC Global Challenges</span>
           <MultiSelect
             options={options.globalChallenges}
             value={challengesValue}
@@ -191,8 +191,8 @@ export default function WatchdogFilters({
           />
         </div>
 
-        <div className="space-y-2 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Affected demographics</span>
+        <div className="space-y-2 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Affected demographics</span>
           <MultiSelect
             options={options.demographics}
             value={demographicValue}
@@ -205,8 +205,8 @@ export default function WatchdogFilters({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Urgency min</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Urgency min</span>
           <Input
             type="number"
             min={1}
@@ -216,8 +216,8 @@ export default function WatchdogFilters({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Urgency max</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Urgency max</span>
           <Input
             type="number"
             min={1}
@@ -227,8 +227,8 @@ export default function WatchdogFilters({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Observed after</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Observed after</span>
           <Input
             type="date"
             value={dateFromValue}
@@ -236,8 +236,8 @@ export default function WatchdogFilters({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-900">Observed before</span>
+        <label className="space-y-1 text-sm text-soltas-muted">
+          <span className="font-medium text-soltas-bark">Observed before</span>
           <Input
             type="date"
             value={dateToValue}
@@ -246,8 +246,8 @@ export default function WatchdogFilters({
         </label>
 
         {showSorting ? (
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-900">Sort by</span>
+          <label className="space-y-1 text-sm text-soltas-muted">
+            <span className="font-medium text-soltas-bark">Sort by</span>
             <Select
               value={selectedSort}
               onValueChange={value => {

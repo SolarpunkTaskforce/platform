@@ -82,8 +82,8 @@ export default function NotificationsClient({
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Notifications</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-soltas-bark">Notifications</h1>
+          <p className="text-sm text-soltas-muted">
             Updates about your projects, follows, and collaborations.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function NotificationsClient({
           type="button"
           onClick={handleMarkAll}
           disabled={!hasUnread || isPending}
-          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 transition disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-soltas-bark transition disabled:cursor-not-allowed disabled:opacity-60"
         >
           Mark all as read
         </button>
@@ -105,11 +105,11 @@ export default function NotificationsClient({
             const body = notification.body ?? fallbackBody;
             const content = (
               <div className="min-w-0 space-y-1">
-                <div className="truncate text-sm font-semibold text-slate-900">{notification.title}</div>
+                <div className="truncate text-sm font-semibold text-soltas-bark">{notification.title}</div>
                 {body ? (
-                  <div className="truncate text-xs text-slate-600">{body}</div>
+                  <div className="truncate text-xs text-soltas-muted">{body}</div>
                 ) : null}
-                <div className="text-xs text-slate-500">{formatDateTime(notification.created_at)}</div>
+                <div className="text-xs text-soltas-muted">{formatDateTime(notification.created_at)}</div>
               </div>
             );
 
@@ -118,7 +118,7 @@ export default function NotificationsClient({
                 key={notification.id}
                 className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
                   isUnread
-                    ? "border-emerald-200 bg-emerald-50"
+                    ? "border-soltas-glacial/30 bg-soltas-glacial/15"
                     : "border-slate-200 bg-white"
                 }`}
               >
@@ -139,12 +139,12 @@ export default function NotificationsClient({
                         handleMarkRead(notification.id);
                       }}
                       disabled={isPending}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-soltas-text transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Mark read
                     </button>
                   ) : (
-                    <span className="text-xs font-medium text-slate-500">Read</span>
+                    <span className="text-xs font-medium text-soltas-muted">Read</span>
                   )}
                 </div>
               </li>
@@ -152,7 +152,7 @@ export default function NotificationsClient({
           })}
         </ul>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
           You have no notifications yet.
         </div>
       )}

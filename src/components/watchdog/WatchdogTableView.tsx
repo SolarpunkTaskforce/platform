@@ -45,13 +45,13 @@ export default function WatchdogTableView({
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-600">Showing {rows.length} of {count} approved issues</p>
+        <p className="text-sm text-soltas-muted">Showing {rows.length} of {count} approved issues</p>
         <WatchdogPagination page={page} pageCount={pageCount} searchParams={searchParams} />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-[700px] divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-soltas-muted">
             <tr>
               <th className="px-4 py-3">Issue</th>
               <th className="px-4 py-3">Location</th>
@@ -75,18 +75,18 @@ export default function WatchdogTableView({
               return (
                 <tr key={issue.id} className="align-top">
                   <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-900">{issue.title}</div>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <div className="font-semibold text-soltas-bark">{issue.title}</div>
+                    <p className="mt-1 text-sm text-soltas-muted">
                       {issue.description.length > 160
                         ? `${issue.description.slice(0, 160).trimEnd()}…`
                         : issue.description}
                     </p>
                   </td>
-                  <td className="px-4 py-4 text-slate-600">{formatLocation(issue)}</td>
-                  <td className="px-4 py-4 text-slate-600">{formatDate(issue.date_observed ?? issue.created_at)}</td>
+                  <td className="px-4 py-4 text-soltas-muted">{formatLocation(issue)}</td>
+                  <td className="px-4 py-4 text-soltas-muted">{formatDate(issue.date_observed ?? issue.created_at)}</td>
                   <td className="px-4 py-4">
-                    <div className="text-sm font-medium text-slate-900">{issue.urgency ?? "—"}</div>
-                    <div className="text-xs text-slate-500">{formatUrgency(issue.urgency)}</div>
+                    <div className="text-sm font-medium text-soltas-bark">{issue.urgency ?? "—"}</div>
+                    <div className="text-xs text-soltas-muted">{formatUrgency(issue.urgency)}</div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap gap-1">
@@ -113,7 +113,7 @@ export default function WatchdogTableView({
                   <td className="px-4 py-4 text-right">
                     <Link
                       href={mapHref}
-                      className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-3 py-1 text-sm font-semibold text-soltas-text hover:bg-slate-100"
                     >
                       See on map
                     </Link>
@@ -126,7 +126,7 @@ export default function WatchdogTableView({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-soltas-muted">
           No approved watchdog issues match the selected filters.
         </div>
       ) : null}
