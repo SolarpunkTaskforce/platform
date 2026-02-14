@@ -44,7 +44,7 @@ export default async function HomePage() {
   return (
     <main className="flex flex-col">
       {/* Full-viewport hero */}
-      <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-slate-50" />}>
+      <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-soltas-light" />}>
         <HomeGlobeSection
           projectMarkers={markers}
           grantMarkers={grantMarkers}
@@ -57,46 +57,46 @@ export default async function HomePage() {
       <div className="flex flex-col gap-8 px-4 py-8 sm:gap-12 sm:px-6 sm:py-10">
         <section
           id="home-next-section"
-          className="grid gap-8 border-t border-slate-100 pt-8 sm:gap-10 sm:pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]"
+          className="grid gap-8 border-t border-soltas-light pt-8 sm:gap-10 sm:pt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]"
         >
           <div className="space-y-6">
             <header className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-ocean">
                 About Solarpunk Taskforce
               </p>
-              <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-semibold text-soltas-text sm:text-3xl">
                 Mission, vision, and community-powered action.
               </h2>
             </header>
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-900">Mission</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
+              <div className="rounded-3xl border border-soltas-glacial bg-soltas-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-soltas-text">Mission</h3>
+                <p className="mt-3 text-sm leading-6 text-soltas-muted">
                   Provide a transparent, living database of humanitarian and environmental work so organisations can
                   coordinate, apply proven solutions, and amplify what is working.
                 </p>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-900">Vision</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
+              <div className="rounded-3xl border border-soltas-glacial bg-soltas-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-soltas-text">Vision</h3>
+                <p className="mt-3 text-sm leading-6 text-soltas-muted">
                   A complete, real-time overview of impact efforts empowers people everywhere to understand where help is
                   needed, follow progress, and move resources to trusted work.
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex h-full flex-col justify-between gap-6 rounded-3xl bg-slate-900 p-8 text-white shadow-lg">
+          <div className="flex h-full flex-col justify-between gap-6 rounded-3xl bg-soltas-abyssal p-8 text-white shadow-lg">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Donate</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">Donate</p>
               <h3 className="mt-3 text-2xl font-semibold">Fuel verified work on the ground.</h3>
-              <p className="mt-3 text-sm leading-6 text-emerald-50/80">
+              <p className="mt-3 text-sm leading-6 text-soltas-glacial/80">
                 Every contribution supports approved projects and the teams that keep the map accurate, transparent, and
                 community-driven.
               </p>
             </div>
             <Link
               href="/find-projects"
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-500 px-5 text-sm font-semibold text-slate-900 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-soltas-ocean px-5 text-sm font-semibold text-white transition hover:bg-soltas-glacial focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-glacial"
             >
               Donate to a project
             </Link>
@@ -105,9 +105,9 @@ export default async function HomePage() {
 
         <section className="space-y-8">
           <header className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Our Services</p>
-            <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Platform services for impact teams.</h2>
-            <p className="max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-ocean">Our Services</p>
+            <h2 className="text-2xl font-semibold text-soltas-text sm:text-3xl">Platform services for impact teams.</h2>
+            <p className="max-w-2xl text-sm leading-6 text-soltas-muted">
               From discovery to verification, the Solarpunk Taskforce platform pairs data with storytelling to keep
               humanitarian and environmental work visible and trusted.
             </p>
@@ -141,10 +141,10 @@ export default async function HomePage() {
             ].map((service) => (
               <div
                 key={service.title}
-                className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="flex flex-col gap-3 rounded-3xl border border-soltas-glacial bg-soltas-white p-6 shadow-sm"
               >
-                <h3 className="text-lg font-semibold text-slate-900">{service.title}</h3>
-                <p className="text-sm leading-6 text-slate-600">{service.description}</p>
+                <h3 className="text-lg font-semibold text-soltas-text">{service.title}</h3>
+                <p className="text-sm leading-6 text-soltas-muted">{service.description}</p>
               </div>
             ))}
           </div>

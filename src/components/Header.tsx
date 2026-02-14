@@ -151,7 +151,7 @@ export default function Header() {
     <div className="relative">
       <button
         onClick={() => setProfileOpen((o) => !o)}
-        className="grid h-9 w-9 place-items-center rounded-full bg-[#2E6B8A] text-white hover:bg-[#1A3F54] transition-all duration-200"
+        className="grid h-9 w-9 place-items-center rounded-full bg-soltas-ocean text-white hover:bg-soltas-abyssal transition-all duration-200"
         aria-label="Account"
       >
         {profile ? (
@@ -164,7 +164,7 @@ export default function Header() {
       {profileOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 max-w-[80vw] flex-col bg-white p-4 text-sm text-[#1A2B38]">
+          <nav className="fixed right-0 top-0 z-50 flex h-screen w-64 max-w-[80vw] flex-col bg-soltas-white p-4 text-sm text-soltas-text">
             <UserMenu onNavigate={() => setProfileOpen(false)} />
           </nav>
         </>
@@ -175,7 +175,7 @@ export default function Header() {
   const notificationsButton = (
     <Link
       href="/notifications"
-      className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-[#EEF2F5] text-[#2E6B8A] transition-all duration-200"
+      className="relative grid h-9 w-9 place-items-center rounded-full hover:bg-soltas-light text-soltas-ocean transition-all duration-200"
       aria-label="Notifications"
     >
       <Bell className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function Header() {
           {/* Mobile hamburger toggle */}
           <button
             type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-[#EEF2F5] text-[#1A2B38] md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-soltas-light text-soltas-text md:hidden"
             onClick={() => setMobileNavOpen((o) => !o)}
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileNavOpen}
@@ -205,7 +205,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="truncate text-base font-bold text-[#1A2B38] sm:text-lg"
+            className="truncate text-base font-bold text-soltas-text sm:text-lg"
             aria-label="Home"
           >
             Solarpunk Taskforce
@@ -220,7 +220,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-[#2E6B8A]" : "text-slate-600 hover:text-[#2E6B8A]"
+                      active ? "text-soltas-ocean" : "text-slate-600 hover:text-soltas-ocean"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -236,7 +236,7 @@ export default function Header() {
                   <button
                     type="button"
                     className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-[#2E6B8A]" : "text-slate-600 hover:text-[#2E6B8A]"
+                      active ? "text-soltas-ocean" : "text-slate-600 hover:text-soltas-ocean"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
@@ -255,7 +255,7 @@ export default function Header() {
                           key={link.href}
                           href={link.href}
                           className={`block px-4 py-2 transition-colors duration-150 ${
-                            childActive ? "bg-[#EEF2F5] text-[#2E6B8A]" : "hover:bg-[#EEF2F5]"
+                            childActive ? "bg-soltas-light text-soltas-ocean" : "hover:bg-soltas-light"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -279,14 +279,14 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link href="/login" className="rounded-xl border border-[#6B9FB8] px-3 py-1 text-sm text-[#2E6B8A] hover:bg-[#EEF2F5] transition-all duration-200">
+              <Link href="/login" className="rounded-full border border-soltas-glacial px-4 py-2 text-sm text-soltas-ocean hover:bg-soltas-light transition-all duration-200">
                 Sign in
               </Link>
 
               {/* ✅ Resolved: keep responsive "hidden ... sm:inline-flex" version from main */}
               <Link
                 href="/signup"
-                className="hidden rounded-xl bg-[#2E6B8A] px-3 py-1 text-sm text-white hover:bg-[#1A3F54] transition-all duration-200 sm:inline-flex"
+                className="hidden rounded-full bg-soltas-ocean px-4 py-2 text-sm text-white hover:bg-soltas-abyssal transition-all duration-200 sm:inline-flex"
               >
                 Register
               </Link>
@@ -297,7 +297,7 @@ export default function Header() {
 
       {/* Mobile nav - collapsible via hamburger */}
       {mobileNavOpen && (
-        <nav className="border-t border-[#6B9FB8]/20 bg-white/95 backdrop-blur-xl px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
+        <nav className="border-t border-soltas-glacial/20 bg-white/95 backdrop-blur-xl px-4 pb-4 pt-2 md:hidden" aria-label="Primary">
           <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               if (item.type === "link") {
@@ -307,7 +307,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      active ? "bg-[#EEF2F5] text-[#2E6B8A]" : "text-slate-700 hover:bg-[#EEF2F5]"
+                      active ? "bg-soltas-light text-soltas-ocean" : "text-slate-700 hover:bg-soltas-light"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -338,8 +338,8 @@ export default function Header() {
                           href={link.href}
                           className={`rounded-md px-3 py-2 text-sm ${
                             childActive
-                              ? "bg-[#EEF2F5] text-[#2E6B8A]"
-                              : "text-slate-600 hover:bg-[#EEF2F5]"
+                              ? "bg-soltas-light text-soltas-ocean"
+                              : "text-slate-600 hover:bg-soltas-light"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -356,7 +356,7 @@ export default function Header() {
             {!sessionUserId && (
               <Link
                 href="/signup"
-                className="mt-2 rounded-lg bg-[#2E6B8A] px-3 py-2.5 text-center text-sm font-medium text-white hover:bg-[#1A3F54] transition-all duration-200 sm:hidden"
+                className="mt-2 rounded-lg bg-soltas-ocean px-3 py-2.5 text-center text-sm font-medium text-white hover:bg-soltas-abyssal transition-all duration-200 sm:hidden"
               >
                 Register
               </Link>

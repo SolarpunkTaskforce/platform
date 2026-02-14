@@ -24,7 +24,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@theme inline {
+@theme {
   --color-soltas-glacial: var(--soltas-glacial);
   --color-soltas-ocean: var(--soltas-ocean);
   --color-soltas-abyssal: var(--soltas-abyssal);

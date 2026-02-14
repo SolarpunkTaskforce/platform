@@ -36,7 +36,50 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ---
 
-## 3. Automatic Behavior in Codespaces
+## 3. Running the project locally
+
+To run the project locally, you need to have Node.js and pnpm installed on your machine.
+
+1.  Install the dependencies:
+    ```bash
+    pnpm install
+    ```
+2.  Start the development server:
+    ```bash
+    pnpm dev
+    ```
+    The app will be available at [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 4. Linting
+
+This project uses ESLint to enforce code quality.
+
+-   To run the linter, use the following command:
+    ```bash
+    pnpm lint
+    ```
+-   To fix linting errors automatically, use the following command:
+    ```bash
+    pnpm lint:fix
+    ```
+
+---
+
+## 5. Building for production
+
+To build the project for production, use the following command:
+
+```bash
+pnpm build
+```
+
+This will create an optimized production build in the `.next` directory.
+
+---
+
+## 6. Automatic Behavior in Codespaces
 
 When a Codespace launches:
 
@@ -50,7 +93,7 @@ When a Codespace launches:
 
 ---
 
-## 4. Package Scripts
+## 7. Package Scripts
 
 Available via `package.json`:
 
@@ -60,6 +103,7 @@ Available via `package.json`:
 | `pnpm build` | Build for production |
 | `pnpm start` | Start production server |
 | `pnpm lint` | Run ESLint |
+| `pnpm lint:fix` | Run ESLint and fix errors |
 | `pnpm sb:sync` | Run Supabase sync script |
 | `pnpm sb:diff` | Show schema differences |
 | `pnpm sb:commit` | Commit DB changes (dry run) |
@@ -68,7 +112,7 @@ Available via `package.json`:
 
 ---
 
-## 5. Supabase Sync (`scripts/sb-sync.sh`)
+## 8. Supabase Sync (`scripts/sb-sync.sh`)
 
 This script keeps the local project in sync with Supabase.
 
@@ -90,7 +134,7 @@ This ensures your Supabase schema and types stay synchronized.
 
 ---
 
-## 6. GitHub Actions — Supabase DB Automation
+## 9. GitHub Actions — Supabase DB Automation
 
 Workflow file: `.github/workflows/supabase-db-auto.yml`
 
@@ -122,7 +166,7 @@ This keeps your live Supabase DB and schema definitions consistent with code.
 
 ---
 
-## 7. Deployment — Vercel
+## 10. Deployment — Vercel
 
 Vercel automatically deploys whenever you push to `main`.
 
@@ -149,7 +193,7 @@ git push
 
 ---
 
-## 8. Git and Git LFS
+## 11. Git and Git LFS
 
 This repo uses **Git LFS** for large files.
 
@@ -164,7 +208,7 @@ git lfs install --force
 
 ---
 
-## 9. Common Commands
+## 12. Common Commands
 
 **Sync everything:**
 ```bash
@@ -196,7 +240,7 @@ Go to **GitHub → Actions → Supabase DB Auto → Run workflow**
 
 ---
 
-## 10. Environment Variables
+## 13. Environment Variables
 
 Configured in Codespaces and GitHub Secrets:
 
@@ -239,7 +283,7 @@ it will move it back to the pending queue.
 
 ---
 
-## 11. Legacy Script
+## 14. Legacy Script
 
 The old `db-sync.sh` script is **deprecated**.  
 It has been fully replaced by:
@@ -250,7 +294,7 @@ You can delete `db-sync.sh` safely.
 
 ---
 
-## 12. Daily Developer Workflow
+## 15. Daily Developer Workflow
 
 1. Open the repo in Codespaces — setup runs automatically.
 2. When changing database schema or Supabase data models:
