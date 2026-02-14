@@ -131,7 +131,7 @@ export function ProjectApprovalActions({
             disabled={disabled}
             className={cn(
               "rounded bg-soltas-ocean px-3 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-soltas-abyssal",
-              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-soltas-ocean",
               (disabled && pendingAction !== "approve") ||
                 (pendingAction === "approve" && isPending)
                 ? "opacity-80"

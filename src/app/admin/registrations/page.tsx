@@ -348,7 +348,7 @@ export default async function AdminRegistrationsPage({
                         >
                           <input type="hidden" name="category" value={currentCategory} />
                           <input type="hidden" name="view" value={currentView} />
-                          <button className="rounded border border-emerald-500 px-3 py-1 text-soltas-ocean transition hover:bg-soltas-glacial/15">
+                          <button className="rounded border border-soltas-ocean px-3 py-1 text-soltas-ocean transition hover:bg-soltas-glacial/15">
                             Approve
                           </button>
                         </form>

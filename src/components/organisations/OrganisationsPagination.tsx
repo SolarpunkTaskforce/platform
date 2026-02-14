@@ -75,7 +75,7 @@ export default function OrganisationsPagination({
             href={buildSearchParams(searchParams, value)}
             className={`rounded border px-3 py-1 text-sm ${
               value === safePage
-                ? "border-emerald-500 bg-soltas-glacial/15 text-soltas-ocean"
+                ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean"
                 : "border-slate-300 text-soltas-text hover:border-slate-400"
             }`}
           >

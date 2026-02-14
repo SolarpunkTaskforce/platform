@@ -604,7 +604,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
                           variant={isSelected ? "default" : "outline"}
                           className={cn(
                             "flex h-full flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition",
-                            isSelected ? "border-emerald-500 bg-soltas-glacial/15 text-soltas-ocean" : "bg-white",
+                            isSelected ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean" : "bg-white",
                           )}
                           onClick={() => field.onChange(option.value)}
                         >

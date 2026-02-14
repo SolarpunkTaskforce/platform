@@ -131,7 +131,7 @@ export default async function ProjectsPage({
                   <tr key={project.id} className="align-top">
                     <td className="px-4 py-4">
                       <Link
-                        className="font-semibold text-soltas-ocean hover:text-soltas-ocean"
+                        className="font-semibold text-soltas-ocean hover:text-soltas-abyssal transition-colors"
                         href={`/projects/${encodeURIComponent(slugForPath)}`}
                       >
                         {project.name}

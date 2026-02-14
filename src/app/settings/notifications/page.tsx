@@ -58,7 +58,7 @@ export default async function NotificationSettingsPage() {
             type="checkbox"
             name="enabled"
             defaultChecked={profile.email_notifications_enabled}
-            className="mt-1 h-4 w-4 rounded border-slate-300 text-soltas-ocean focus:ring-emerald-500"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-soltas-ocean focus:ring-soltas-ocean"
           />
           <div>
             <div className="text-sm font-medium text-soltas-bark">

@@ -217,7 +217,7 @@ export default async function AdminProjectsPage({
               className={cn(
                 "rounded-full border px-3 py-1 text-xs font-medium transition",
                 isActive
-                  ? "border-emerald-500 bg-soltas-glacial/15 text-soltas-ocean"
+                  ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean"
                   : "border-slate-200 text-soltas-muted hover:border-slate-300 hover:text-soltas-bark"
               )}
             >

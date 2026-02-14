@@ -15,7 +15,7 @@ export default function ProjectConfirmationPage() {
         >
           Browse projects
         </Link>
-        <Link href="/projects/new" className="text-sm font-medium text-soltas-ocean hover:text-soltas-ocean">
+        <Link href="/projects/new" className="text-sm font-medium text-soltas-ocean hover:text-soltas-abyssal transition-colors">
           Submit another project
         </Link>
       </div>

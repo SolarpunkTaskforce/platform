@@ -102,7 +102,7 @@ export default function GrantsTableView({ rows, count, page, pageCount, searchPa
                 <tr key={grant.id} className="align-top">
                   <td className="max-w-[280px] px-4 py-4">
                     <Link
-                      className="font-semibold text-soltas-ocean hover:text-soltas-ocean"
+                      className="font-semibold text-soltas-ocean hover:text-soltas-abyssal transition-colors"
                       href={`/funding/${encodeURIComponent(slugForPath)}`}
                     >
                       {grant.title}

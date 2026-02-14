@@ -68,7 +68,7 @@ export default async function GrantDetailPage({
           <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Funder</h2>
           <p className="text-base text-soltas-bark">{grant.funder_name ?? "Not listed"}</p>
           {grant.funder_website ? (
-            <Link href={grant.funder_website} className="text-sm text-soltas-ocean hover:text-soltas-ocean">
+            <Link href={grant.funder_website} className="text-sm text-soltas-ocean hover:text-soltas-abyssal transition-colors">
               Visit funder website
             </Link>
           ) : null}

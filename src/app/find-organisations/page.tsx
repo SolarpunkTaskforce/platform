@@ -136,7 +136,7 @@ export default async function FindOrganisationsPage({
                     <tr key={organisation.id} className="align-top">
                       <td className="px-4 py-4">
                         <Link
-                          className="font-semibold text-soltas-ocean hover:text-soltas-ocean"
+                          className="font-semibold text-soltas-ocean hover:text-soltas-abyssal transition-colors"
                           href={`/organisations/${organisation.id}`}
                         >
                           {organisation.name ?? "Untitled organisation"}

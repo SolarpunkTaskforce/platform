@@ -327,7 +327,7 @@ export default function GrantsGlobeSplitView({ options, markers, totalCount, foc
             type="button"
             aria-label={collapsed ? "Open filters panel" : "Close filters panel"}
             onClick={toggleCollapsed}
-            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-soltas-ocean px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-soltas-abyssal focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-soltas-ocean px-3 py-2 text-xs font-semibold text-white shadow-lg ring-1 ring-black/10 hover:bg-soltas-abyssal focus:outline-none focus:ring-2 focus:ring-soltas-glacial"
           >
             {collapsed ? "Show" : "Hide"}
           </button>
