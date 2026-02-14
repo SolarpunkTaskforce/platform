@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FeedItemCard } from "@/components/feed/FeedItemCard";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
 const PAGE_SIZE = 30;
@@ -28,16 +29,6 @@ type ProjectSummary = { id: string; name: string | null; slug: string | null };
 
 type OrganisationSummary = { id: string; name: string | null };
 
-function formatDateTime(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 function getProfileName(profile: ProfileSummary | null) {
   if (!profile) return "Someone";
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
@@ -57,8 +48,31 @@ export default async function FeedPage({
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
 
-  const activeTab = user ? (tabParam === "global" ? "global" : "for-you") : "global";
-  const scope = activeTab === "for-you" ? "for_you" : "global";
+  // Determine active tab - default to popular if logged out, following if logged in
+  type TabValue = "popular" | "following" | "watchdog" | "funding";
+  const validTabs: TabValue[] = ["popular", "following", "watchdog", "funding"];
+  const tabValue = validTabs.includes(tabParam as TabValue) ? (tabParam as TabValue) : null;
+  const activeTab: TabValue = tabValue ?? (user ? "following" : "popular");
+
+  // Map tabs to RPC scopes - Phase 1: watchdog and funding map to existing scopes
+  let scope: "global" | "for_you";
+  let showComingSoon = false;
+
+  if (activeTab === "following") {
+    scope = "for_you";
+  } else if (activeTab === "popular") {
+    scope = "global";
+  } else if (activeTab === "watchdog") {
+    // Temporarily map to global, show coming soon banner
+    scope = "global";
+    showComingSoon = true;
+  } else if (activeTab === "funding") {
+    // Temporarily map to global, show coming soon banner
+    scope = "global";
+    showComingSoon = true;
+  } else {
+    scope = "global";
+  }
 
   const [cursorCreatedAt, cursorId] = cursorParam?.split("|") ?? [];
 
@@ -121,7 +135,7 @@ export default async function FeedPage({
   const nextCursor = lastItem ? `${lastItem.created_at}|${lastItem.id}` : null;
 
   const nextParams = new URLSearchParams();
-  nextParams.set("tab", activeTab === "for-you" ? "for-you" : "global");
+  nextParams.set("tab", activeTab);
   if (nextCursor) nextParams.set("cursor", nextCursor);
 
   const { data: discoverPeople } = await supabase
@@ -153,29 +167,56 @@ export default async function FeedPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/feed?tab=for-you"
+            href="/feed?tab=popular"
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              activeTab === "for-you"
+              activeTab === "popular"
                 ? "bg-slate-900 text-white"
                 : "border border-slate-200 bg-white text-soltas-text hover:bg-slate-50"
             }`}
           >
-            For you
+            Popular
           </Link>
           <Link
-            href="/feed?tab=global"
+            href="/feed?tab=following"
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              activeTab === "global"
+              activeTab === "following"
                 ? "bg-slate-900 text-white"
                 : "border border-slate-200 bg-white text-soltas-text hover:bg-slate-50"
             }`}
           >
-            Global
+            Following
+          </Link>
+          <Link
+            href="/feed?tab=watchdog"
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeTab === "watchdog"
+                ? "bg-slate-900 text-white"
+                : "border border-slate-200 bg-white text-soltas-text hover:bg-slate-50"
+            }`}
+          >
+            Watchdog
+          </Link>
+          <Link
+            href="/feed?tab=funding"
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              activeTab === "funding"
+                ? "bg-slate-900 text-white"
+                : "border border-slate-200 bg-white text-soltas-text hover:bg-slate-50"
+            }`}
+          >
+            Funding
           </Link>
         </div>
       </header>
 
-      {activeTab === "for-you" && !user ? (
+      {showComingSoon && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <strong>Coming soon:</strong> More filtering options for this tab will be available in a
+          future update.
+        </div>
+      )}
+
+      {activeTab === "following" && !user ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
           Sign in to see updates from the people, organisations, and projects you follow.
         </div>
@@ -214,37 +255,16 @@ export default async function FeedPage({
             }
 
             return (
-              <article
+              <FeedItemCard
                 key={item.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1">
-                    <h2 className="text-base font-semibold text-soltas-bark">
-                      {href ? (
-                        <Link href={href} className="hover:underline">
-                          {title}
-                        </Link>
-                      ) : (
-                        title
-                      )}
-                    </h2>
-                    {item.summary ? <p className="text-sm text-soltas-text">{item.summary}</p> : null}
-                    <p className="text-xs text-soltas-muted">{formatDateTime(item.created_at)}</p>
-                  </div>
-                  {actor?.avatar_url ? (
-                    <img
-                      src={actor.avatar_url}
-                      alt={actorName}
-                      className="h-10 w-10 rounded-full border border-slate-200 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-xs text-soltas-muted">
-                      —
-                    </div>
-                  )}
-                </div>
-              </article>
+                title={title}
+                summary={item.summary}
+                href={href}
+                timestamp={item.created_at}
+                actorAvatarUrl={actor?.avatar_url}
+                actorName={actorName}
+                eventType={item.event_type}
+              />
             );
           })}
 
@@ -261,7 +281,10 @@ export default async function FeedPage({
         </section>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
-          No activity yet.
+          {activeTab === "popular" && "No activity yet"}
+          {activeTab === "following" && "Follow projects, organisations, or people to personalize your feed"}
+          {activeTab === "watchdog" && "No verified watchdog items yet"}
+          {activeTab === "funding" && "No new funding opportunities posted yet"}
         </div>
       )}
 

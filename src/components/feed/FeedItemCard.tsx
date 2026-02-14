@@ -1,0 +1,71 @@
+import Link from "next/link";
+
+type FeedItemCardProps = {
+  title: string;
+  summary?: string | null;
+  href?: string | null;
+  timestamp?: string | null;
+  actorAvatarUrl?: string | null;
+  actorName?: string;
+  deadline?: string | null;
+  eventType?: string;
+};
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export function FeedItemCard({
+  title,
+  summary,
+  href,
+  timestamp,
+  actorAvatarUrl,
+  actorName = "Someone",
+  deadline,
+  eventType,
+}: FeedItemCardProps) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-soltas-bark">
+            {href ? (
+              <Link href={href} className="hover:underline">
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h2>
+          {summary ? <p className="text-sm text-soltas-text">{summary}</p> : null}
+          <div className="flex flex-wrap gap-2 text-xs text-soltas-muted">
+            {timestamp ? <span>{formatDateTime(timestamp)}</span> : null}
+            {deadline ? (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">
+                Deadline: {formatDateTime(deadline)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        {actorAvatarUrl ? (
+          <img
+            src={actorAvatarUrl}
+            alt={actorName}
+            className="h-10 w-10 rounded-full border border-slate-200 object-cover"
+          />
+        ) : eventType !== "funding" && eventType !== "watchdog" ? (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-xs text-soltas-muted">
+            —
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
