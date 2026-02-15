@@ -56,10 +56,24 @@ export default async function WatchdogIssuePage({
   const locationParts = [issue.city, issue.region, issue.country].filter(Boolean) as string[];
   const locationLabel = locationParts.length > 0 ? locationParts.join(", ") : null;
 
-  // Phase 1: Placeholder updates array
-  // TODO: Fetch updates from database when available
-  // Expected shape: { id, title, summary, created_at, author_name, href }
-  const updates: UpdateSummary[] = [];
+  // Fetch watchdog issue updates
+  const { data: watchdogUpdates } = await supabase
+    .from("watchdog_issue_updates")
+    .select("id,issue_id,author_user_id,title,body,visibility,published_at,created_at")
+    .eq("issue_id", issue.id)
+    .eq("visibility", "public")
+    .order("published_at", { ascending: false })
+    .limit(20);
+
+  // Map watchdog_issue_updates to UpdateSummary format
+  const updates: UpdateSummary[] = (watchdogUpdates ?? []).map(
+    (update: { id: string; title: string; body: string; published_at: string }) => ({
+      id: update.id,
+      title: update.title,
+      summary: update.body,
+      created_at: update.published_at,
+    }),
+  );
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
