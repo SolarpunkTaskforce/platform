@@ -1,4 +1,0 @@
--- NO-OP: This migration was merged with an out-of-order timestamp.
--- The actual changes are applied in:
---   20260321100000_update_likes_comments.sql
--- Do not delete this file because it exists in git history, but it must remain inert.
