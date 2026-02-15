@@ -94,19 +94,79 @@ const clampSize = (s: PanelSize): PanelSize => ({
   height: clamp(s.height, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT),
 });
 
+type Props = {
+  projectMarkers?: ProjectMarker[];
+  grantMarkers?: GrantMarker[];
+  issueMarkers?: WatchdogIssueMarker[];
+  homeStats?: HomeStats | null;
+};
+
 // ─── Main section ────────────────────────────────────────────────────────────
 
 export default function HomeGlobeSection({
-  projectMarkers,
-  grantMarkers,
-  issueMarkers,
-  homeStats,
-}: {
-  projectMarkers: ProjectMarker[];
-  grantMarkers: GrantMarker[];
-  issueMarkers: WatchdogIssueMarker[];
-  homeStats: HomeStats | null;
-}) {
+  projectMarkers = [],
+  grantMarkers = [],
+  issueMarkers = [],
+  homeStats = null,
+}: Props) {
+  const [projectMarkersState, setProjectMarkersState] = useState<ProjectMarker[]>(projectMarkers);
+  const [grantMarkersState, setGrantMarkersState] = useState<GrantMarker[]>(grantMarkers);
+  const [issueMarkersState, setIssueMarkersState] = useState<WatchdogIssueMarker[]>(issueMarkers);
+  const [homeStatsState, setHomeStatsState] = useState<HomeStats | null>(homeStats);
+  const [isLoading, setIsLoading] = useState(
+    projectMarkers.length === 0 &&
+    grantMarkers.length === 0 &&
+    issueMarkers.length === 0
+  );
+
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async () => {
+      setIsLoading(true);
+
+      try {
+        const [markersRes, statsRes] = await Promise.all([
+          fetch("/api/home-markers"),
+          fetch("/api/home-stats"),
+        ]);
+
+
+        if (!isActive) return;
+
+        if (markersRes.ok) {
+          const markers = (await markersRes.json()) as {
+            projectMarkers?: ProjectMarker[];
+            grantMarkers?: GrantMarker[];
+            issueMarkers?: WatchdogIssueMarker[];
+          };
+
+          setProjectMarkersState(markers.projectMarkers ?? []);
+          setGrantMarkersState(markers.grantMarkers ?? []);
+          setIssueMarkersState(markers.issueMarkers ?? []);
+        }
+
+        if (statsRes.ok) {
+          const stats = (await statsRes.json()) as HomeStats;
+          setHomeStatsState(stats);
+        }
+      } catch {
+        // keep initial values as fallback
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const [mode, setMode] = useState<HomeGlobeMode>(DEFAULT_MODE);
   const buttonRowRef = useRef<HTMLDivElement | null>(null);
 
@@ -138,7 +198,7 @@ export default function HomeGlobeSection({
 
   const pointsByMode = useMemo<Record<HomeGlobeMode, HomeGlobePoint[]>>(
     () => ({
-      projects: projectMarkers.map((marker) => ({
+      projects: projectMarkersState.map((marker) => ({
         id: marker.id,
         lng: typeof marker.lng === "number" ? marker.lng : Number.NaN,
         lat: typeof marker.lat === "number" ? marker.lat : Number.NaN,
@@ -151,7 +211,7 @@ export default function HomeGlobeSection({
         eyebrow: "Project",
         meta: marker.category ? marker.category.replace(/_/g, " ") : null,
       })),
-      funding: grantMarkers.map((marker) => ({
+      funding: grantMarkersState.map((marker) => ({
         id: marker.id,
         lng: typeof marker.longitude === "number" ? marker.longitude : Number.NaN,
         lat: typeof marker.latitude === "number" ? marker.latitude : Number.NaN,
@@ -171,7 +231,7 @@ export default function HomeGlobeSection({
         eyebrow: "Funding",
         meta: marker.project_type ? `Type: ${marker.project_type}` : null,
       })),
-      issues: issueMarkers.map((marker) => ({
+      issues: issueMarkersState.map((marker) => ({
         id: marker.id,
         lng: typeof marker.longitude === "number" ? marker.longitude : Number.NaN,
         lat: typeof marker.latitude === "number" ? marker.latitude : Number.NaN,
@@ -194,7 +254,7 @@ export default function HomeGlobeSection({
         meta: formatUrgency(marker.urgency ?? null),
       })),
     }),
-    [grantMarkers, issueMarkers, projectMarkers],
+    [grantMarkersState, issueMarkersState, projectMarkersState],
   );
 
   const statsByMode = useMemo<
@@ -208,12 +268,16 @@ export default function HomeGlobeSection({
         leftTitle: "Project momentum",
         rightTitle: "Community impact",
         left: [
-          { label: "Approved projects", value: homeStats?.projects.projects_approved, format: "number" },
-          { label: "Ongoing projects", value: homeStats?.projects.projects_ongoing, format: "number" },
+          { label: "Approved projects", value: homeStatsState?.projects.projects_approved, format: "number" },
+          { label: "Ongoing projects", value: homeStatsState?.projects.projects_ongoing, format: "number" },
         ],
         right: [
-          { label: "Verified organisations", value: homeStats?.projects.organisations_registered, format: "number" },
-          { label: "Donations received", value: homeStats?.projects.donations_received_eur, format: "currency" },
+          {
+            label: "Verified organisations",
+            value: homeStatsState?.projects.organisations_registered,
+            format: "number",
+          },
+          { label: "Donations received", value: homeStatsState?.projects.donations_received_eur, format: "currency" },
         ],
         footnote: "Totals reflect approved public projects and verified organisations.",
       },
@@ -221,21 +285,23 @@ export default function HomeGlobeSection({
         leftTitle: "Funding flow",
         rightTitle: "Funder network",
         left: [
-          { label: "Funding opportunities", value: homeStats?.funding.opportunities_total, format: "number" },
-          { label: "Open calls", value: homeStats?.funding.open_calls, format: "number" },
+          { label: "Funding opportunities", value: homeStatsState?.funding.opportunities_total, format: "number" },
+          { label: "Open calls", value: homeStatsState?.funding.open_calls, format: "number" },
         ],
-        right: [{ label: "Funders represented", value: homeStats?.funding.funders_registered, format: "number" }],
+        right: [
+          { label: "Funders represented", value: homeStatsState?.funding.funders_registered, format: "number" },
+        ],
         footnote: "Counts include published funding calls that are open or rolling.",
       },
       issues: {
         leftTitle: "Issue visibility",
         rightTitle: "Urgency signals",
-        left: [{ label: "Approved issues", value: homeStats?.issues.issues_total, format: "number" }],
-        right: [{ label: "High-urgency alerts", value: homeStats?.issues.issues_open, format: "number" }],
+        left: [{ label: "Approved issues", value: homeStatsState?.issues.issues_total, format: "number" }],
+        right: [{ label: "High-urgency alerts", value: homeStatsState?.issues.issues_open, format: "number" }],
         footnote: "High-urgency alerts are approved issues marked 4+ on urgency.",
       },
     }),
-    [homeStats],
+    [homeStatsState],
   );
 
   const activeStats = statsByMode[mode];
@@ -273,6 +339,7 @@ export default function HomeGlobeSection({
               Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk
               Taskforce ecosystem.
             </p>
+            {isLoading ? <p className="text-sm text-white/70">Loading live globe data…</p> : null}
           </div>
 
           {/* Mode buttons */}

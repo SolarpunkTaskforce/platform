@@ -2,55 +2,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import HomeGlobeSection from "@/components/home/HomeGlobeSection";
-import { fetchHomeGrantMarkers } from "@/lib/grants/homeGrantsQuery";
-import { fetchHomeStats } from "@/lib/homeStatsQuery";
-import { logOnce } from "@/lib/logOnce";
-import { fetchHomeProjectMarkers } from "@/lib/projects/homeProjectsQuery";
-import { fetchHomeWatchdogMarkers } from "@/lib/watchdog/homeWatchdogQuery";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default async function HomePage() {
-  let markers: Awaited<ReturnType<typeof fetchHomeProjectMarkers>> = [];
-  let grantMarkers: Awaited<ReturnType<typeof fetchHomeGrantMarkers>> = [];
-  let issueMarkers: Awaited<ReturnType<typeof fetchHomeWatchdogMarkers>> = [];
-  let homeStats: Awaited<ReturnType<typeof fetchHomeStats>> | null = null;
-
-  try {
-    markers = await fetchHomeProjectMarkers();
-  } catch (error) {
-    logOnce("home-markers", "Home globe: marker query failed", error);
-  }
-
-  try {
-    grantMarkers = await fetchHomeGrantMarkers();
-  } catch (error) {
-    logOnce("home-grants", "Home globe: funding marker query failed", error);
-  }
-
-  try {
-    issueMarkers = await fetchHomeWatchdogMarkers();
-  } catch (error) {
-    logOnce("home-issues", "Home globe: issue marker query failed", error);
-  }
-
-  try {
-    homeStats = await fetchHomeStats();
-  } catch (error) {
-    logOnce("home-stats", "Home globe: stats query failed", error);
-  }
-
+export default function HomePage() {
   return (
     <main className="flex flex-col">
       {/* Full-viewport hero */}
       <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-soltas-light" />}>
-        <HomeGlobeSection
-          projectMarkers={markers}
-          grantMarkers={grantMarkers}
-          issueMarkers={issueMarkers}
-          homeStats={homeStats}
-        />
+        {/* Let HomeGlobeSection fetch what it needs client-side */}
+        <HomeGlobeSection />
       </Suspense>
 
       {/* Below-the-fold content */}
