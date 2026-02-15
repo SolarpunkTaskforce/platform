@@ -189,7 +189,7 @@ export default function Header() {
 
   return (
     <header className="relative z-50 soltas-header-glass">
-      <div className="flex h-14 items-center justify-between px-4 sm:px-6">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-4 sm:gap-6">
           {/* Mobile hamburger toggle */}
           <button
@@ -219,8 +219,8 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-abyssal" : "text-soltas-muted hover:text-soltas-abyssal"
+                    className={`whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors duration-200 ${
+                      active ? "text-soltas-ocean" : "text-soltas-ocean hover:text-soltas-glacial"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -235,8 +235,8 @@ export default function Header() {
                 <div key={item.label} className="group flex items-center">
                   <button
                     type="button"
-                    className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-abyssal" : "text-soltas-muted hover:text-soltas-abyssal"
+                    className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors duration-200 ${
+                      active ? "text-soltas-ocean" : "text-soltas-ocean hover:text-soltas-glacial"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
@@ -254,8 +254,8 @@ export default function Header() {
                         <Link
                           key={link.href}
                           href={link.href}
-                          className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                            childActive ? "text-soltas-bark" : "text-soltas-muted hover:text-soltas-bark"
+                          className={`whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors duration-150 ${
+                            childActive ? "text-soltas-bark" : "text-soltas-bark hover:text-soltas-clay"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -306,8 +306,8 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      active ? "bg-soltas-light text-soltas-abyssal" : "text-soltas-text hover:bg-soltas-light"
+                    className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${
+                      active ? "bg-soltas-light text-soltas-ocean" : "text-soltas-ocean hover:bg-soltas-light"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -320,7 +320,7 @@ export default function Header() {
 
               return (
                 <details key={item.label} className="rounded-lg" open={active}>
-                  <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-medium text-soltas-text hover:bg-slate-50">
+                  <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-semibold text-soltas-ocean hover:bg-slate-50">
                     <span className="flex items-center justify-between">
                       {item.label}
                       <span aria-hidden="true" className="text-xs text-soltas-muted">
@@ -336,10 +336,10 @@ export default function Header() {
                         <Link
                           key={link.href}
                           href={link.href}
-                          className={`rounded-md px-3 py-2 text-sm ${
+                          className={`rounded-md px-3 py-2 text-sm font-semibold ${
                             childActive
                               ? "bg-soltas-light text-soltas-bark"
-                              : "text-soltas-muted hover:bg-soltas-light"
+                              : "text-soltas-bark hover:bg-soltas-light"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
