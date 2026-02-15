@@ -319,7 +319,7 @@ export default function HomeGlobeSection({
   }, []);
 
   return (
-    <section className="relative h-[calc(100dvh-3.5rem)] w-full overflow-hidden">
+    <section className="relative h-[calc(100dvh-4rem)] w-full overflow-hidden">
       {/* Globe background */}
       <div id="home-globe" className="absolute inset-0 z-0">
         <HomeGlobe mode={mode} pointsByMode={pointsByMode} />

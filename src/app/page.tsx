@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <main className="flex flex-col">
       {/* Full-viewport hero */}
-      <Suspense fallback={<div className="h-[calc(100dvh-3.5rem)] w-full bg-soltas-light" />}>
+      <Suspense fallback={<div className="h-[calc(100dvh-4rem)] w-full bg-soltas-light" />}>
         {/* Let HomeGlobeSection fetch what it needs client-side */}
         <HomeGlobeSection />
       </Suspense>
