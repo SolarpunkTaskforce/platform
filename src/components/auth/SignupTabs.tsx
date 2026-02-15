@@ -97,7 +97,10 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
   const [orgsError, setOrgsError] = useState<string | null>(null);
   const [orgsLoading, setOrgsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState<{ text: string; tone: "error" | "success" } | null>(
+  const [message, setMessage] = useState<{
+    text: string;
+    tone: "error" | "success" | "info";
+  } | null>(
     null
   );
   const [loading, setLoading] = useState(false);
@@ -289,12 +292,23 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
       const { data, error } = await client.auth.signUp({
         email: organisation.email,
         password: organisation.password,
-        options: {
-          emailRedirectTo: siteUrl ? `${siteUrl}/auth` : undefined,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
-      if (!data.user?.id) throw new Error("Unable to create organisation account.");
+
+      const { data: sessionData } = await client.auth.getSession();
+      const uid = sessionData.session?.user?.id ?? data.user?.id;
+
+      console.log("After signUp session user:", sessionData.session?.user?.id);
+      console.log("signUp returned user:", data.user?.id);
+
+      if (!sessionData.session) {
+        setMessage({
+          tone: "info",
+          text: "Account created. Please check your email to confirm your address, then log in to complete organisation setup.",
+        });
+        return;
+      }
 
       const { error: organisationError } = await client.from("organisations").insert({
         name: organisation.name.trim(),
@@ -305,7 +319,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         social_links: normalizeLinks(organisationLinks),
         logo_url: organisation.logo_url.trim() || null,
         verification_status: "pending",
-        created_by: data.user.id,
+        created_by: sessionData.session.user.id,
       });
       if (organisationError) throw organisationError;
 
@@ -706,7 +720,7 @@ function SubmitRow({
   message,
 }: {
   loading: boolean;
-  message: { text: string; tone: "error" | "success" } | null;
+  message: { text: string; tone: "error" | "success" | "info" } | null;
 }) {
   return (
     <div className="space-y-3">
@@ -720,7 +734,11 @@ function SubmitRow({
       {message && (
         <p
           className={`text-sm font-medium ${
-            message.tone === "success" ? "text-[#2E6B8A]" : "text-red-600"
+            message.tone === "success"
+              ? "text-[#2E6B8A]"
+              : message.tone === "info"
+                ? "text-soltas-muted"
+                : "text-red-600"
           }`}
         >
           {message.text}
