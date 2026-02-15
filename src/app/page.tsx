@@ -69,7 +69,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/find-projects"
+              href="/projects"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-soltas-ocean px-5 text-sm font-semibold text-white transition hover:bg-soltas-glacial focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-glacial"
             >
               Donate to a project

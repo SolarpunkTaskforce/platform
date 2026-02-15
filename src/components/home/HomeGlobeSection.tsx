@@ -35,7 +35,7 @@ const MODE_CONFIG: Record<
 > = {
   projects: {
     label: "Find Projects",
-    href: "/find-projects",
+    href: "/projects",
     ctaLabel: "Open project",
     mobileLabel: "Projects",
   },

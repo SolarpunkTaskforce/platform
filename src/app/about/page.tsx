@@ -318,7 +318,7 @@ export default function AboutPage() {
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/find-projects"
+              href="/projects"
               className="inline-flex items-center gap-2 rounded-xl bg-soltas-ocean px-4 py-2 text-sm font-semibold text-white transition hover:bg-soltas-ocean/90"
             >
               Explore projects <ArrowRight size={16} />

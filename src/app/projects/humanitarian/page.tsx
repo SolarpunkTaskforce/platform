@@ -17,5 +17,5 @@ export default async function HumanitarianProjectsPage({
   if (focus) {
     nextParams.set("focus", focus);
   }
-  redirect(`/find-projects?${nextParams.toString()}`);
+  redirect(`/projects?${nextParams.toString()}`);
 }

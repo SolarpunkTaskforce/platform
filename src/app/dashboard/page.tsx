@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabaseClient } from "@/lib/supabaseClient";
 
 type Profile = {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
         )}
       </div>
       <div className="rounded-2xl border p-4">
-        <a href="/find-projects" className="underline">Create or manage projects</a>
+        <Link href="/projects" className="underline">Create or manage projects</Link>
         <div className="text-xs opacity-70">Project creation will be gated to authenticated users.</div>
       </div>
     </div>
