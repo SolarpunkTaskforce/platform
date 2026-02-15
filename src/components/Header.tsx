@@ -220,7 +220,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
+                      active ? "text-soltas-abyssal" : "text-soltas-muted hover:text-soltas-abyssal"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -236,7 +236,7 @@ export default function Header() {
                   <button
                     type="button"
                     className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                      active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
+                      active ? "text-soltas-abyssal" : "text-soltas-muted hover:text-soltas-abyssal"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
@@ -255,7 +255,7 @@ export default function Header() {
                           key={link.href}
                           href={link.href}
                           className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                            childActive ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
+                            childActive ? "text-soltas-bark" : "text-soltas-muted hover:text-soltas-bark"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
@@ -307,7 +307,7 @@ export default function Header() {
                     key={item.href}
                     href={item.href}
                     className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      active ? "bg-soltas-light text-soltas-ocean" : "text-soltas-text hover:bg-soltas-light"
+                      active ? "bg-soltas-light text-soltas-abyssal" : "text-soltas-text hover:bg-soltas-light"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
@@ -338,7 +338,7 @@ export default function Header() {
                           href={link.href}
                           className={`rounded-md px-3 py-2 text-sm ${
                             childActive
-                              ? "bg-soltas-light text-soltas-ocean"
+                              ? "bg-soltas-light text-soltas-bark"
                               : "text-soltas-muted hover:bg-soltas-light"
                           }`}
                           aria-current={childActive ? "page" : undefined}
