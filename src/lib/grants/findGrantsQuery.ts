@@ -175,6 +175,14 @@ export async function fetchFindGrants({
 }> {
   const params = parseFindGrantsSearchParams(searchParams);
   const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Funding is only visible to authenticated users
+  if (!user) {
+    return { rows: [], count: 0, page: params.page, pageCount: 0 };
+  }
 
   let query = supabase
     .from("grants")
@@ -271,6 +279,14 @@ export async function fetchGrantMarkers({
 }): Promise<GrantMarker[]> {
   const params = parseFindGrantsSearchParams(searchParams);
   const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Funding is only visible to authenticated users
+  if (!user) {
+    return [];
+  }
 
   let query = supabase
     .from("grants")
@@ -345,6 +361,14 @@ export async function fetchGrantMarkers({
 
 export async function fetchGrantFilterOptions(): Promise<GrantFilterOptions> {
   const supabase = await getServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Funding is only visible to authenticated users
+  if (!user) {
+    return { countries: [], themes: [] };
+  }
 
   const { data, error } = await supabase
     .from("grants")
