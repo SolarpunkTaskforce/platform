@@ -51,7 +51,8 @@ export default function Header() {
 
   // Close mobile nav on route change
   useEffect(() => {
-    setMobileNavOpen(false);
+    // Use a microtask to avoid synchronous setState in effect
+    queueMicrotask(() => setMobileNavOpen(false));
   }, [pathname]);
 
   useEffect(() => {
@@ -73,7 +74,8 @@ export default function Header() {
 
   useEffect(() => {
     if (!sessionUserId) {
-      setProfile(null);
+      // Use a microtask to avoid synchronous setState in effect
+      queueMicrotask(() => setProfile(null));
       return;
     }
 
@@ -89,7 +91,8 @@ export default function Header() {
 
   useEffect(() => {
     if (!sessionUserId) {
-      setUnreadCount(0);
+      // Use a microtask to avoid synchronous setState in effect
+      queueMicrotask(() => setUnreadCount(0));
       return;
     }
 
