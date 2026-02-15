@@ -297,12 +297,21 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
       if (error) throw error;
 
       const { data: sessionData } = await client.auth.getSession();
-      const uid = sessionData.session?.user?.id ?? data.user?.id;
-
-      console.log("After signUp session user:", sessionData.session?.user?.id);
-      console.log("signUp returned user:", data.user?.id);
 
       if (!sessionData.session) {
+        // Email confirmation required - save pending org data
+        const pendingOrgData = {
+          email: organisation.email,
+          name: organisation.name.trim(),
+          country_based: organisation.country_based.trim(),
+          what_we_do: organisation.what_we_do.trim(),
+          existing_since: organisation.existing_since || undefined,
+          website: organisation.website.trim() || undefined,
+          logo_url: organisation.logo_url.trim() || undefined,
+          social_links: normalizeLinks(organisationLinks),
+        };
+        localStorage.setItem("pending_organisation_data", JSON.stringify(pendingOrgData));
+
         setMessage({
           tone: "info",
           text: "Account created. Please check your email to confirm your address, then log in to complete organisation setup.",
@@ -310,22 +319,38 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         return;
       }
 
-      const { error: organisationError } = await client.from("organisations").insert({
-        name: organisation.name.trim(),
-        country_based: organisation.country_based.trim(),
-        what_we_do: organisation.what_we_do.trim(),
-        existing_since: organisation.existing_since || null,
-        website: organisation.website.trim() || null,
-        social_links: normalizeLinks(organisationLinks),
-        logo_url: organisation.logo_url.trim() || null,
-        verification_status: "pending",
-        created_by: sessionData.session.user.id,
-      });
+      // Session exists immediately - create org and membership now
+      const { data: newOrg, error: organisationError } = await client
+        .from("organisations")
+        .insert({
+          name: organisation.name.trim(),
+          country_based: organisation.country_based.trim(),
+          what_we_do: organisation.what_we_do.trim(),
+          existing_since: organisation.existing_since || null,
+          website: organisation.website.trim() || null,
+          social_links: normalizeLinks(organisationLinks),
+          logo_url: organisation.logo_url.trim() || null,
+          verification_status: "pending",
+          created_by: sessionData.session.user.id,
+        })
+        .select("id")
+        .single();
+
       if (organisationError) throw organisationError;
+      if (!newOrg?.id) throw new Error("Failed to create organisation");
+
+      // Create membership linking user to organisation
+      const { error: memberError } = await client.from("organisation_members").insert({
+        organisation_id: newOrg.id,
+        user_id: sessionData.session.user.id,
+        role: "owner",
+      });
+
+      if (memberError) throw memberError;
 
       setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
       setTimeout(() => {
-        router.replace("/projects");
+        router.replace(`/organisations/${newOrg.id}`);
         router.refresh();
       }, 400);
     } catch (err: unknown) {
