@@ -54,22 +54,17 @@ export default async function FeedPage({
   const tabValue = validTabs.includes(tabParam as TabValue) ? (tabParam as TabValue) : null;
   const activeTab: TabValue = tabValue ?? (user ? "following" : "popular");
 
-  // Map tabs to RPC scopes - Phase 1: watchdog and funding map to existing scopes
-  let scope: "global" | "for_you";
-  let showComingSoon = false;
+  // Map tabs to RPC scopes
+  let scope: "global" | "for_you" | "watchdog" | "funding";
 
   if (activeTab === "following") {
     scope = "for_you";
   } else if (activeTab === "popular") {
     scope = "global";
   } else if (activeTab === "watchdog") {
-    // Temporarily map to global, show coming soon banner
-    scope = "global";
-    showComingSoon = true;
+    scope = "watchdog";
   } else if (activeTab === "funding") {
-    // Temporarily map to global, show coming soon banner
-    scope = "global";
-    showComingSoon = true;
+    scope = "funding";
   } else {
     scope = "global";
   }
@@ -209,13 +204,6 @@ export default async function FeedPage({
         </div>
       </header>
 
-      {showComingSoon && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <strong>Coming soon:</strong> More filtering options for this tab will be available in a
-          future update.
-        </div>
-      )}
-
       {activeTab === "following" && !user ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
           Sign in to see updates from the people, organisations, and projects you follow.
@@ -241,6 +229,17 @@ export default async function FeedPage({
               const projectName = project?.name ?? "a project";
               title = `${projectName} · ${item.title ?? "Project update"}`;
               href = `/projects/${project?.slug ?? item.project_id}`;
+            } else if (item.event_type === "org_update") {
+              const orgName = organisation?.name ?? "an organisation";
+              title = `${orgName} · ${item.title ?? "Organisation update"}`;
+              href = `/organisations/${item.org_id}`;
+            } else if (item.event_type === "watchdog_update") {
+              title = item.title ?? "Watchdog issue reported";
+              href = `/watchdog/${item.update_id ?? item.id}`;
+            } else if (item.event_type === "grant_published") {
+              // Use title/summary from RPC if available, otherwise show minimal fallback
+              title = item.title ?? "New funding opportunity";
+              href = item.update_id ? `/funding/${item.update_id}` : null;
             } else if (item.event_type === "follow") {
               if (item.person_profile_id) {
                 title = `${actorName} followed ${getProfileName(targetPerson)}`;
