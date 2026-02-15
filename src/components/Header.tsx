@@ -211,7 +211,7 @@ export default function Header() {
             Solarpunk Taskforce
           </button>
 
-          <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
             {navItems.map((item) => {
               if (item.type === "link") {
                 const active = isActive(item.href);
@@ -219,7 +219,7 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-sm font-medium transition-colors duration-200 ${
+                    className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                       active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
                     }`}
                     aria-current={active ? "page" : undefined}
@@ -232,30 +232,30 @@ export default function Header() {
               const active = isDropdownActive(item.items);
 
               return (
-                <div key={item.label} className="group relative">
+                <div key={item.label} className="group flex items-center">
                   <button
                     type="button"
-                    className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
+                    className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                       active ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
                     }`}
                     aria-haspopup="true"
                     aria-expanded="false"
                   >
                     {item.label}
-                    <span aria-hidden="true" className="text-xs">
-                      ▾
+                    <span aria-hidden="true" className="text-xs transition-transform duration-200 group-hover:rotate-90">
+                      ▸
                     </span>
                   </button>
 
-                  <div className="glass-card invisible absolute left-0 top-full z-20 mt-2 w-56 py-2 text-sm text-soltas-text shadow-lg opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <div className="flex max-w-0 items-center overflow-hidden opacity-0 transition-all duration-300 group-hover:max-w-4xl group-hover:opacity-100 group-focus-within:max-w-4xl group-focus-within:opacity-100">
                     {item.items.map((link) => {
                       const childActive = isActive(link.href);
                       return (
                         <Link
                           key={link.href}
                           href={link.href}
-                          className={`block px-4 py-2 transition-colors duration-150 ${
-                            childActive ? "bg-soltas-light text-soltas-ocean" : "hover:bg-soltas-light"
+                          className={`whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                            childActive ? "text-soltas-ocean" : "text-soltas-muted hover:text-soltas-ocean"
                           }`}
                           aria-current={childActive ? "page" : undefined}
                         >
