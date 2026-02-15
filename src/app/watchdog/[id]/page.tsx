@@ -39,7 +39,19 @@ export default async function WatchdogIssuePage({
   const user = auth?.user ?? null;
 
   const { data: isAdmin } = await supabase.rpc("is_admin");
-  const canEdit = Boolean(user && (issue.submitted_by === user.id || isAdmin));
+
+  // Only allow viewing if:
+  // 1. Issue is approved (public), OR
+  // 2. User is the creator, OR
+  // 3. User is an admin
+  const isCreator = user && issue.created_by === user.id;
+  const canView = issue.status === "approved" || isCreator || isAdmin;
+
+  if (!canView) {
+    notFound();
+  }
+
+  const canEdit = Boolean(user && (issue.created_by === user.id || isAdmin));
 
   const locationParts = [issue.city, issue.region, issue.country].filter(Boolean) as string[];
   const locationLabel = locationParts.length > 0 ? locationParts.join(", ") : null;
