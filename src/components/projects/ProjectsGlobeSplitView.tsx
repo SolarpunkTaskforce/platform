@@ -292,7 +292,7 @@ export default function ProjectsGlobeSplitView({ markers, totalCount, focusSlug 
         >
           <div className="h-full overflow-y-auto p-4">
             <div className="space-y-4">
-              <ProjectsFilters basePath="/find-projects" showSorting={false} variant="inline" />
+              <ProjectsFilters basePath="/projects" showSorting={false} variant="inline" />
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-soltas-muted">
                 {markers.length} projects mapped · {totalCount} total matching filters
               </div>

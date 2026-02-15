@@ -52,7 +52,7 @@ export default function DashboardPage() {
         )}
       </div>
       <div className="rounded-2xl border p-4">
-        <a href="/find-projects" className="underline">Create or manage projects</a>
+        <a href="/projects" className="underline">Create or manage projects</a>
         <div className="text-xs opacity-70">Project creation will be gated to authenticated users.</div>
       </div>
     </div>
