@@ -196,16 +196,28 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     return nextErrors;
   }
 
-  function handleSignupError(scope: "Individual" | "Organisation", err: unknown) {
-    console.error(`${scope} signup failed:`, err);
-
-    let msg = "Unable to sign up.";
-    if (err && typeof err === "object") {
-      const error = err as { message?: string; error_description?: string; details?: string };
-      msg = error.message || error.error_description || error.details || msg;
+  function getSignupErrorMessage(err: unknown) {
+    if (typeof err !== "object" || err === null) {
+      return "Unable to sign up.";
     }
 
-    setMessage({ text: msg, tone: "error" });
+    const errorLike = err as {
+      message?: string;
+      error_description?: string;
+      details?: string;
+    };
+
+    return (
+      errorLike.message ||
+      errorLike.error_description ||
+      errorLike.details ||
+      "Unable to sign up."
+    );
+  }
+
+  function handleSignupError(scope: "Individual" | "Organisation", err: unknown) {
+    console.error(`${scope} signup failed:`, err);
+    setMessage({ text: getSignupErrorMessage(err), tone: "error" });
   }
 
   async function handleIndividualSubmit(event: React.FormEvent) {
