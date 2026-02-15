@@ -155,7 +155,7 @@ export default function HomeGlobe({
 
   // interaction
   const userInteractTimerRef = useRef<number | null>(null);
-  const lastInteractionRef = useRef<number>(0);
+  const lastInteractionRef = useRef<number>(Date.now());
 
   const hasLoggedErrorRef = useRef(false);
 
@@ -219,8 +219,8 @@ export default function HomeGlobe({
       style: "mapbox://styles/mapbox/outdoors-v12",
       projection: { name: "globe" },
 
-      // ✅ Zoomed in & framed nicely
-      center: [10, 15],
+      // ✅ Centered on prime meridian
+      center: [0, 20],
       zoom: 2.05,
       pitch: 25,
       bearing: 0,
