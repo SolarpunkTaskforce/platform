@@ -54,12 +54,14 @@ export default async function WatchdogIssuePage({
     .limit(20);
 
   // Map watchdog_issue_updates to UpdateSummary format
-  const updates: UpdateSummary[] = (watchdogUpdates ?? []).map((update: any) => ({
-    id: update.id,
-    title: update.title,
-    summary: update.body,
-    created_at: update.published_at,
-  }));
+  const updates: UpdateSummary[] = (watchdogUpdates ?? []).map(
+    (update: { id: string; title: string; body: string; published_at: string }) => ({
+      id: update.id,
+      title: update.title,
+      summary: update.body,
+      created_at: update.published_at,
+    }),
+  );
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
