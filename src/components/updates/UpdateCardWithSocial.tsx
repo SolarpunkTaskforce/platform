@@ -56,6 +56,7 @@ export default function UpdateCardWithSocial({
     if (showComments && comments.length === 0) {
       loadComments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showComments]);
 
   const loadComments = async () => {
@@ -63,9 +64,9 @@ export default function UpdateCardWithSocial({
     try {
       const response = await fetch(`/api/updates/${updateId}/comments`);
       if (response.ok) {
-        const data = await response.json();
+        const data: { comments: Array<{ id: string; authorName: string; body: string; createdAt: string; canDelete: boolean }> } = await response.json();
         setComments(
-          data.comments.map((c: any) => ({
+          data.comments.map((c) => ({
             ...c,
             createdAt: new Date(c.createdAt),
           }))

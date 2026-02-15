@@ -50,7 +50,7 @@ export async function GET(
   }
 
   // Transform to match the Comment interface expected by the UI component
-  const formattedComments = (comments ?? []).map((comment: any) => {
+  const formattedComments = (comments ?? []).map((comment) => {
     const profile = Array.isArray(comment.profiles)
       ? comment.profiles[0]
       : comment.profiles;

@@ -1,5 +1,4 @@
 import UpdateCardWithSocial from "./UpdateCardWithSocial";
-import UpdateCard from "./UpdateCard";
 import NewUpdateButton from "./NewUpdateButton";
 import { getServerSupabase } from "@/lib/supabaseServer";
 
