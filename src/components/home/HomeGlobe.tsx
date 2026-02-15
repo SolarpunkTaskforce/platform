@@ -247,7 +247,7 @@ export default function HomeGlobe({
     map.on("touchstart", markInteracted);
     map.on("click", markInteracted);
 
-    // ✅ Critical: resize after load & after layout settles (fixes “grey map”)
+    // ✅ Critical: resize after load & after layout settles (fixes "grey map")
     const onLoaded = () => {
       try {
         map.resize();
@@ -257,6 +257,8 @@ export default function HomeGlobe({
       window.requestAnimationFrame(() => {
         try {
           map.resize();
+          // Re-center the globe to ensure it's properly positioned after resize
+          map.setCenter([0, 20]);
         } catch {
           // ignore
         }
@@ -284,6 +286,8 @@ export default function HomeGlobe({
     const handleResize = () => {
       try {
         map.resize();
+        // Re-center after resize to maintain proper globe positioning
+        map.setCenter([0, 20]);
       } catch {
         // ignore
       }
