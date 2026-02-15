@@ -104,6 +104,9 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const siteUrl = useMemo(() => process.env.NEXT_PUBLIC_SITE_URL || "", []);
 
   useEffect(() => {
@@ -223,6 +226,29 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     setMessage({ text: getSignupErrorMessage(err), tone: "error" });
   }
 
+  async function handleResendConfirmation() {
+    if (!pendingConfirmationEmail) return;
+
+    setResendLoading(true);
+    setResendMessage(null);
+
+    try {
+      const { error } = await client.auth.resend({
+        type: "signup",
+        email: pendingConfirmationEmail,
+      });
+
+      if (error) throw error;
+
+      setResendMessage("Confirmation email sent.");
+    } catch (err: unknown) {
+      console.error("Resend confirmation failed:", err);
+      setResendMessage(getSignupErrorMessage(err));
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   async function handleIndividualSubmit(event: React.FormEvent) {
     event.preventDefault();
     setMessage(null);
@@ -312,6 +338,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         };
         localStorage.setItem("pending_organisation_data", JSON.stringify(pendingOrgData));
 
+        setPendingConfirmationEmail(organisation.email);
         setMessage({
           tone: "info",
           text: "Account created. Please check your email to confirm your address, then log in to complete organisation setup.",
@@ -483,7 +510,14 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
             onRemove={(index) => removeSocialLink(setIndividualLinks, index)}
           />
 
-          <SubmitRow loading={loading} message={message} />
+          <SubmitRow
+            loading={loading}
+            message={message}
+            onResendConfirmation={handleResendConfirmation}
+            resendLoading={resendLoading}
+            resendMessage={resendMessage}
+            canResend={!!pendingConfirmationEmail}
+          />
         </form>
       ) : (
         <form onSubmit={handleOrganisationSubmit} className="mt-6 space-y-4">
@@ -556,7 +590,14 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
             onRemove={(index) => removeSocialLink(setOrganisationLinks, index)}
           />
 
-          <SubmitRow loading={loading} message={message} />
+          <SubmitRow
+            loading={loading}
+            message={message}
+            onResendConfirmation={handleResendConfirmation}
+            resendLoading={resendLoading}
+            resendMessage={resendMessage}
+            canResend={!!pendingConfirmationEmail}
+          />
         </form>
       )}
     </div>
@@ -743,10 +784,20 @@ function SocialLinksField({
 function SubmitRow({
   loading,
   message,
+  onResendConfirmation,
+  resendLoading,
+  resendMessage,
+  canResend,
 }: {
   loading: boolean;
   message: { text: string; tone: "error" | "success" | "info" } | null;
+  onResendConfirmation?: () => void;
+  resendLoading?: boolean;
+  resendMessage?: string | null;
+  canResend?: boolean;
 }) {
+  const showResendButton = message?.tone === "info" && canResend && onResendConfirmation;
+
   return (
     <div className="space-y-3">
       <button
@@ -768,6 +819,21 @@ function SubmitRow({
         >
           {message.text}
         </p>
+      )}
+      {showResendButton && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={onResendConfirmation}
+            disabled={resendLoading}
+            className="w-full rounded-xl border border-[#6B9FB8]/40 bg-white px-4 py-2 text-sm font-medium text-[#2E6B8A] transition hover:bg-[#EEF2F5] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {resendLoading ? "Sending..." : "Resend confirmation email"}
+          </button>
+          {resendMessage && (
+            <p className="text-sm font-medium text-[#2E6B8A]">{resendMessage}</p>
+          )}
+        </div>
       )}
     </div>
   );
