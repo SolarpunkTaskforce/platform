@@ -86,7 +86,7 @@ export default function ProjectsTableView({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-soltas-muted">Showing {rows.length} of {count} projects</p>
-        <ProjectsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/find-projects" />
+        <ProjectsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/projects" />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -115,7 +115,7 @@ export default function ProjectsTableView({
               if (focusSlug) {
                 mapParams.set("focus", focusSlug);
               }
-              const mapHref = `/find-projects?${mapParams.toString()}`;
+              const mapHref = `/projects?${mapParams.toString()}`;
 
               return (
                 <tr key={project.id} className="align-top">
@@ -177,7 +177,7 @@ export default function ProjectsTableView({
         </div>
       ) : null}
 
-      <ProjectsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/find-projects" />
+      <ProjectsPagination page={page} pageCount={pageCount} searchParams={searchParams} basePath="/projects" />
     </section>
   );
 }

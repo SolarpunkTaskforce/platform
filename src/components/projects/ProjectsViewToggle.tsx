@@ -18,7 +18,7 @@ export default function ProjectsViewToggle({ view }: ProjectsViewToggleProps) {
       const params = new URLSearchParams(searchParams.toString());
       params.set("view", nextView);
       const query = params.toString();
-      router.push(query ? `/find-projects?${query}` : "/find-projects");
+      router.push(query ? `/projects?${query}` : "/projects");
     },
     [router, searchParams],
   );
