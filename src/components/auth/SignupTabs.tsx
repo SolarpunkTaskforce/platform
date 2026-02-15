@@ -199,11 +199,11 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
   function handleSignupError(scope: "Individual" | "Organisation", err: unknown) {
     console.error(`${scope} signup failed:`, err);
 
-    const msg =
-      (err as any)?.message ||
-      (err as any)?.error_description ||
-      (err as any)?.details ||
-      "Unable to sign up.";
+    let msg = "Unable to sign up.";
+    if (err && typeof err === "object") {
+      const error = err as { message?: string; error_description?: string; details?: string };
+      msg = error.message || error.error_description || error.details || msg;
+    }
 
     setMessage({ text: msg, tone: "error" });
   }
@@ -254,7 +254,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         router.replace("/projects");
         router.refresh();
       }, 400);
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleSignupError("Individual", err);
     } finally {
       setLoading(false);
@@ -302,7 +302,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         router.replace("/projects");
         router.refresh();
       }, 400);
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleSignupError("Organisation", err);
     } finally {
       setLoading(false);
