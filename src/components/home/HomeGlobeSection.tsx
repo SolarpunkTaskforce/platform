@@ -514,7 +514,7 @@ function PinnedStatsPanel({
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       if (!dragStartRef.current) return;
-      const { px, py, w, h } = dragStartRef.current;
+      const { px, py, w } = dragStartRef.current;
       const dx = e.clientX - px;
       const dy = e.clientY - py;
 

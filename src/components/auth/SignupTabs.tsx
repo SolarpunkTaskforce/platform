@@ -289,7 +289,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     setLoading(true);
 
     try {
-      const { data, error } = await client.auth.signUp({
+      const { error } = await client.auth.signUp({
         email: organisation.email,
         password: organisation.password,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },

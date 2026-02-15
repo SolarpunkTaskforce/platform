@@ -260,7 +260,8 @@ const DateDropdowns = forwardRef<HTMLDivElement, DateDropdownsProps>(
     const timestamp = value ? value.getTime() : null;
 
     useEffect(() => {
-      setParts(deriveParts(value ?? undefined));
+      // Use a microtask to avoid synchronous setState in effect
+      queueMicrotask(() => setParts(deriveParts(value ?? undefined)));
     }, [timestamp, value]);
 
     const handlePartChange = useCallback(

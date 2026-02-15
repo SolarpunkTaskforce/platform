@@ -155,7 +155,12 @@ export default function HomeGlobe({
 
   // interaction
   const userInteractTimerRef = useRef<number | null>(null);
-  const lastInteractionRef = useRef<number>(Date.now());
+  const lastInteractionRef = useRef<number>(0);
+
+  // Initialize lastInteractionRef in useEffect to avoid calling Date.now() during render
+  useEffect(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
 
   const hasLoggedErrorRef = useRef(false);
 
@@ -410,7 +415,8 @@ export default function HomeGlobe({
       activeMarkerRef.current = null;
     }
     lastSwitchRef.current = 0;
-    if (debugEnabled) setDebugState({ mode, featuredId: null });
+    // Use a microtask to avoid synchronous setState in effect
+    if (debugEnabled) queueMicrotask(() => setDebugState({ mode, featuredId: null }));
   }, [debugEnabled, mode]);
 
   // Featured popup picker
