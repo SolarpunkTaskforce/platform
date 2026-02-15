@@ -196,6 +196,18 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     return nextErrors;
   }
 
+  function handleSignupError(scope: "Individual" | "Organisation", err: unknown) {
+    console.error(`${scope} signup failed:`, err);
+
+    const msg =
+      (err as any)?.message ||
+      (err as any)?.error_description ||
+      (err as any)?.details ||
+      "Unable to sign up.";
+
+    setMessage({ text: msg, tone: "error" });
+  }
+
   async function handleIndividualSubmit(event: React.FormEvent) {
     event.preventDefault();
     setMessage(null);
@@ -242,11 +254,8 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         router.replace("/projects");
         router.refresh();
       }, 400);
-    } catch (err: unknown) {
-      setMessage({
-        text: err instanceof Error ? err.message : "Unable to sign up.",
-        tone: "error",
-      });
+    } catch (err: any) {
+      handleSignupError("Individual", err);
     } finally {
       setLoading(false);
     }
@@ -293,11 +302,8 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         router.replace("/projects");
         router.refresh();
       }, 400);
-    } catch (err: unknown) {
-      setMessage({
-        text: err instanceof Error ? err.message : "Unable to sign up.",
-        tone: "error",
-      });
+    } catch (err: any) {
+      handleSignupError("Organisation", err);
     } finally {
       setLoading(false);
     }
