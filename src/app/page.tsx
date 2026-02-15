@@ -65,25 +65,40 @@ export default async function HomePage() {
                 About Solarpunk Taskforce
               </p>
               <h2 className="text-2xl font-semibold text-soltas-text sm:text-3xl">
-                Mission, vision, and community-powered action.
+                A unifying force in the global impact movement
               </h2>
             </header>
+            <p className="text-sm leading-7 text-soltas-muted">
+              Solarpunk Taskforce connects people, projects, and organisations to improve the
+              coordination and effectiveness of global humanitarian and environmental impact.
+              By bridging the gap between action and awareness through transparent communication
+              and creative media, we empower a global community to engage meaningfully with impact.
+            </p>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-3xl border border-soltas-glacial bg-soltas-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-soltas-text">Mission</h3>
                 <p className="mt-3 text-sm leading-6 text-soltas-muted">
-                  Provide a transparent, living database of humanitarian and environmental work so organisations can
-                  coordinate, apply proven solutions, and amplify what is working.
+                  For organisations: provide a transparent, living database to enable cooperation,
+                  reduce redundant resource allocation, and improve communication. For individuals:
+                  bridge action and awareness with creative, transparent content that empowers
+                  meaningful engagement.
                 </p>
               </div>
               <div className="rounded-3xl border border-soltas-glacial bg-soltas-white p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-soltas-text">Vision</h3>
                 <p className="mt-3 text-sm leading-6 text-soltas-muted">
-                  A complete, real-time overview of impact efforts empowers people everywhere to understand where help is
-                  needed, follow progress, and move resources to trusted work.
+                  A world where organisations have a real-time overview of global efforts enabling
+                  synergy and cooperation, individuals can transparently see where support goes,
+                  and creative content restores trust in humanitarian work.
                 </p>
               </div>
             </div>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-soltas-ocean transition hover:underline"
+            >
+              Learn more about Solarpunk Taskforce →
+            </Link>
           </div>
           <div className="flex h-full flex-col justify-between gap-6 rounded-3xl bg-soltas-abyssal p-8 text-white shadow-lg">
             <div>
@@ -106,37 +121,40 @@ export default async function HomePage() {
         <section className="space-y-8">
           <header className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-ocean">Our Services</p>
-            <h2 className="text-2xl font-semibold text-soltas-text sm:text-3xl">Platform services for impact teams.</h2>
+            <h2 className="text-2xl font-semibold text-soltas-text sm:text-3xl">Supporting impact organisations</h2>
             <p className="max-w-2xl text-sm leading-6 text-soltas-muted">
-              From discovery to verification, the Solarpunk Taskforce platform pairs data with storytelling to keep
-              humanitarian and environmental work visible and trusted.
+              We offer comparative intelligence consulting and marketing services to help registered projects
+              and organisations maximize their impact, visibility, and strategic positioning in the humanitarian
+              and environmental sectors.
             </p>
           </header>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {[
               {
-                title: "Verified profiles",
+                title: "Comparative Intelligence",
+                description:
+                  "Data-driven insights leveraging our global database to identify collaboration opportunities, proven solutions, and strategic positioning.",
+              },
+              {
+                title: "Project Marketing",
+                description:
+                  "Creative storytelling and strategic marketing to increase visibility, build trust, and drive engagement for your initiatives.",
+              },
+              {
+                title: "Verified Profiles",
                 description: "Publish trusted organisation and project profiles with clear verification signals.",
               },
               {
-                title: "Impact discovery",
+                title: "Impact Discovery",
                 description: "Find projects, funding opportunities, and watchdog issues through a global map view.",
               },
               {
-                title: "Progress updates",
+                title: "Progress Updates",
                 description: "Share updates, metrics, and media to keep donors and partners informed.",
               },
               {
-                title: "Community intelligence",
+                title: "Community Intelligence",
                 description: "Surface local issues and ensure they reach the right partners for action.",
-              },
-              {
-                title: "Data-driven storytelling",
-                description: "Turn factual data into narratives that increase awareness and trust.",
-              },
-              {
-                title: "Partnership enablement",
-                description: "Coordinate across organisations to reduce duplication and scale proven solutions.",
               },
             ].map((service) => (
               <div
@@ -148,6 +166,12 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-soltas-ocean transition hover:underline"
+          >
+            Explore all services →
+          </Link>
         </section>
       </div>
     </main>
