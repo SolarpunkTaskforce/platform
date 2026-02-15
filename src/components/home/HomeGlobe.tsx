@@ -225,10 +225,11 @@ export default function HomeGlobe({
       projection: { name: "globe" },
 
       // ✅ Centered on prime meridian
-      center: [0, 20],
+      center: [0, 0],
       zoom: 2.05,
-      pitch: 25,
+      pitch: 0,
       bearing: 0,
+
 
       preserveDrawingBuffer: false,
     });
