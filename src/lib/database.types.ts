@@ -322,18 +322,24 @@ export type Database = {
       }
       organisation_members: {
         Row: {
+          can_create_funding: boolean
+          can_create_projects: boolean
           created_at: string | null
           organisation_id: string
           role: string
           user_id: string
         }
         Insert: {
+          can_create_funding?: boolean
+          can_create_projects?: boolean
           created_at?: string | null
           organisation_id: string
           role: string
           user_id: string
         }
         Update: {
+          can_create_funding?: boolean
+          can_create_projects?: boolean
           created_at?: string | null
           organisation_id?: string
           role?: string
@@ -990,7 +996,8 @@ export type Database = {
           lives_improved: number | null
           lng: number | null
           name: string
-          owner_id: string | null
+          owner_id: string
+          owner_type: string
           partner_org_ids: string[] | null
           place_name: string | null
           region: string | null
@@ -1030,7 +1037,8 @@ export type Database = {
           lives_improved?: number | null
           lng?: number | null
           name: string
-          owner_id?: string | null
+          owner_id: string
+          owner_type: string
           partner_org_ids?: string[] | null
           place_name?: string | null
           region?: string | null
@@ -1070,7 +1078,8 @@ export type Database = {
           lives_improved?: number | null
           lng?: number | null
           name?: string
-          owner_id?: string | null
+          owner_id?: string
+          owner_type?: string
           partner_org_ids?: string[] | null
           place_name?: string | null
           region?: string | null
