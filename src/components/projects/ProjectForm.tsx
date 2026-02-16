@@ -59,6 +59,8 @@ const linkSchema = z.object({
 
 const formSchema = z
   .object({
+    owner_type: z.enum(["user", "organisation"] as const, { message: "Select an owner" }),
+    owner_id: z.string().uuid({ message: "Owner id must be a UUID" }),
     category: z.enum(["humanitarian", "environmental"] as const, { message: "Select a category" }),
     name: z.string().trim().min(1, "Please enter a project name"),
     description: z
@@ -136,7 +138,9 @@ type UploadState = {
   error?: string;
 };
 
-const createDefaultValues = (): Partial<FormValues> => ({
+const createDefaultValues = (userId?: string): Partial<FormValues> => ({
+  owner_type: "user" as const,
+  owner_id: userId ?? "",
   category: undefined,
   name: "",
   description: undefined,
@@ -356,6 +360,7 @@ type ProjectFormProps = {
 export default function ProjectForm({ mode = "create", projectId, initialValues }: ProjectFormProps) {
   const router = useRouter();
   const [orgOptions, setOrgOptions] = useState<Option[]>([]);
+  const [creatableOrgOptions, setCreatableOrgOptions] = useState<Option[]>([]);
   const [sdgOptions, setSdgOptions] = useState<Option[]>([]);
   const [ifrcOptions, setIfrcOptions] = useState<Option[]>([]);
   const [files, setFiles] = useState<File[]>([]);
@@ -365,13 +370,14 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
   const [interventionDraft, setInterventionDraft] = useState("");
   const [thematicDraft, setThematicDraft] = useState("");
   const [showGeocoder, setShowGeocoder] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const defaultValues = useMemo(
     () => ({
-      ...createDefaultValues(),
+      ...createDefaultValues(currentUserId ?? undefined),
       ...(initialValues ?? {}),
     }),
-    [initialValues],
+    [initialValues, currentUserId],
   );
 
   const form = useForm<FormValues>({
@@ -386,10 +392,15 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
   useEffect(() => {
     let isMounted = true;
     async function loadOptions() {
-      const [orgRes, sdgRes, ifrcRes] = await Promise.all([
+      const [orgRes, sdgRes, ifrcRes, userRes, creatableOrgsRes] = await Promise.all([
         supabase.from("organisations").select("id, name").order("name"),
         supabase.from("sdgs").select("id, name").order("id"),
         supabase.from("ifrc_challenges").select("id, name").order("name"),
+        supabase.auth.getUser(),
+        supabase
+          .from("organisation_members")
+          .select("organisation_id, organisations(id, name)")
+          .eq("can_create_projects", true),
       ]);
       if (!isMounted) return;
       if (!orgRes.error && orgRes.data) {
@@ -401,6 +412,16 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
       if (!ifrcRes.error && ifrcRes.data) {
         setIfrcOptions(ifrcRes.data.map(ch => ({ value: String(ch.id), label: ch.name })));
       }
+      if (!userRes.error && userRes.data.user) {
+        setCurrentUserId(userRes.data.user.id);
+      }
+      if (!creatableOrgsRes.error && creatableOrgsRes.data) {
+        const orgs = creatableOrgsRes.data
+          .map(om => om.organisations)
+          .filter((org): org is { id: string; name: string } => org !== null)
+          .map(org => ({ value: org.id, label: org.name }));
+        setCreatableOrgOptions(orgs);
+      }
     }
     loadOptions();
     return () => {
@@ -411,11 +432,11 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
   useEffect(() => {
     if (initialValues) {
       reset({
-        ...createDefaultValues(),
+        ...createDefaultValues(currentUserId ?? undefined),
         ...initialValues,
       } as FormValues);
     }
-  }, [initialValues, reset]);
+  }, [initialValues, reset, currentUserId]);
 
   const selectedInterventions = watch("type_of_intervention");
   const selectedThemes = watch("thematic_area");
@@ -476,6 +497,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          owner_type: values.owner_type,
+          owner_id: values.owner_id,
           category: values.category,
           name: values.name,
           description: values.description,
@@ -559,7 +582,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         }
       }
 
-      reset(createDefaultValues());
+      reset(createDefaultValues(currentUserId ?? undefined));
       setFiles([]);
       setUploads([]);
       setInterventionDraft("");
@@ -588,6 +611,62 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
           </div>
 
           <div className="mt-6 space-y-6">
+            <FormField
+              control={control}
+              name="owner_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project owner</FormLabel>
+                  <FormDescription>Choose who will own this project.</FormDescription>
+                  <div className="space-y-3">
+                    <Button
+                      key="user"
+                      type="button"
+                      variant={field.value === "user" ? "default" : "outline"}
+                      className={cn(
+                        "flex h-full w-full flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition",
+                        field.value === "user" ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean" : "bg-white",
+                      )}
+                      onClick={() => {
+                        field.onChange("user");
+                        setValue("owner_id", currentUserId ?? "");
+                      }}
+                    >
+                      <span className="font-semibold">Create as me</span>
+                      <span className="text-sm text-soltas-muted">You will own and manage this project.</span>
+                    </Button>
+
+                    {creatableOrgOptions.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-soltas-bark">Or create as organisation:</p>
+                        {creatableOrgOptions.map(org => (
+                          <Button
+                            key={org.value}
+                            type="button"
+                            variant={field.value === "organisation" && watch("owner_id") === org.value ? "default" : "outline"}
+                            className={cn(
+                              "flex h-full w-full flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition",
+                              field.value === "organisation" && watch("owner_id") === org.value
+                                ? "border-soltas-ocean bg-soltas-glacial/15 text-soltas-ocean"
+                                : "bg-white",
+                            )}
+                            onClick={() => {
+                              field.onChange("organisation");
+                              setValue("owner_id", org.value);
+                            }}
+                          >
+                            <span className="font-semibold">{org.label}</span>
+                            <span className="text-sm text-soltas-muted">The project will be owned by this organisation.</span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={control}
               name="category"
