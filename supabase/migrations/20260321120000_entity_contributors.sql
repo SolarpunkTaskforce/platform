@@ -1,6 +1,3 @@
-cat > supabase/migrations/20260321120000_entity_contributors.sql <<'SQL'
--- Create entity_contributors table (universal attribution/contact persons)
-
 create table if not exists public.entity_contributors (
   id uuid primary key default gen_random_uuid(),
   entity_type text not null check (entity_type in ('project', 'funding', 'issue')),
