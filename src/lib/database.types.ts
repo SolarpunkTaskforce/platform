@@ -72,6 +72,39 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_contributors: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          is_public: boolean
+          title_label: string | null
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_public?: boolean
+          title_label?: string | null
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_public?: boolean
+          title_label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       follow_edges: {
         Row: {
           created_at: string

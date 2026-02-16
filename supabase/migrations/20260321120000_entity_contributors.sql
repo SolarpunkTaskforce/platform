@@ -60,4 +60,3 @@ create policy entity_contributors_delete_self
 
 grant select on public.entity_contributors to anon, authenticated;
 grant insert, update, delete on public.entity_contributors to authenticated;
-SQL
