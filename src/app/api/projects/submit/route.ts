@@ -22,6 +22,8 @@ const linkSchema = z
 
 const payloadSchema = z
   .object({
+    owner_type: z.enum(["user", "organisation"] as const),
+    owner_id: z.string().uuid(),
     category: z.enum(["humanitarian", "environmental"] as const),
     name: z.string().trim().min(1),
     description: z.string().trim().optional(),
@@ -101,6 +103,8 @@ export async function POST(req: Request) {
       })) ?? null;
 
   const { data: submission, error } = await supabase.rpc("create_project_submission", {
+    p_owner_type: data.owner_type,
+    p_owner_id: data.owner_id,
     p_name: data.name,
     p_description: data.description ?? null,
     p_lead_org_id: data.lead_org_id ?? null,
