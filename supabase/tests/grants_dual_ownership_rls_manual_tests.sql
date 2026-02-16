@@ -1,0 +1,151 @@
+-- Manual SQL tests for grants dual ownership RLS policies
+-- These tests should be run manually in a Supabase SQL editor or psql session
+-- to verify that the RLS policies are working correctly.
+--
+-- Prerequisites:
+-- 1. Run migrations 20260216232939 and 20260216232940
+-- 2. Have at least one test user account
+-- 3. Have at least one test organisation with the user as a member
+--
+-- Test Setup (run as admin or with RLS disabled):
+-- SET LOCAL ROLE postgres;
+-- SET LOCAL auth.uid TO NULL;
+
+-- ===================================================================
+-- TEST 1: Logged out user cannot insert grant
+-- ===================================================================
+-- Expected: INSERT fails with RLS violation
+-- SET LOCAL auth.uid TO NULL;
+--
+-- INSERT INTO public.grants (
+--   owner_type, owner_id, title, slug, application_url,
+--   funding_type, project_type
+-- ) VALUES (
+--   'user', 'some-uuid-here', 'Test Grant', 'test-grant',
+--   'https://example.com', 'grant', 'environmental'
+-- );
+-- Expected error: new row violates row-level security policy
+
+-- ===================================================================
+-- TEST 2: Authenticated user can insert user-owned grant
+-- ===================================================================
+-- Expected: INSERT succeeds
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- INSERT INTO public.grants (
+--   owner_type, owner_id, title, slug, application_url,
+--   funding_type, project_type
+-- ) VALUES (
+--   'user', '<test-user-uuid>', 'My Personal Grant', 'my-personal-grant-' || floor(random() * 10000),
+--   'https://example.com/apply', 'grant', 'environmental'
+-- );
+-- Expected: INSERT successful
+
+-- ===================================================================
+-- TEST 3: Org member WITHOUT can_create_funding cannot insert org-owned grant
+-- ===================================================================
+-- Expected: INSERT fails with RLS violation
+-- Prerequisite: Create organisation and member WITHOUT can_create_funding
+--
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- INSERT INTO public.grants (
+--   owner_type, owner_id, title, slug, application_url,
+--   funding_type, project_type
+-- ) VALUES (
+--   'organisation', '<test-org-uuid>', 'Org Grant (No Permission)',
+--   'org-grant-noperm-' || floor(random() * 10000),
+--   'https://example.com/apply', 'grant', 'humanitarian'
+-- );
+-- Expected error: new row violates row-level security policy
+
+-- ===================================================================
+-- TEST 4: Org member WITH can_create_funding can insert org-owned grant
+-- ===================================================================
+-- Expected: INSERT succeeds
+-- Prerequisite: Create organisation and member WITH can_create_funding=true
+--
+-- First, grant permission:
+-- UPDATE public.organisation_members
+-- SET can_create_funding = true
+-- WHERE organisation_id = '<test-org-uuid>'
+--   AND user_id = '<test-user-uuid>';
+--
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- INSERT INTO public.grants (
+--   owner_type, owner_id, title, slug, application_url,
+--   funding_type, project_type
+-- ) VALUES (
+--   'organisation', '<test-org-uuid>', 'Org Grant (With Permission)',
+--   'org-grant-perm-' || floor(random() * 10000),
+--   'https://example.com/apply', 'prize', 'both'
+-- );
+-- Expected: INSERT successful
+
+-- ===================================================================
+-- TEST 5: User can update their own user-owned grant
+-- ===================================================================
+-- Expected: UPDATE succeeds
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- UPDATE public.grants
+-- SET title = 'Updated Grant Title'
+-- WHERE owner_type = 'user'
+--   AND owner_id = '<test-user-uuid>'
+--   AND slug = 'my-personal-grant-...'
+--   LIMIT 1;
+-- Expected: UPDATE successful
+
+-- ===================================================================
+-- TEST 6: Org admin can update org-owned grant
+-- ===================================================================
+-- Expected: UPDATE succeeds
+-- Prerequisite: User must be admin/owner in organisation
+--
+-- UPDATE public.organisation_members
+-- SET role = 'admin'
+-- WHERE organisation_id = '<test-org-uuid>'
+--   AND user_id = '<test-user-uuid>';
+--
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- UPDATE public.grants
+-- SET title = 'Updated Org Grant Title'
+-- WHERE owner_type = 'organisation'
+--   AND owner_id = '<test-org-uuid>'
+--   AND slug = 'org-grant-perm-...'
+--   LIMIT 1;
+-- Expected: UPDATE successful
+
+-- ===================================================================
+-- TEST 7: User can delete their own user-owned grant
+-- ===================================================================
+-- Expected: DELETE succeeds
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- DELETE FROM public.grants
+-- WHERE owner_type = 'user'
+--   AND owner_id = '<test-user-uuid>'
+--   AND slug = 'my-personal-grant-...'
+--   LIMIT 1;
+-- Expected: DELETE successful
+
+-- ===================================================================
+-- TEST 8: Org admin can delete org-owned grant
+-- ===================================================================
+-- Expected: DELETE succeeds
+-- SET LOCAL auth.uid TO '<test-user-uuid>';
+--
+-- DELETE FROM public.grants
+-- WHERE owner_type = 'organisation'
+--   AND owner_id = '<test-org-uuid>'
+--   AND slug = 'org-grant-perm-...'
+--   LIMIT 1;
+-- Expected: DELETE successful
+
+-- ===================================================================
+-- CLEANUP
+-- ===================================================================
+-- Remove test data after verification:
+-- DELETE FROM public.grants WHERE slug LIKE 'my-personal-grant-%' OR slug LIKE 'org-grant-%';

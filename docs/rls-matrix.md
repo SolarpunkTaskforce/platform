@@ -48,14 +48,25 @@ This document outlines the Row Level Security (RLS) policy test matrix for Phase
 | UPDATE | ✗ Denied | TBD | TBD | TBD |
 | DELETE | ✗ Denied | TBD | TBD | TBD |
 
-### 5. funding_opportunities
+### 5. funding_opportunities (grants table)
 
-| Operation | Logged out | Logged in | Owner | Admin |
+**Note**: Supports dual ownership model (user-owned or org-owned). Owner role refers to the user who owns the grant OR an admin/owner of the organisation that owns the grant.
+
+| Operation | Logged out | Logged in (non-owner) | Owner (User/Org Admin) | Admin |
 |-----------|-----------|-----------|-------|-------|
-| SELECT | TBD | TBD | TBD | TBD |
-| INSERT | ✗ Denied | TBD | TBD | TBD |
-| UPDATE | ✗ Denied | TBD | TBD | TBD |
-| DELETE | ✗ Denied | TBD | TBD | TBD |
+| SELECT (published) | ✓ Read published open/rolling grants | ✓ Read published open/rolling grants | ✓ Read all own grants + published | ✓ Read all grants |
+| SELECT (unpublished) | ✗ Denied | ✗ Denied | ✓ Read own unpublished grants | ✓ Read all grants |
+| INSERT (user-owned) | ✗ Denied | ✓ Create if owner_type='user' AND owner_id=auth.uid() | ✓ Create own grants | ✓ Create any grant |
+| INSERT (org-owned) | ✗ Denied | ✓ Create if member with can_create_funding=true | ✓ Create org grants if permission granted | ✓ Create any grant |
+| UPDATE | ✗ Denied | ✗ Denied | ✓ Update own grants or org grants (if admin/owner) | ✓ Update any grant |
+| DELETE | ✗ Denied | ✗ Denied | ✓ Delete own grants or org grants (if admin/owner) | ✓ Delete any grant |
+
+**Policies Implemented** (see `20260216232940_grants_dual_ownership_rls.sql`):
+- `grants_insert_dual_ownership`: User-owned or org-owned with can_create_funding permission
+- `grants_update_dual_ownership`: Owner (user or org admin/owner) can update
+- `grants_delete_dual_ownership`: Owner (user or org admin/owner) can delete
+- `Public can read published open grants`: Unchanged SELECT policy
+- `Admins can manage grants`: Admin override for all operations
 
 ### 6. watchdog_issues (Planned)
 
