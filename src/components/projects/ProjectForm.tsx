@@ -416,10 +416,9 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         setCurrentUserId(userRes.data.user.id);
       }
       if (!creatableOrgsRes.error && creatableOrgsRes.data) {
-        const orgs = creatableOrgsRes.data
-          .map(om => om.organisations)
-          .filter(org => org !== null)
-          .map(org => ({ value: org!.id, label: org!.name }));
+        const orgs = (creatableOrgsRes.data ?? [])
+          .flatMap(om => om.organisations ?? [])
+          .map(org => ({ value: org.id, label: org.name }));
         setCreatableOrgOptions(orgs);
       }
     }
