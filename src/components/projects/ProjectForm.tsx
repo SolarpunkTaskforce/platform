@@ -418,7 +418,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
       if (!creatableOrgsRes.error && creatableOrgsRes.data) {
         const orgs = creatableOrgsRes.data
           .map(om => om.organisations)
-          .filter((org): org is { id: string; name: string } => org !== null)
+          .filter((org): org is NonNullable<typeof org> => org !== null)
           .map(org => ({ value: org.id, label: org.name }));
         setCreatableOrgOptions(orgs);
       }
