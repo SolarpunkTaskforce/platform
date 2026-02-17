@@ -168,16 +168,16 @@ export default async function OrganisationPage({
             <>
               <Link
                 href={`/organisations/${organisation.id}/edit`}
-                className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                className="inline-flex items-center justify-center rounded-xl bg-soltas-ocean px-4 py-2 text-sm font-semibold text-white hover:bg-soltas-abyssal transition-all duration-200 shadow-sm"
               >
-                Edit Organisation
+                Edit
               </Link>
               {isOrgAdmin ? (
                 <Link
                   href={`/organisations/${organisation.id}/members`}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-all duration-200"
                 >
-                  Manage Members
+                  Members
                 </Link>
               ) : null}
             </>
@@ -196,25 +196,37 @@ export default async function OrganisationPage({
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Overview</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
+          <div className="sm:col-span-2">
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               What we do
             </dt>
-            <dd className="text-sm text-soltas-bark">
-              {organisation.what_we_do ?? "—"}
+            <dd className="mt-1 text-sm text-soltas-bark">
+              {organisation.what_we_do ? (
+                organisation.what_we_do
+              ) : (
+                <span className="italic text-soltas-muted">No description provided</span>
+              )}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
-              Existing since
+              Country
             </dt>
-            <dd className="text-sm text-soltas-bark">
-              {organisation.existing_since ?? "—"}
+            <dd className="mt-1 text-sm text-soltas-bark">
+              {organisation.country_based || <span className="text-soltas-muted">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
+              Established
+            </dt>
+            <dd className="mt-1 text-sm text-soltas-bark">
+              {organisation.existing_since || <span className="text-soltas-muted">—</span>}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">Website</dt>
-            <dd className="text-sm text-soltas-bark">
+            <dd className="mt-1 text-sm text-soltas-bark">
               {organisation.website ? (
                 <Link
                   href={organisation.website}
@@ -225,7 +237,7 @@ export default async function OrganisationPage({
                   {organisation.website}
                 </Link>
               ) : (
-                "—"
+                <span className="text-soltas-muted">—</span>
               )}
             </dd>
           </div>
@@ -248,12 +260,12 @@ export default async function OrganisationPage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">Stats</h2>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Members
             </dt>
-            <dd className="text-sm text-soltas-bark">
+            <dd className="mt-1 text-2xl font-semibold text-soltas-bark">
               {resolvedMemberCount === null ? "—" : resolvedMemberCount}
             </dd>
           </div>
@@ -261,7 +273,7 @@ export default async function OrganisationPage({
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Projects
             </dt>
-            <dd className="text-sm text-soltas-bark">
+            <dd className="mt-1 text-2xl font-semibold text-soltas-bark">
               {resolvedProjectCount === null ? "—" : resolvedProjectCount}
             </dd>
           </div>
@@ -269,7 +281,7 @@ export default async function OrganisationPage({
             <dt className="text-xs font-semibold uppercase tracking-wide text-soltas-muted">
               Followers
             </dt>
-            <dd className="text-sm text-soltas-bark">
+            <dd className="mt-1 text-2xl font-semibold text-soltas-bark">
               {resolvedFollowerCount === null ? "—" : resolvedFollowerCount}
             </dd>
           </div>
