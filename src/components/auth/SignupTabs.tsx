@@ -315,29 +315,34 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     setLoading(true);
 
     try {
+      // Prepare pending org data for user_metadata
+      const pendingOrgData = {
+        email: organisation.email,
+        name: organisation.name.trim(),
+        country_based: organisation.country_based.trim(),
+        what_we_do: organisation.what_we_do.trim(),
+        existing_since: organisation.existing_since || undefined,
+        website: organisation.website.trim() || undefined,
+        logo_url: organisation.logo_url.trim() || undefined,
+        social_links: normalizeLinks(organisationLinks),
+      };
+
       const { error } = await client.auth.signUp({
         email: organisation.email,
         password: organisation.password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation`,
+          data: {
+            pending_org: pendingOrgData,
+          },
+        },
       });
       if (error) throw error;
 
       const { data: sessionData } = await client.auth.getSession();
 
       if (!sessionData.session) {
-        // Email confirmation required - save pending org data
-        const pendingOrgData = {
-          email: organisation.email,
-          name: organisation.name.trim(),
-          country_based: organisation.country_based.trim(),
-          what_we_do: organisation.what_we_do.trim(),
-          existing_since: organisation.existing_since || undefined,
-          website: organisation.website.trim() || undefined,
-          logo_url: organisation.logo_url.trim() || undefined,
-          social_links: normalizeLinks(organisationLinks),
-        };
-        localStorage.setItem("pending_organisation_data", JSON.stringify(pendingOrgData));
-
+        // Email confirmation required - pending org data saved to user_metadata
         setPendingConfirmationEmail(organisation.email);
         setMessage({
           tone: "info",
