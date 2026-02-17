@@ -2259,6 +2259,8 @@ export type Database = {
           id: string
           latitude: number
           longitude: number
+          owner_id: string
+          owner_type: string
           region: string | null
           rejected_at: string | null
           rejected_by: string | null
@@ -2288,6 +2290,8 @@ export type Database = {
           id?: string
           latitude: number
           longitude: number
+          owner_id: string
+          owner_type: string
           region?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
@@ -2317,6 +2321,8 @@ export type Database = {
           id?: string
           latitude?: number
           longitude?: number
+          owner_id?: string
+          owner_type?: string
           region?: string | null
           rejected_at?: string | null
           rejected_by?: string | null

@@ -54,6 +54,8 @@ export async function POST(request: Request) {
     .from("watchdog_issues")
     .insert({
       created_by: user.id,
+      owner_type: "user",
+      owner_id: user.id,
       title: data.title,
       description: data.description,
       country: data.country,
