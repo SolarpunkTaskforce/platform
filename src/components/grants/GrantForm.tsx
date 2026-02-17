@@ -124,6 +124,15 @@ const formSchema = z.object({
     .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), {
       message: "Please enter a valid email address",
     }),
+
+  post_to_feed: z.boolean().default(false),
+  feed_message: z
+    .string()
+    .trim()
+    .max(1000, "Keep message under 1000 characters")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v && v.trim().length ? v.trim() : undefined)),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -234,6 +243,8 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
         funder_name: "",
         funder_website: "",
         contact_email: "",
+        post_to_feed: false,
+        feed_message: "",
       }
     }
 
@@ -264,6 +275,8 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
       funder_name: grant.funder_name ?? "",
       funder_website: grant.funder_website ?? "",
       contact_email: grant.contact_email ?? "",
+      post_to_feed: false,
+      feed_message: "",
     }
   }, [grant])
 
@@ -844,6 +857,53 @@ export default function GrantForm({ grant, mode = "create" }: GrantFormProps) {
               </FormItem>
             )}
           />
+        </div>
+
+        {/* Post to feed */}
+        <div className="space-y-6 rounded-xl border p-6">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Share to feed</h2>
+            <p className="text-sm text-muted-foreground">
+              Optionally post a message to the community feed when this funding opportunity is created.
+            </p>
+          </div>
+
+          <FormField
+            control={form.control}
+            name="post_to_feed"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-1">
+                  <FormLabel>Post to feed</FormLabel>
+                  <FormDescription>
+                    Share this funding opportunity with the community feed.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {form.watch("post_to_feed") && (
+            <FormField
+              control={form.control}
+              name="feed_message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Message</FormLabel>
+                  <FormDescription>
+                    Tell the community why this funding opportunity is important.
+                  </FormDescription>
+                  <FormControl>
+                    <Textarea placeholder="Share why this funding is important..." rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         {/* Actions */}
