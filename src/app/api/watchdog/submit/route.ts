@@ -29,6 +29,8 @@ const payloadSchema = z.object({
   desired_outcome: z.string().trim().max(2000).optional().or(z.literal("")),
   contact_allowed: z.boolean().optional().default(true),
   reporter_anonymous: z.boolean().optional().default(false),
+  post_to_feed: z.boolean().optional().default(false),
+  feed_message: z.string().trim().optional().or(z.literal("")),
 });
 
 export async function POST(request: Request) {
@@ -79,6 +81,28 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  // If user wants to post to feed, create a feed post
+  if (data.post_to_feed) {
+    const feedContent = data.feed_message || data.title;
+
+    const { error: feedError } = await supabase
+      .from("feed_posts")
+      .insert({
+        created_by: user.id,
+        author_organisation_id: null,
+        visibility: "public",
+        content: feedContent,
+        entity_type: "issue",
+        entity_id: inserted.id,
+      });
+
+    if (feedError) {
+      // Log the error but don't fail the entire request
+      // The issue was created successfully
+      console.error("Failed to create feed post:", feedError);
+    }
   }
 
   return NextResponse.json(inserted);
