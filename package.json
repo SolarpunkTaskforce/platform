@@ -19,7 +19,8 @@
     "sb:types": "npx -y supabase@latest gen types typescript --linked > src/lib/database.types.ts",
     "sb:diff": "supabase db diff --use-migra --linked",
     "sb:commit": "supabase db remote commit --dry-run",
-    "sb:sync": "bash scripts/sb-sync.sh"
+    "sb:sync": "bash scripts/sb-sync.sh",
+    "sb:migration": "node scripts/sb-migration.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
