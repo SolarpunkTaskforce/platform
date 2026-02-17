@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
+import { FeedPostCard } from "@/components/feed/FeedPostCard";
+import { NewPostComposer } from "@/components/feed/NewPostComposer";
 import { getServerSupabase } from "@/lib/supabaseServer";
+import type { Database } from "@/lib/database.types";
 
 const PAGE_SIZE = 30;
 
@@ -29,6 +32,13 @@ type ProjectSummary = { id: string; name: string | null; slug: string | null };
 
 type OrganisationSummary = { id: string; name: string | null };
 
+type FeedPost = Database["public"]["Tables"]["feed_posts"]["Row"];
+
+type Organisation = {
+  id: string;
+  name: string | null;
+};
+
 function getProfileName(profile: ProfileSummary | null) {
   if (!profile) return "Someone";
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
@@ -47,6 +57,49 @@ export default async function FeedPage({
   const supabase = await getServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
+
+  // Fetch feed posts ordered by published_at desc
+  const { data: feedPosts } = await supabase
+    .from("feed_posts")
+    .select("*")
+    .eq("visibility", "public")
+    .order("published_at", { ascending: false })
+    .limit(50);
+
+  // Fetch user's organisations if logged in
+  let userOrganisations: Organisation[] = [];
+  let userProfile: ProfileSummary | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id,first_name,last_name,avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    userProfile = profile ?? null;
+
+    const { data: orgMemberships } = await supabase
+      .from("organisation_members")
+      .select("organisation_id,organisations(id,name)")
+      .eq("user_id", user.id)
+      .in("role", ["owner", "admin"]);
+
+    if (orgMemberships) {
+      userOrganisations = orgMemberships
+        .map((membership: { organisation_id: string; organisations: unknown }) => {
+          const org = membership.organisations as unknown;
+          if (org && typeof org === "object" && "id" in org && "name" in org) {
+            return {
+              id: org.id as string,
+              name: org.name as string | null,
+            };
+          }
+          return null;
+        })
+        .filter((org: Organisation | null): org is Organisation => org !== null);
+    }
+  }
 
   // Determine active tab - default to popular if logged out, following if logged in
   type TabValue = "popular" | "following" | "watchdog" | "funding";
@@ -84,6 +137,64 @@ export default async function FeedPage({
 
   const items = (feedItems ?? []) as FeedItem[];
 
+  // Prepare feed posts data
+  const posts = feedPosts ?? [];
+
+  // Collect IDs for batch fetching
+  const postAuthorIds = new Set<string>();
+  const postOrgIds = new Set<string>();
+  const postEntityIds = new Map<string, Set<string>>(); // entity_type -> Set of entity_ids
+
+  posts.forEach((post: FeedPost) => {
+    postAuthorIds.add(post.created_by);
+    if (post.author_organisation_id) {
+      postOrgIds.add(post.author_organisation_id);
+    }
+    if (post.entity_type && post.entity_id) {
+      if (!postEntityIds.has(post.entity_type)) {
+        postEntityIds.set(post.entity_type, new Set());
+      }
+      postEntityIds.get(post.entity_type)!.add(post.entity_id);
+    }
+  });
+
+  // Fetch profiles for post authors
+  const postAuthorsPromise = postAuthorIds.size
+    ? supabase
+        .from("profiles")
+        .select("id,first_name,last_name,avatar_url")
+        .in("id", Array.from(postAuthorIds))
+    : Promise.resolve({ data: [] as ProfileSummary[] });
+
+  // Fetch organisations for posts
+  const postOrgsPromise = postOrgIds.size
+    ? supabase.from("organisations").select("id,name").in("id", Array.from(postOrgIds))
+    : Promise.resolve({ data: [] as OrganisationSummary[] });
+
+  // Fetch projects for entity links
+  const projectIdsForPosts = postEntityIds.get("project");
+  const postProjectsPromise = projectIdsForPosts && projectIdsForPosts.size
+    ? supabase.from("projects").select("id,name,slug").in("id", Array.from(projectIdsForPosts))
+    : Promise.resolve({ data: [] as ProjectSummary[] });
+
+  // Fetch grants for entity links
+  const fundingIdsForPosts = postEntityIds.get("funding");
+  const postGrantsPromise = fundingIdsForPosts && fundingIdsForPosts.size
+    ? supabase.from("grants").select("id,title,slug").in("id", Array.from(fundingIdsForPosts))
+    : Promise.resolve({ data: [] as Array<{ id: string; title: string | null; slug: string | null }> });
+
+  const [postAuthorsResult, postOrgsResult, postProjectsResult, postGrantsResult] = await Promise.all([
+    postAuthorsPromise,
+    postOrgsPromise,
+    postProjectsPromise,
+    postGrantsPromise,
+  ]);
+
+  const postAuthorsMap = new Map((postAuthorsResult.data ?? []).map((p: ProfileSummary) => [p.id, p]));
+  const postOrgsMap = new Map((postOrgsResult.data ?? []).map((o: OrganisationSummary) => [o.id, o]));
+  const postProjectsMap = new Map((postProjectsResult.data ?? []).map((p: ProjectSummary) => [p.id, p]));
+  const postGrantsMap = new Map((postGrantsResult.data ?? []).map((g: { id: string; title: string | null; slug: string | null }) => [g.id, g]));
+
   const actorIds = new Set<string>();
   const personIds = new Set<string>();
   const projectIds = new Set<string>();
@@ -119,10 +230,10 @@ export default async function FeedPage({
     organisationsPromise,
   ]);
 
-  const profilesMap = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile]));
-  const projectsMap = new Map((projectsResult.data ?? []).map((project) => [project.id, project]));
+  const profilesMap = new Map((profilesResult.data ?? []).map((profile: ProfileSummary) => [profile.id, profile]));
+  const projectsMap = new Map((projectsResult.data ?? []).map((project: ProjectSummary) => [project.id, project]));
   const organisationsMap = new Map(
-    (organisationsResult.data ?? []).map((org) => [org.id, org])
+    (organisationsResult.data ?? []).map((org: OrganisationSummary) => [org.id, org])
   );
 
   const hasMore = items.length === PAGE_SIZE;
@@ -204,12 +315,71 @@ export default async function FeedPage({
         </div>
       </header>
 
+      {user && userProfile && (
+        <NewPostComposer
+          userId={user.id}
+          userName={getProfileName(userProfile)}
+          organisations={userOrganisations}
+        />
+      )}
+
+      {posts.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
+            Recent posts
+          </h2>
+          {posts.map((post: FeedPost) => {
+            const author = postAuthorsMap.get(post.created_by) ?? null;
+            const authorOrg = post.author_organisation_id
+              ? postOrgsMap.get(post.author_organisation_id) ?? null
+              : null;
+
+            const authorName = authorOrg
+              ? authorOrg.name || "Unnamed organisation"
+              : getProfileName(author);
+
+            const authorAvatarUrl = !authorOrg ? author?.avatar_url : null;
+
+            let entitySlug: string | null = null;
+            let entityName: string | null = null;
+
+            if (post.entity_type === "project" && post.entity_id) {
+              const project = postProjectsMap.get(post.entity_id);
+              entitySlug = project?.slug ?? null;
+              entityName = project?.name ?? null;
+            } else if (post.entity_type === "funding" && post.entity_id) {
+              const grant = postGrantsMap.get(post.entity_id);
+              entitySlug = grant?.slug ?? null;
+              entityName = grant?.title ?? null;
+            }
+
+            return (
+              <FeedPostCard
+                key={post.id}
+                id={post.id}
+                authorName={authorName}
+                authorAvatarUrl={authorAvatarUrl}
+                content={post.content}
+                timestamp={post.published_at}
+                entityType={post.entity_type}
+                entityId={post.entity_id}
+                entitySlug={entitySlug}
+                entityName={entityName}
+              />
+            );
+          })}
+        </section>
+      )}
+
       {activeTab === "following" && !user ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-soltas-muted">
           Sign in to see updates from the people, organisations, and projects you follow.
         </div>
       ) : items.length ? (
         <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-soltas-muted">
+            Activity updates
+          </h2>
           {items.map((item) => {
             const actor = profilesMap.get(item.actor_user_id ?? "") ?? null;
             const actorName = getProfileName(actor);
