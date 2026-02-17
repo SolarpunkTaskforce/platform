@@ -44,6 +44,13 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         Settings
       </Link>
+      <Link
+        href="/organisations/create"
+        className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+        onClick={onNavigate}
+      >
+        Create organisation
+      </Link>
       {isAdmin && (
         <>
           <Link

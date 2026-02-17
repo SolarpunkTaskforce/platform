@@ -75,8 +75,9 @@ export default function OrganisationOnboardingPage() {
         }
 
         if (!pendingData) {
-          // No pending data found in either location
-          setError("No pending organisation setup found. Please start the signup process again.");
+          // No pending data - user wants to create org directly
+          // Redirect to create organisation page
+          router.replace("/organisations/create");
           return;
         }
 

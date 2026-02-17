@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -86,8 +86,10 @@ type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
 
 function SignupTabsContent({ client }: { client: SupabaseClient }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"individual" | "organisation">(
-    "individual"
+    tabParam === "organisation" ? "organisation" : "individual"
   );
   const [individual, setIndividual] = useState(initialIndividual);
   const [organisation, setOrganisation] = useState(initialOrganisation);
