@@ -29,6 +29,8 @@ const payloadSchema = z
     themes: z.array(z.string()).optional().nullable(),
     sdgs: z.array(z.number().int()).optional().nullable(),
     keywords: z.array(z.string()).optional().nullable(),
+    post_to_feed: z.boolean().optional().nullable(),
+    feed_message: z.string().trim().max(1000).optional().nullable(),
   })
   .superRefine((value, ctx) => {
     if (
@@ -120,6 +122,24 @@ export async function POST(req: Request) {
 
   if (error || !grant) {
     return NextResponse.json({ error: error?.message ?? "Unable to submit funding" }, { status: 400 });
+  }
+
+  // If post_to_feed is true and feed_message is provided, insert into feed_posts
+  if (data.post_to_feed && data.feed_message) {
+    const { error: feedError } = await supabase.from("feed_posts").insert({
+      created_by: user.id,
+      author_organisation_id: null,
+      content: data.feed_message,
+      entity_type: "funding",
+      entity_id: grant.id,
+      visibility: "public",
+      published_at: new Date().toISOString(),
+    });
+
+    if (feedError) {
+      console.error("Failed to post to feed:", feedError);
+      // Continue anyway - the grant was created successfully
+    }
   }
 
   return NextResponse.json(grant);
