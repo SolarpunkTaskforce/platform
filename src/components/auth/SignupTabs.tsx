@@ -211,19 +211,23 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
       message?: string;
       error_description?: string;
       details?: string;
+      msg?: string;
     };
 
     return (
       errorLike.message ||
       errorLike.error_description ||
       errorLike.details ||
+      errorLike.msg ||
       "Unable to sign up."
     );
   }
 
   function handleSignupError(scope: "Individual" | "Organisation", err: unknown) {
     console.error(`${scope} signup failed:`, err);
-    setMessage({ text: getSignupErrorMessage(err), tone: "error" });
+    const errorMessage = getSignupErrorMessage(err);
+    console.error(`${scope} signup error message:`, errorMessage);
+    setMessage({ text: `Signup failed: ${errorMessage}`, tone: "error" });
   }
 
   async function handleResendConfirmation() {
@@ -315,29 +319,35 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     setLoading(true);
 
     try {
-      const { error } = await client.auth.signUp({
+      // Prepare pending organisation data
+      const pendingOrgData = {
+        name: organisation.name.trim(),
+        country_based: organisation.country_based.trim(),
+        what_we_do: organisation.what_we_do.trim(),
+        existing_since: organisation.existing_since || undefined,
+        website: organisation.website.trim() || undefined,
+        logo_url: organisation.logo_url.trim() || undefined,
+        social_links: normalizeLinks(organisationLinks),
+      };
+
+      // Sign up with pending_org in user_metadata and onboarding_intent
+      const { data, error } = await client.auth.signUp({
         email: organisation.email,
         password: organisation.password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation`,
+          data: {
+            onboarding_intent: 'organisation',
+            pending_org: pendingOrgData,
+          },
+        },
       });
       if (error) throw error;
 
       const { data: sessionData } = await client.auth.getSession();
 
       if (!sessionData.session) {
-        // Email confirmation required - save pending org data
-        const pendingOrgData = {
-          email: organisation.email,
-          name: organisation.name.trim(),
-          country_based: organisation.country_based.trim(),
-          what_we_do: organisation.what_we_do.trim(),
-          existing_since: organisation.existing_since || undefined,
-          website: organisation.website.trim() || undefined,
-          logo_url: organisation.logo_url.trim() || undefined,
-          social_links: normalizeLinks(organisationLinks),
-        };
-        localStorage.setItem("pending_organisation_data", JSON.stringify(pendingOrgData));
-
+        // Email confirmation required - show message and stop
         setPendingConfirmationEmail(organisation.email);
         setMessage({
           tone: "info",
@@ -346,38 +356,35 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         return;
       }
 
-      // Session exists immediately - create org and membership now
-      const { data: newOrg, error: organisationError } = await client
-        .from("organisations")
-        .insert({
-          name: organisation.name.trim(),
-          country_based: organisation.country_based.trim(),
-          what_we_do: organisation.what_we_do.trim(),
-          existing_since: organisation.existing_since || null,
-          website: organisation.website.trim() || null,
-          social_links: normalizeLinks(organisationLinks),
-          logo_url: organisation.logo_url.trim() || null,
-          verification_status: "pending",
-          created_by: sessionData.session.user.id,
-        })
-        .select("id")
-        .single();
+      // Session exists immediately - call Edge Function to create organisation
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        throw new Error("No session available");
+      }
 
-      if (organisationError) throw organisationError;
-      if (!newOrg?.id) throw new Error("Failed to create organisation");
+      const { data: functionResponse, error: functionError } = await client.functions.invoke(
+        "create-organisation",
+        {
+          body: pendingOrgData,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
 
-      // Create membership linking user to organisation
-      const { error: memberError } = await client.from("organisation_members").insert({
-        organisation_id: newOrg.id,
-        user_id: sessionData.session.user.id,
-        role: "owner",
-      });
+      if (functionError) {
+        console.error("Edge Function error:", functionError);
+        throw new Error(functionError.message || "Failed to create organisation");
+      }
 
-      if (memberError) throw memberError;
+      if (!functionResponse?.organisation_id) {
+        console.error("Edge Function response missing organisation_id:", functionResponse);
+        throw new Error("Failed to create organisation - no ID returned");
+      }
 
       setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
       setTimeout(() => {
-        router.replace(`/organisations/${newOrg.id}`);
+        router.replace(`/organisations/${functionResponse.organisation_id}`);
         router.refresh();
       }, 400);
     } catch (err: unknown) {
