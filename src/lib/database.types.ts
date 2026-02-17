@@ -1321,10 +1321,71 @@ export type Database = {
         }
         Relationships: []
       }
+      organisation_member_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          message: string | null
+          organisation_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          organisation_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          organisation_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_member_requests_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_member_requests_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_member_requests_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisation_members: {
         Row: {
           can_create_funding: boolean
+          can_create_issues: boolean
           can_create_projects: boolean
+          can_manage_members: boolean
+          can_post_feed: boolean
           created_at: string | null
           organisation_id: string
           role: string
@@ -1332,7 +1393,10 @@ export type Database = {
         }
         Insert: {
           can_create_funding?: boolean
+          can_create_issues?: boolean
           can_create_projects?: boolean
+          can_manage_members?: boolean
+          can_post_feed?: boolean
           created_at?: string | null
           organisation_id: string
           role: string
@@ -1340,7 +1404,10 @@ export type Database = {
         }
         Update: {
           can_create_funding?: boolean
+          can_create_issues?: boolean
           can_create_projects?: boolean
+          can_manage_members?: boolean
+          can_post_feed?: boolean
           created_at?: string | null
           organisation_id?: string
           role?: string
@@ -1418,6 +1485,64 @@ export type Database = {
           },
           {
             foreignKeyName: "organisation_updates_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisation_verification_submissions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          organisation_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_by: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          organisation_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          organisation_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_verification_submissions_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_verification_submissions_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organisation_verification_submissions_organisation_id_fkey"
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "verified_organisations"
