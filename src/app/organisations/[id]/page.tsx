@@ -46,6 +46,18 @@ export default async function OrganisationPage({
   const { data: isAdmin } = await supabase.rpc("is_admin");
   const canEdit = Boolean(user && (organisation.created_by === user.id || isAdmin));
 
+  // Check if user is an org admin/owner
+  const { data: userMembership } = user
+    ? await supabase
+        .from("organisation_members")
+        .select("role")
+        .eq("organisation_id", organisation.id)
+        .eq("user_id", user.id)
+        .single()
+    : { data: null };
+
+  const isOrgAdmin = userMembership?.role === "admin" || userMembership?.role === "owner";
+
   const { count: followerCount, error: followerCountError } = await supabase
     .from("follow_edges")
     .select("id", { count: "exact", head: true })
@@ -134,12 +146,22 @@ export default async function OrganisationPage({
 
         <div className="flex flex-col gap-2 sm:items-end">
           {canEdit ? (
-            <Link
-              href={`/organisations/${organisation.id}/edit`}
-              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Edit Organisation
-            </Link>
+            <>
+              <Link
+                href={`/organisations/${organisation.id}/edit`}
+                className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Edit Organisation
+              </Link>
+              {isOrgAdmin ? (
+                <Link
+                  href={`/organisations/${organisation.id}/members`}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
+                >
+                  Manage Members
+                </Link>
+              ) : null}
+            </>
           ) : (
             <FollowButton
               targetType="org"
