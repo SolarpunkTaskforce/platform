@@ -135,6 +135,13 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="my-2 border-t border-slate-200" />
       <Link
+        href="/me/organisations"
+        className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+        onClick={onNavigate}
+      >
+        My Organisations
+      </Link>
+      <Link
         href="/settings"
         className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
         onClick={onNavigate}
