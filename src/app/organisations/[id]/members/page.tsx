@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { MemberRow } from "./MemberRow";
+import { MemberRequestsTab } from "./MemberRequestsTab";
 
 type Member = {
   user_id: string;
@@ -13,6 +14,14 @@ type Member = {
   can_create_funding: boolean;
   created_at: string | null;
   user_email?: string | null;
+};
+
+type MemberRequest = {
+  id: string;
+  user_id: string;
+  status: string;
+  message: string | null;
+  created_at: string;
 };
 
 async function updateMemberRole(formData: FormData) {
@@ -215,6 +224,156 @@ async function addMember(formData: FormData) {
   throw new Error("Adding members is not yet implemented. Users must be added via invite links.");
 }
 
+async function approveMemberRequest(formData: FormData) {
+  "use server";
+
+  const organisationId = formData.get("organisation_id");
+  const requestId = formData.get("request_id");
+  const userId = formData.get("user_id");
+
+  if (typeof organisationId !== "string" || !organisationId) {
+    throw new Error("Missing organisation id.");
+  }
+
+  if (typeof requestId !== "string" || !requestId) {
+    throw new Error("Missing request id.");
+  }
+
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Missing user id.");
+  }
+
+  const supabase = await getServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  // Check if the current user is an admin with can_manage_members permission
+  const { data: currentMember } = await supabase
+    .from("organisation_members")
+    .select("role, can_manage_members")
+    .eq("organisation_id", organisationId)
+    .eq("user_id", auth.user.id)
+    .single();
+
+  if (
+    !currentMember ||
+    currentMember.role !== "admin" ||
+    !currentMember.can_manage_members
+  ) {
+    throw new Error("Unauthorized - requires admin with can_manage_members permission");
+  }
+
+  // Update the request status to approved (RLS policy will enforce permissions)
+  const { error: updateError } = await supabase
+    .from("organisation_member_requests")
+    .update({
+      status: "approved",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: auth.user.id,
+    })
+    .eq("id", requestId)
+    .eq("organisation_id", organisationId);
+
+  if (updateError) {
+    throw new Error(`Failed to approve request: ${updateError.message}`);
+  }
+
+  // Create the organisation_members row with role='member' and minimal permissions
+  const { error: insertError } = await supabase
+    .from("organisation_members")
+    .insert({
+      organisation_id: organisationId,
+      user_id: userId,
+      role: "member",
+      can_create_projects: false,
+      can_create_funding: false,
+      can_create_issues: false,
+      can_post_feed: false,
+      can_manage_members: false,
+    });
+
+  if (insertError) {
+    // Check if it's a duplicate key error
+    if (insertError.code === "23505") {
+      // User is already a member, just update the request status
+      console.log("User is already a member, request marked as approved");
+    } else {
+      // Rollback the request status update by setting it back to pending
+      await supabase
+        .from("organisation_member_requests")
+        .update({
+          status: "pending",
+          reviewed_at: null,
+          reviewed_by: null,
+        })
+        .eq("id", requestId);
+
+      throw new Error(`Failed to create membership: ${insertError.message}`);
+    }
+  }
+
+  revalidatePath(`/organisations/${organisationId}/members`);
+}
+
+async function rejectMemberRequest(formData: FormData) {
+  "use server";
+
+  const organisationId = formData.get("organisation_id");
+  const requestId = formData.get("request_id");
+  const adminNotes = formData.get("admin_notes");
+
+  if (typeof organisationId !== "string" || !organisationId) {
+    throw new Error("Missing organisation id.");
+  }
+
+  if (typeof requestId !== "string" || !requestId) {
+    throw new Error("Missing request id.");
+  }
+
+  const supabase = await getServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  // Check if the current user is an admin with can_manage_members permission
+  const { data: currentMember } = await supabase
+    .from("organisation_members")
+    .select("role, can_manage_members")
+    .eq("organisation_id", organisationId)
+    .eq("user_id", auth.user.id)
+    .single();
+
+  if (
+    !currentMember ||
+    currentMember.role !== "admin" ||
+    !currentMember.can_manage_members
+  ) {
+    throw new Error("Unauthorized - requires admin with can_manage_members permission");
+  }
+
+  // Update the request status to rejected (RLS policy will enforce permissions)
+  const { error } = await supabase
+    .from("organisation_member_requests")
+    .update({
+      status: "rejected",
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: auth.user.id,
+      admin_notes:
+        typeof adminNotes === "string" && adminNotes ? adminNotes : null,
+    })
+    .eq("id", requestId)
+    .eq("organisation_id", organisationId);
+
+  if (error) {
+    throw new Error(`Failed to reject request: ${error.message}`);
+  }
+
+  revalidatePath(`/organisations/${organisationId}/members`);
+}
+
 export default async function OrganisationMembersPage({
   params,
 }: {
@@ -248,12 +407,13 @@ export default async function OrganisationMembersPage({
   // Check if the current user is an admin/owner of this org
   const { data: currentMember } = await supabase
     .from("organisation_members")
-    .select("role")
+    .select("role, can_manage_members")
     .eq("organisation_id", id)
     .eq("user_id", auth.user.id)
     .single();
 
   const isOrgAdmin = currentMember?.role === "admin" || currentMember?.role === "owner";
+  const canManageMembers = currentMember?.can_manage_members === true;
 
   if (!isOrgAdmin) {
     return (
@@ -311,7 +471,18 @@ export default async function OrganisationMembersPage({
     throw new Error("Unable to load members.");
   }
 
+  // Fetch pending member requests (only if admin can manage members)
+  const { data: memberRequests } = canManageMembers
+    ? await supabase
+        .from("organisation_member_requests")
+        .select("id, user_id, status, message, created_at")
+        .eq("organisation_id", id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+    : { data: null };
+
   const typedMembers = (members ?? []) as Member[];
+  const typedRequests = (memberRequests ?? []) as MemberRequest[];
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-5 pb-20 pt-12">
@@ -341,42 +512,19 @@ export default async function OrganisationMembersPage({
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-soltas-muted">
-              <tr>
-                <th className="px-6 py-3">User ID</th>
-                <th className="px-6 py-3">Role</th>
-                <th className="px-6 py-3">Can Create Projects</th>
-                <th className="px-6 py-3">Can Create Funding</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {typedMembers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-soltas-muted">
-                    No members found.
-                  </td>
-                </tr>
-              ) : (
-                typedMembers.map((member) => (
-                  <MemberRow
-                    key={member.user_id}
-                    member={member}
-                    organisationId={id}
-                    isCurrentUser={member.user_id === auth.user.id}
-                    updateMemberRole={updateMemberRole}
-                    updateMemberPermission={updateMemberPermission}
-                    removeMember={removeMember}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Tabs Section */}
+      <MemberRequestsTab
+        organisationId={id}
+        members={typedMembers}
+        requests={typedRequests}
+        canManageMembers={canManageMembers}
+        currentUserId={auth.user.id}
+        updateMemberRole={updateMemberRole}
+        updateMemberPermission={updateMemberPermission}
+        removeMember={removeMember}
+        approveMemberRequest={approveMemberRequest}
+        rejectMemberRequest={rejectMemberRequest}
+      />
     </main>
   );
 }
