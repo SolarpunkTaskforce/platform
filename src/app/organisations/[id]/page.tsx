@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import FollowButton from "@/components/FollowButton";
 import { SocialLinks } from "@/components/profiles/SocialLinks";
 import UpdatesSection, { type UpdateSummary } from "@/components/updates/UpdatesSection";
@@ -15,10 +16,14 @@ function formatDate(value: string | null) {
 
 export default async function OrganisationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
+  const search = await searchParams;
+  const showSavedMessage = search.saved === "true";
 
   if (!id || typeof id !== "string") notFound();
 
@@ -111,6 +116,20 @@ export default async function OrganisationPage({
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:space-y-8 sm:py-10">
+      <Breadcrumbs
+        items={[
+          { label: "Organisations", href: "/organisations" },
+          { label: organisation.name },
+        ]}
+      />
+
+      {showSavedMessage && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <strong className="font-semibold">Changes saved!</strong> Your organisation profile has been
+          updated successfully.
+        </div>
+      )}
+
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {organisation.logo_url ? (
