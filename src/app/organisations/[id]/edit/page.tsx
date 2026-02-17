@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import SocialLinksEditor from "@/components/profiles/SocialLinksEditor";
 import { normalizeSocialLinks } from "@/components/profiles/SocialLinks";
 import { getServerSupabase } from "@/lib/supabaseServer";
@@ -95,7 +96,7 @@ async function updateOrganisation(formData: FormData) {
 
   revalidatePath(`/organisations/${id}`);
   revalidatePath(`/organisations/${id}/edit`);
-  redirect(`/organisations/${id}`);
+  redirect(`/organisations/${id}?saved=true`);
 }
 
 export default async function OrganisationEditPage({
@@ -139,6 +140,14 @@ export default async function OrganisationEditPage({
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-5 pb-20 pt-12">
+      <Breadcrumbs
+        items={[
+          { label: "Organisations", href: "/organisations" },
+          { label: organisation.name, href: `/organisations/${organisation.id}` },
+          { label: "Edit" },
+        ]}
+      />
+
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-[#1A2B38]">Edit organisation</h1>
         <p className="text-sm text-soltas-muted">Update public organisation details.</p>

@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { MemberRow } from "./MemberRow";
 
@@ -255,7 +256,48 @@ export default async function OrganisationMembersPage({
   const isOrgAdmin = currentMember?.role === "admin" || currentMember?.role === "owner";
 
   if (!isOrgAdmin) {
-    notFound();
+    return (
+      <main className="mx-auto max-w-5xl space-y-6 px-5 pb-20 pt-12">
+        <Breadcrumbs
+          items={[
+            { label: "Organisations", href: "/organisations" },
+            { label: organisation.name, href: `/organisations/${id}` },
+            { label: "Members" },
+          ]}
+        />
+
+        <div className="space-y-4 text-center">
+          <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+              <svg
+                className="h-8 w-8 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <h1 className="mb-2 text-xl font-semibold text-soltas-bark">Access Restricted</h1>
+            <p className="mb-6 text-sm text-soltas-muted">
+              You don&apos;t have permission to manage members for this organisation. Only
+              organisation admins and owners can access this page.
+            </p>
+            <Link
+              href={`/organisations/${id}`}
+              className="inline-flex items-center justify-center rounded-xl bg-soltas-ocean px-4 py-2 text-sm font-medium text-white hover:bg-soltas-abyssal transition-all duration-200"
+            >
+              Back to organisation
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   // Fetch all members
@@ -273,6 +315,14 @@ export default async function OrganisationMembersPage({
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-5 pb-20 pt-12">
+      <Breadcrumbs
+        items={[
+          { label: "Organisations", href: "/organisations" },
+          { label: organisation.name, href: `/organisations/${id}` },
+          { label: "Members" },
+        ]}
+      />
+
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold text-[#1A2B38]">Manage members</h1>
