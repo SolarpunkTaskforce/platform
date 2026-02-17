@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         .from("organisation_members")
         .select("organisation_id")
         .eq("user_id", user.id)
-        .eq("role", "owner")
+        .eq("role", "admin")
         .maybeSingle();
 
     if (membershipCheckError) {
@@ -171,13 +171,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert membership with role='owner'
+    // Insert membership with role='admin' and all permissions true
     const { error: memberError } = await serviceClient
       .from("organisation_members")
       .insert({
         organisation_id: newOrg.id,
         user_id: user.id,
-        role: "owner",
+        role: "admin",
+        can_create_projects: true,
+        can_create_funding: true,
+        can_post_feed: true,
+        can_create_issues: true,
+        can_manage_members: true,
       });
 
     if (memberError) {
@@ -193,14 +198,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update profile: kind='organisation', organisation_id, organisation_name, role='owner'
+    // Update profile: kind='organisation', organisation_id, organisation_name, role='admin'
     const { error: profileError } = await serviceClient
       .from("profiles")
       .update({
         kind: "organisation",
         organisation_id: newOrg.id,
         organisation_name: newOrg.name,
-        role: "owner",
+        role: "admin",
       })
       .eq("id", user.id);
 

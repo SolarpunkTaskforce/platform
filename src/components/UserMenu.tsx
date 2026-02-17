@@ -120,19 +120,6 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         </>
       )}
 
-      {organisations.length === 0 && (
-        <>
-          <div className="my-2 border-t border-slate-200" />
-          <Link
-            href="/onboarding/organisation"
-            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-            onClick={onNavigate}
-          >
-            Create organisation
-          </Link>
-        </>
-      )}
-
       <div className="my-2 border-t border-slate-200" />
       <Link
         href="/settings"

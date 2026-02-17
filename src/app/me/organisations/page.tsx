@@ -43,11 +43,19 @@ export default async function MyOrganisationsPage() {
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-soltas-bark">My organisations</h1>
-        <p className="text-sm text-soltas-muted">
-          Organisations you are a member of.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold text-soltas-bark">My organisations</h1>
+          <p className="text-sm text-soltas-muted">
+            Organisations you are a member of.
+          </p>
+        </div>
+        <Link
+          href="/organisations/create"
+          className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          Create organisation
+        </Link>
       </div>
 
       {organisations.length === 0 ? (
@@ -56,7 +64,7 @@ export default async function MyOrganisationsPage() {
             You are not a member of any organisations yet.
           </p>
           <Link
-            href="/onboarding/organisation"
+            href="/organisations/create"
             className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             Create organisation
@@ -122,7 +130,7 @@ export default async function MyOrganisationsPage() {
               Want to start a new organisation?
             </p>
             <Link
-              href="/onboarding/organisation"
+              href="/organisations/create"
               className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
               Create organisation
