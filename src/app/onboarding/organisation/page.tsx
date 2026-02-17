@@ -59,57 +59,65 @@ export default function OrganisationOnboardingPage() {
           return;
         }
 
-        // Check for pending organisation data
-        const pendingDataStr = localStorage.getItem(PENDING_ORG_KEY);
-        if (!pendingDataStr) {
-          // No pending data, redirect to projects
-          setMessage("No pending organisation setup found.");
-          setTimeout(() => {
-            router.replace("/projects");
-          }, 1000);
+        // Check for pending organisation data - user_metadata.pending_org is primary source
+        let pendingData: PendingOrgData | null = null;
+
+        // Primary: Check user_metadata.pending_org
+        if (session.user.user_metadata?.pending_org) {
+          pendingData = session.user.user_metadata.pending_org as PendingOrgData;
+        }
+        // Fallback: Check localStorage for older flows
+        else {
+          const pendingDataStr = localStorage.getItem(PENDING_ORG_KEY);
+          if (pendingDataStr) {
+            pendingData = JSON.parse(pendingDataStr);
+          }
+        }
+
+        if (!pendingData) {
+          // No pending data found in either location
+          setError("No pending organisation setup found. Please start the signup process again.");
           return;
         }
 
-        const pendingData: PendingOrgData = JSON.parse(pendingDataStr);
-
-        // Create the organisation
+        // Create the organisation via Edge Function
         setCreating(true);
-        const { data: newOrg, error: orgError } = await supabase
-          .from("organisations")
-          .insert({
-            name: pendingData.name,
-            country_based: pendingData.country_based,
-            what_we_do: pendingData.what_we_do,
-            existing_since: pendingData.existing_since || null,
-            website: pendingData.website || null,
-            social_links: pendingData.social_links || [],
-            logo_url: pendingData.logo_url || null,
-            verification_status: "pending",
-            created_by: session.user.id,
-          })
-          .select("id")
-          .single();
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-        if (orgError) throw orgError;
-        if (!newOrg?.id) throw new Error("Failed to create organisation");
+        if (!currentSession) {
+          throw new Error("Session expired. Please log in again.");
+        }
 
-        // Create membership linking user to organisation
-        const { error: memberError } = await supabase
-          .from("organisation_members")
-          .insert({
-            organisation_id: newOrg.id,
-            user_id: session.user.id,
-            role: "owner",
-          });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-organisation`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${currentSession.access_token}`,
+            },
+            body: JSON.stringify(pendingData),
+          }
+        );
 
-        if (memberError) throw memberError;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to create organisation");
+        }
 
-        // Clear pending data
-        localStorage.removeItem(PENDING_ORG_KEY);
+        const { organisation_id } = await response.json();
+        if (!organisation_id) {
+          throw new Error("Failed to create organisation");
+        }
+
+        // Clear old localStorage key if it exists
+        if (localStorage.getItem(PENDING_ORG_KEY)) {
+          localStorage.removeItem(PENDING_ORG_KEY);
+        }
 
         setMessage("Organisation created successfully! Redirecting...");
         setTimeout(() => {
-          router.replace(`/organisations/${newOrg.id}`);
+          router.replace(`/organisations/${organisation_id}`);
           router.refresh();
         }, 1000);
       } catch (err: unknown) {
