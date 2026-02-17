@@ -12,7 +12,18 @@ export default async function MyProfileRedirectPage() {
   // If not signed in, send to auth entry point.
   if (!user) redirect("/auth");
 
-  // If you ever create separate organisation accounts later, we can branch here.
-  // For Phase 1/2, user profiles live at /people/[id].
+  // Check if user has an organisation profile context
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, kind, organisation_id")
+    .eq("id", user.id)
+    .single();
+
+  // If user has an organisation context and is an organisation profile, redirect to org
+  if (profile?.kind === "organisation" && profile?.organisation_id) {
+    redirect(`/organisations/${profile.organisation_id}`);
+  }
+
+  // Otherwise redirect to personal profile at /people/[id]
   redirect(`/people/${user.id}`);
 }
