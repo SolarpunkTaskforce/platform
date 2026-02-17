@@ -48,6 +48,8 @@ const payloadSchema = z
     amount_needed: z.number().optional(),
     currency: z.string().trim().length(3).optional(),
     location: locationSchema,
+    post_to_feed: z.boolean().optional(),
+    feed_message: z.string().trim().optional(),
   })
   .superRefine((value, ctx) => {
     const hasDescription = Boolean(value.description && value.description.trim().length);
@@ -142,5 +144,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: categoryError.message }, { status: 400 });
   }
 
-  return NextResponse.json(submission[0]);
+  // Handle feed post if requested
+  let feedPostWarning: string | undefined;
+  if (data.post_to_feed) {
+    const feedContent = data.feed_message
+      ? `${data.feed_message}\n\nNew project: ${data.name}`
+      : `New project: ${data.name}`;
+
+    const feedPostData = {
+      created_by: user.id,
+      author_organisation_id: data.owner_type === "organisation" ? data.owner_id : null,
+      visibility: "public" as const,
+      content: feedContent,
+      entity_type: "project" as const,
+      entity_id: projectId,
+    };
+
+    const { error: feedError } = await supabase
+      .from("feed_posts")
+      .insert(feedPostData);
+
+    if (feedError) {
+      // Non-blocking warning
+      feedPostWarning = "Project created successfully, but could not post to feed.";
+    }
+  }
+
+  return NextResponse.json({
+    ...submission[0],
+    ...(feedPostWarning && { warning: feedPostWarning }),
+  });
 }

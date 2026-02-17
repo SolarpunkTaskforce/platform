@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,14 @@ const formSchema = z
       .or(z.literal(""))
       .transform(v => (v ? v.toUpperCase() : undefined)),
     location: locationSchema.nullable(),
+    post_to_feed: z.boolean().default(false),
+    feed_message: z
+      .string()
+      .trim()
+      .max(500, "Keep feed message under 500 characters")
+      .optional()
+      .or(z.literal(""))
+      .transform(v => (v && v.trim().length ? v.trim() : undefined)),
   })
   .superRefine((values, ctx) => {
     const hasDescription = Boolean(values.description && values.description.trim().length);
@@ -159,6 +168,8 @@ const createDefaultValues = (userId?: string): Partial<FormValues> => ({
   amount_needed: undefined,
   currency: "USD",
   location: null,
+  post_to_feed: false,
+  feed_message: undefined,
 });
 
 type DateParts = {
@@ -366,6 +377,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
   const [files, setFiles] = useState<File[]>([]);
   const [uploads, setUploads] = useState<UploadState[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitWarning, setSubmitWarning] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [interventionDraft, setInterventionDraft] = useState("");
   const [thematicDraft, setThematicDraft] = useState("");
@@ -481,6 +493,7 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
 
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null);
+    setSubmitWarning(null);
     setIsSubmitting(true);
     try {
       if (!values.location) throw new Error("Please pick a location using the search field");
@@ -516,6 +529,8 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
           amount_needed: values.amount_needed,
           currency: values.currency ?? "USD",
           location: values.location,
+          post_to_feed: values.post_to_feed,
+          feed_message: values.feed_message,
         }),
       });
 
@@ -528,8 +543,12 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
         throw new Error(message);
       }
 
-      const returned = (await response.json()) as { id: string; status?: string; slug?: string };
-      const { id } = returned;
+      const returned = (await response.json()) as { id: string; status?: string; slug?: string; warning?: string };
+      const { id, warning } = returned;
+
+      if (warning) {
+        setSubmitWarning(warning);
+      }
 
       if (files.length) {
         const initialUploads: UploadState[] = files.map(file => ({
@@ -1233,6 +1252,50 @@ export default function ProjectForm({ mode = "create", projectId, initialValues 
             )}
           </div>
         </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-soltas-bark">Share to feed</h2>
+          <p className="mt-1 text-sm text-soltas-muted">Optionally announce this project to the community feed.</p>
+
+          <div className="mt-6 space-y-6">
+            <FormField
+              control={control}
+              name="post_to_feed"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
+                  <div>
+                    <FormLabel>Post this to the feed</FormLabel>
+                    <FormDescription>Create a feed post announcing this new project.</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {watch("post_to_feed") && (
+              <FormField
+                control={control}
+                name="feed_message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Message (optional)</FormLabel>
+                    <FormDescription>
+                      Add a custom message or context. If left empty, a default message will be used.
+                    </FormDescription>
+                    <FormControl>
+                      <Textarea rows={3} placeholder="Share additional context about this project..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+        </section>
+
+        {submitWarning && <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{submitWarning}</div>}
 
         {submitError && <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{submitError}</div>}
 
