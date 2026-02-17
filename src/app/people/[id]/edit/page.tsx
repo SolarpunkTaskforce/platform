@@ -54,8 +54,9 @@ async function updateProfile(formData: FormData) {
   let organisationId: string | null = null;
 
   if (typeof organisationValue === "string" && organisationValue !== "independent") {
+    // Allow selection of verified orgs OR orgs where user is a member
     const { data: org } = await supabase
-      .from("verified_organisations")
+      .from("organisations")
       .select("id")
       .eq("id", organisationValue)
       .maybeSingle();
@@ -122,14 +123,46 @@ export default async function ProfileEditPage({
     notFound();
   }
 
+  // Fetch organisations where user is a member OR that are verified
+  // This allows users to select their pending orgs or any verified org
+  const { data: memberOrgs } = await supabase
+    .from("organisation_members")
+    .select("organisation_id, organisations(id, name)")
+    .eq("user_id", profile.id);
+
   const { data: verifiedOrgs } = await supabase
-    .from("verified_organisations")
-    .select("id,name")
+    .from("organisations")
+    .select("id, name")
+    .eq("verification_status", "verified")
     .order("name");
 
-  const verifiedOrgIds = new Set((verifiedOrgs ?? []).map((org) => org.id));
+  // Combine and deduplicate organisations
+  const orgMap = new Map<string, { id: string; name: string }>();
+
+  // Add verified orgs
+  (verifiedOrgs ?? []).forEach((org) => {
+    orgMap.set(org.id, org);
+  });
+
+  // Add member orgs (may override verified orgs with same id, which is fine)
+  (memberOrgs ?? []).forEach((memberOrg) => {
+    if (memberOrg.organisations) {
+      const org = Array.isArray(memberOrg.organisations)
+        ? memberOrg.organisations[0]
+        : memberOrg.organisations;
+      if (org?.id && org?.name) {
+        orgMap.set(org.id, { id: org.id, name: org.name });
+      }
+    }
+  });
+
+  const availableOrgs = Array.from(orgMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  const availableOrgIds = new Set(availableOrgs.map((org) => org.id));
   const selectedOrgId =
-    profile.organisation_id && verifiedOrgIds.has(profile.organisation_id)
+    profile.organisation_id && availableOrgIds.has(profile.organisation_id)
       ? profile.organisation_id
       : "independent";
 
@@ -222,7 +255,7 @@ export default async function ProfileEditPage({
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-soltas-bark shadow-sm"
             >
               <option value="independent">Independent</option>
-              {(verifiedOrgs ?? []).map((org) => (
+              {availableOrgs.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.name}
                 </option>
@@ -230,7 +263,7 @@ export default async function ProfileEditPage({
             </select>
             {profile.organisation_id && selectedOrgId === "independent" ? (
               <p className="text-xs text-amber-600">
-                Your current organisation is not verified, so it cannot be selected.
+                Your current organisation is not available for selection.
               </p>
             ) : null}
           </div>
