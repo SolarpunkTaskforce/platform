@@ -35,10 +35,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if there's pending organisation data
-      // Note: We can't directly access localStorage from server, so we redirect to onboarding
-      // The onboarding page will check localStorage client-side
-      return NextResponse.redirect(`${origin}/onboarding/organisation`);
+      const safeNext = next.startsWith("/") ? next : "/";
+      return NextResponse.redirect(`${origin}${safeNext}`);
     }
   }
 

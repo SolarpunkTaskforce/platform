@@ -266,7 +266,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
         email: individual.email,
         password: individual.password,
         options: {
-          emailRedirectTo: siteUrl ? `${siteUrl}/auth` : undefined,
+          emailRedirectTo: siteUrl ? `${siteUrl}/auth/callback` : undefined,
         },
       });
       if (error) throw error;
@@ -318,7 +318,7 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
       const { error } = await client.auth.signUp({
         email: organisation.email,
         password: organisation.password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation` },
       });
       if (error) throw error;
 
