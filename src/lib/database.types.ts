@@ -1009,6 +1009,64 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_posts: {
+        Row: {
+          author_organisation_id: string | null
+          content: string
+          created_at: string
+          created_by: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          published_at: string
+          visibility: string
+        }
+        Insert: {
+          author_organisation_id?: string | null
+          content: string
+          created_at?: string
+          created_by: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          published_at?: string
+          visibility?: string
+        }
+        Update: {
+          author_organisation_id?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          published_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_edges: {
         Row: {
           created_at: string
