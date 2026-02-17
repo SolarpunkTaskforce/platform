@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 import { getServerSupabase } from "@/lib/supabaseServer";
+import { MemberRow } from "./MemberRow";
 
 type Member = {
   user_id: string;
@@ -310,111 +311,17 @@ export default async function OrganisationMembersPage({
                   </td>
                 </tr>
               ) : (
-                typedMembers.map((member) => {
-                  const isOwner = member.role === "owner";
-                  const isCurrentUser = member.user_id === auth.user.id;
-
-                  return (
-                    <tr key={member.user_id}>
-                      <td className="px-6 py-4">
-                        <div className="text-xs text-soltas-muted">{member.user_id}</div>
-                        {isCurrentUser && (
-                          <span className="text-xs text-blue-600 font-medium">(You)</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {isOwner ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                            Owner
-                          </span>
-                        ) : (
-                          <form action={updateMemberRole} className="inline-block">
-                            <input type="hidden" name="organisation_id" value={id} />
-                            <input type="hidden" name="user_id" value={member.user_id} />
-                            <select
-                              name="role"
-                              defaultValue={member.role}
-                              onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                              className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-soltas-bark focus:border-[#6B9FB8] focus:outline-none focus:ring-2 focus:ring-[#6B9FB8]/60"
-                            >
-                              <option value="member">Member</option>
-                              <option value="admin">Admin</option>
-                            </select>
-                          </form>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {isOwner ? (
-                          <span className="text-xs text-green-600">✓ Yes</span>
-                        ) : (
-                          <form action={updateMemberPermission} className="inline-block">
-                            <input type="hidden" name="organisation_id" value={id} />
-                            <input type="hidden" name="user_id" value={member.user_id} />
-                            <input type="hidden" name="permission" value="can_create_projects" />
-                            <input
-                              type="checkbox"
-                              name="value"
-                              value="true"
-                              defaultChecked={member.can_create_projects}
-                              onChange={(e) => {
-                                const form = e.currentTarget.form;
-                                if (form) {
-                                  const valueInput = form.querySelector('input[name="value"]') as HTMLInputElement;
-                                  if (valueInput) {
-                                    valueInput.value = e.currentTarget.checked.toString();
-                                  }
-                                  form.requestSubmit();
-                                }
-                              }}
-                              className="h-4 w-4 rounded border-slate-300 text-[#6B9FB8] focus:ring-[#6B9FB8]"
-                            />
-                          </form>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {isOwner ? (
-                          <span className="text-xs text-green-600">✓ Yes</span>
-                        ) : (
-                          <form action={updateMemberPermission} className="inline-block">
-                            <input type="hidden" name="organisation_id" value={id} />
-                            <input type="hidden" name="user_id" value={member.user_id} />
-                            <input type="hidden" name="permission" value="can_create_funding" />
-                            <input
-                              type="checkbox"
-                              name="value"
-                              value="true"
-                              defaultChecked={member.can_create_funding}
-                              onChange={(e) => {
-                                const form = e.currentTarget.form;
-                                if (form) {
-                                  const valueInput = form.querySelector('input[name="value"]') as HTMLInputElement;
-                                  if (valueInput) {
-                                    valueInput.value = e.currentTarget.checked.toString();
-                                  }
-                                  form.requestSubmit();
-                                }
-                              }}
-                              className="h-4 w-4 rounded border-slate-300 text-[#6B9FB8] focus:ring-[#6B9FB8]"
-                            />
-                          </form>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {!isOwner && !isCurrentUser ? (
-                          <form action={removeMember} className="inline-block">
-                            <input type="hidden" name="organisation_id" value={id} />
-                            <input type="hidden" name="user_id" value={member.user_id} />
-                            <button className="rounded border border-rose-500 px-3 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50">
-                              Remove
-                            </button>
-                          </form>
-                        ) : (
-                          <span className="text-xs text-soltas-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                typedMembers.map((member) => (
+                  <MemberRow
+                    key={member.user_id}
+                    member={member}
+                    organisationId={id}
+                    isCurrentUser={member.user_id === auth.user.id}
+                    updateMemberRole={updateMemberRole}
+                    updateMemberPermission={updateMemberPermission}
+                    removeMember={removeMember}
+                  />
+                ))
               )}
             </tbody>
           </table>
