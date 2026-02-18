@@ -22,7 +22,7 @@ type NewPostComposerProps = {
   organisations?: Organisation[];
 };
 
-export function NewPostComposer({ userId, userName, organisations = [] }: NewPostComposerProps) {
+export function NewPostComposer({ userName, organisations = [] }: NewPostComposerProps) {
   const [content, setContent] = useState("");
   const [postAs, setPostAs] = useState<string>("me");
   const [isSubmitting, setIsSubmitting] = useState(false);

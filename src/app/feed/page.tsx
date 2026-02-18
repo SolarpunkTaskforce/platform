@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { FeedItemCard } from "@/components/feed/FeedItemCard";
@@ -466,9 +467,11 @@ export default async function FeedPage({
             {(discoverPeople ?? []).map((person) => (
               <li key={person.id} className="flex items-center gap-3">
                 {person.avatar_url ? (
-                  <img
+                  <Image
                     src={person.avatar_url}
                     alt={getProfileName(person)}
+                    width={32}
+                    height={32}
                     className="h-8 w-8 rounded-full border border-slate-200 object-cover"
                   />
                 ) : (

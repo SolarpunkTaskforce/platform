@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -167,9 +168,11 @@ export default async function OrganisationPage({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {organisation.logo_url ? (
-            <img
+            <Image
               src={organisation.logo_url}
               alt={organisation.name}
+              width={80}
+              height={80}
               className="h-14 w-14 rounded-2xl border border-slate-200 object-cover sm:h-20 sm:w-20"
             />
           ) : (
