@@ -24,8 +24,6 @@ const PANEL_MIN_HEIGHT = 200;
 const PANEL_MAX_HEIGHT = 420;
 const PANEL_DEFAULT_WIDTH = 340;
 const PANEL_DEFAULT_HEIGHT = 220;
-// Aspect ratio the panel locks to during diagonal resize
-const PANEL_ASPECT_RATIO = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
 const PANEL_PADDING_X = 32;
 const PANEL_PADDING_BOTTOM = 32;
 
@@ -169,32 +167,6 @@ export default function HomeGlobeSection({
 
   const [mode, setMode] = useState<HomeGlobeMode>(DEFAULT_MODE);
   const buttonRowRef = useRef<HTMLDivElement | null>(null);
-
-  // Single shared size for both panels — they always match.
-  const [panelSize, setPanelSize] = useState<PanelSize>(() => {
-    if (typeof window === "undefined") return defaultSize();
-    try {
-      const saved = localStorage.getItem(STATS_SIZE_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<PanelSize>;
-        if (typeof parsed.width === "number" && typeof parsed.height === "number") {
-          return clampSize({ width: parsed.width, height: parsed.height });
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return defaultSize();
-  });
-
-  // Persist size changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STATS_SIZE_STORAGE_KEY, JSON.stringify(panelSize));
-    } catch {
-      // ignore
-    }
-  }, [panelSize]);
 
   const pointsByMode = useMemo<Record<HomeGlobeMode, HomeGlobePoint[]>>(
     () => ({
@@ -414,37 +386,7 @@ export default function HomeGlobeSection({
 
         {/* ── Desktop stat panels — pinned to bottom corners ── */}
 
-        {/* Left panel */}
-        <div
-          className="pointer-events-none absolute hidden lg:block"
-          style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
-        >
-          <PinnedStatsPanel
-            panelKey="left"
-            title={activeStats.leftTitle}
-            items={activeStats.left}
-            footnote={activeStats.footnote}
-            align="left"
-            size={panelSize}
-            onResize={setPanelSize}
-          />
-        </div>
-
-        {/* Right panel */}
-        <div
-          className="pointer-events-none absolute hidden lg:block"
-          style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
-        >
-          <PinnedStatsPanel
-            panelKey="right"
-            title={activeStats.rightTitle}
-            items={activeStats.right}
-            footnote={activeStats.footnote}
-            align="right"
-            size={panelSize}
-            onResize={setPanelSize}
-          />
-        </div>
+        <PinnedStatsPanels activeStats={activeStats} />
 
         {/* Mobile snapshot */}
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden">
@@ -467,6 +409,74 @@ export default function HomeGlobeSection({
         </div>
       </div>
     </section>
+  );
+}
+
+type ActiveStats = {
+  leftTitle: string;
+  rightTitle: string;
+  left: StatItem[];
+  right: StatItem[];
+  footnote?: string;
+};
+
+function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
+  const [panelSize, setPanelSize] = useState<PanelSize>(() => {
+    if (typeof window === "undefined") return defaultSize();
+    try {
+      const saved = localStorage.getItem(STATS_SIZE_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<PanelSize>;
+        if (typeof parsed.width === "number" && typeof parsed.height === "number") {
+          return clampSize({ width: parsed.width, height: parsed.height });
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return defaultSize();
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STATS_SIZE_STORAGE_KEY, JSON.stringify(panelSize));
+    } catch {
+      // ignore
+    }
+  }, [panelSize]);
+
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute hidden lg:block"
+        style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
+      >
+        <PinnedStatsPanel
+          panelKey="left"
+          title={activeStats.leftTitle}
+          items={activeStats.left}
+          footnote={activeStats.footnote}
+          align="left"
+          size={panelSize}
+          onResize={setPanelSize}
+        />
+      </div>
+
+      <div
+        className="pointer-events-none absolute hidden lg:block"
+        style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
+      >
+        <PinnedStatsPanel
+          panelKey="right"
+          title={activeStats.rightTitle}
+          items={activeStats.right}
+          footnote={activeStats.footnote}
+          align="right"
+          size={panelSize}
+          onResize={setPanelSize}
+        />
+      </div>
+    </>
   );
 }
 
@@ -514,21 +524,16 @@ function PinnedStatsPanel({
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       if (!dragStartRef.current) return;
-      const { px, py, w } = dragStartRef.current;
+      const { px, py, w, h } = dragStartRef.current;
       const dx = e.clientX - px;
       const dy = e.clientY - py;
 
-      // Force diagonal: use whichever raw axis moved more, then derive
-      // the other axis from the panel's locked aspect ratio.
       // Left panel: drag right/up to grow. Right panel: drag left/up to grow.
       const signedDx = panelKey === "left" ? dx : -dx;
       const signedDy = -dy; // up = positive
 
-      // Pick the dominant axis and derive a single scalar delta.
-      const delta = Math.abs(signedDx) >= Math.abs(signedDy) ? signedDx : signedDy * PANEL_ASPECT_RATIO;
-
-      const newWidth = clamp(w + delta, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
-      const newHeight = clamp(newWidth / PANEL_ASPECT_RATIO, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+      const newWidth = clamp(w + signedDx, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
+      const newHeight = clamp(h + signedDy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
 
       onResizeRef.current({ width: newWidth, height: newHeight });
     },
@@ -542,11 +547,15 @@ function PinnedStatsPanel({
     document.body.style.userSelect = "";
   }, []);
 
-  // Scale text proportionally to panel width, clamped 75%–140%.
-  const scale = clamp(size.width / PANEL_DEFAULT_WIDTH, 0.75, 1.4);
+  // Scale text proportionally to the tighter dimension, clamped for legibility.
+  const dimensionScale = Math.min(size.width / PANEL_DEFAULT_WIDTH, size.height / PANEL_DEFAULT_HEIGHT);
+  const scale = clamp(dimensionScale, 0.7, 1.35);
+  const contentPadding = 18 + 6 * scale;
+  const contentGap = 12 + 6 * scale;
+  const statsGap = 10 + 5 * scale;
 
   // Corner handle sits at the globe-facing corner.
-  const cornerClass = panelKey === "left" ? "-top-2.5 -right-2.5" : "-top-2.5 -left-2.5";
+  const cornerClass = panelKey === "left" ? "-top-1.5 -right-1.5" : "-top-1.5 -left-1.5";
 
   if (!items.length) return null;
 
@@ -558,9 +567,10 @@ function PinnedStatsPanel({
       {/* Content */}
       <div
         className={cn(
-          "flex h-full w-full flex-col gap-4 p-5",
+          "flex h-full w-full flex-col",
           align === "right" ? "items-end text-right" : "items-start text-left",
         )}
+        style={{ gap: `${contentGap}px`, padding: `${contentPadding}px` }}
       >
         {/* Header */}
         <div
@@ -572,7 +582,7 @@ function PinnedStatsPanel({
         </div>
 
         {/* Stats */}
-        <div className="flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col" style={{ gap: `${statsGap}px` }}>
           {items.map((item) => (
             <div
               key={item.label}
@@ -608,24 +618,24 @@ function PinnedStatsPanel({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         className={cn(
-          "group/handle absolute z-20 flex h-7 w-7 items-center justify-center rounded-full",
-          "border border-white/30 bg-soltas-peat/60 backdrop-blur-sm",
-          "transition hover:border-white/60 hover:bg-soltas-peat/80",
+          "group/handle absolute z-20 flex h-6 w-6 items-center justify-center rounded-xl",
+          "border border-white/15 bg-white/12 backdrop-blur-sm shadow-[0_10px_40px_-20px_rgba(15,23,42,0.8)]",
+          "transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/18",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
           "cursor-nwse-resize",
           cornerClass,
         )}
       >
         <svg
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
           fill="none"
           className="text-white/60 transition group-hover/handle:text-white"
           aria-hidden="true"
         >
-          <line x1="1" y1="9" x2="9" y2="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="5" y1="9" x2="9" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M3 9.5 9.5 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M6.2 9.5 9.5 6.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
         </svg>
       </button>
 
