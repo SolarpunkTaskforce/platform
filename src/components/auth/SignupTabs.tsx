@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -59,17 +59,6 @@ const initialIndividual = {
   avatar_url: "",
 };
 
-const initialOrganisation = {
-  email: "",
-  password: "",
-  name: "",
-  country_based: "",
-  what_we_do: "",
-  existing_since: "",
-  website: "",
-  logo_url: "",
-};
-
 export default function SignupTabs() {
   if (!supabase) {
     return (
@@ -86,15 +75,8 @@ type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
 
 function SignupTabsContent({ client }: { client: SupabaseClient }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"individual" | "organisation">(
-    tabParam === "organisation" ? "organisation" : "individual"
-  );
   const [individual, setIndividual] = useState(initialIndividual);
-  const [organisation, setOrganisation] = useState(initialOrganisation);
   const [individualLinks, setIndividualLinks] = useState<SocialLink[]>([emptySocialLink]);
-  const [organisationLinks, setOrganisationLinks] = useState<SocialLink[]>([emptySocialLink]);
   const [verifiedOrgs, setVerifiedOrgs] = useState<VerifiedOrganisation[]>([]);
   const [orgsError, setOrgsError] = useState<string | null>(null);
   const [orgsLoading, setOrgsLoading] = useState(false);
@@ -106,9 +88,6 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     null
   );
   const [loading, setLoading] = useState(false);
-  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const siteUrl = useMemo(() => process.env.NEXT_PUBLIC_SITE_URL || "", []);
 
   useEffect(() => {
@@ -141,10 +120,6 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
 
   function updateIndividualField(field: keyof typeof individual, value: string) {
     setIndividual((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function updateOrganisationField(field: keyof typeof organisation, value: string) {
-    setOrganisation((prev) => ({ ...prev, [field]: value }));
   }
 
   function updateSocialLinks(
@@ -192,18 +167,6 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     return nextErrors;
   }
 
-  function validateOrganisation() {
-    const nextErrors: Record<string, string> = {};
-    if (!organisation.email.trim()) nextErrors.email = "Email is required.";
-    if (!organisation.password.trim()) nextErrors.password = "Password is required.";
-    if (!organisation.name.trim()) nextErrors.name = "Organisation name is required.";
-    if (!organisation.country_based.trim()) {
-      nextErrors.country_based = "Country based is required.";
-    }
-    if (!organisation.what_we_do.trim()) nextErrors.what_we_do = "What we do is required.";
-    return nextErrors;
-  }
-
   function getSignupErrorMessage(err: unknown) {
     if (typeof err !== "object" || err === null) {
       return "Unable to sign up.";
@@ -232,28 +195,6 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     setMessage({ text: `Signup failed: ${errorMessage}`, tone: "error" });
   }
 
-  async function handleResendConfirmation() {
-    if (!pendingConfirmationEmail) return;
-
-    setResendLoading(true);
-    setResendMessage(null);
-
-    try {
-      const { error } = await client.auth.resend({
-        type: "signup",
-        email: pendingConfirmationEmail,
-      });
-
-      if (error) throw error;
-
-      setResendMessage("Confirmation email sent.");
-    } catch (err: unknown) {
-      console.error("Resend confirmation failed:", err);
-      setResendMessage(getSignupErrorMessage(err));
-    } finally {
-      setResendLoading(false);
-    }
-  }
 
   async function handleIndividualSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -308,119 +249,9 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
     }
   }
 
-  async function handleOrganisationSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setMessage(null);
-    const nextErrors = validateOrganisation();
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-
-    try {
-      // Prepare pending organisation data
-      const pendingOrgData = {
-        name: organisation.name.trim(),
-        country_based: organisation.country_based.trim(),
-        what_we_do: organisation.what_we_do.trim(),
-        existing_since: organisation.existing_since || undefined,
-        website: organisation.website.trim() || undefined,
-        logo_url: organisation.logo_url.trim() || undefined,
-        social_links: normalizeLinks(organisationLinks),
-      };
-
-      // Sign up with pending_org in user_metadata and onboarding_intent
-      const { data, error } = await client.auth.signUp({
-        email: organisation.email,
-        password: organisation.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/organisation`,
-          data: {
-            onboarding_intent: 'organisation',
-            pending_org: pendingOrgData,
-          },
-        },
-      });
-      if (error) throw error;
-
-      const { data: sessionData } = await client.auth.getSession();
-
-      if (!sessionData.session) {
-        // Email confirmation required - show message and stop
-        setPendingConfirmationEmail(organisation.email);
-        setMessage({
-          tone: "info",
-          text: "Account created. Please check your email to confirm your address, then log in to complete organisation setup.",
-        });
-        return;
-      }
-
-      // Session exists immediately - call Edge Function to create organisation
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
-        throw new Error("No session available");
-      }
-
-      const { data: functionResponse, error: functionError } = await client.functions.invoke(
-        "create-organisation",
-        {
-          body: pendingOrgData,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
-
-      if (functionError) {
-        console.error("Edge Function error:", functionError);
-        throw new Error(functionError.message || "Failed to create organisation");
-      }
-
-      if (!functionResponse?.organisation_id) {
-        console.error("Edge Function response missing organisation_id:", functionResponse);
-        throw new Error("Failed to create organisation - no ID returned");
-      }
-
-      setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
-      setTimeout(() => {
-        router.replace(`/organisations/${functionResponse.organisation_id}`);
-        router.refresh();
-      }, 400);
-    } catch (err: unknown) {
-      handleSignupError("Organisation", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="rounded-2xl border border-[#6B9FB8]/25 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap gap-2 rounded-2xl bg-[#EEF2F5] p-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("individual")}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "individual" ? "bg-[#2E6B8A] text-white shadow" : "text-soltas-muted"
-          }`}
-        >
-          Individual
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("organisation")}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-            activeTab === "organisation" ? "bg-[#2E6B8A] text-white shadow" : "text-soltas-muted"
-          }`}
-        >
-          Organisation
-        </button>
-      </div>
-
-      {activeTab === "individual" ? (
-        <form onSubmit={handleIndividualSubmit} className="mt-6 space-y-4">
+      <form onSubmit={handleIndividualSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               label="First name"
@@ -522,93 +353,8 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
           <SubmitRow
             loading={loading}
             message={message}
-            onResendConfirmation={handleResendConfirmation}
-            resendLoading={resendLoading}
-            resendMessage={resendMessage}
-            canResend={!!pendingConfirmationEmail}
           />
         </form>
-      ) : (
-        <form onSubmit={handleOrganisationSubmit} className="mt-6 space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              label="Email"
-              type="email"
-              value={organisation.email}
-              onChange={(value) => updateOrganisationField("email", value)}
-              error={errors.email}
-              required
-            />
-            <Field
-              label="Password"
-              type="password"
-              value={organisation.password}
-              onChange={(value) => updateOrganisationField("password", value)}
-              error={errors.password}
-              required
-            />
-            <Field
-              label="Organisation name"
-              value={organisation.name}
-              onChange={(value) => updateOrganisationField("name", value)}
-              error={errors.name}
-              required
-            />
-            <Field
-              label="Country based"
-              value={organisation.country_based}
-              onChange={(value) => updateOrganisationField("country_based", value)}
-              error={errors.country_based}
-              required
-            />
-            <Field
-              label="Existing since"
-              type="date"
-              value={organisation.existing_since}
-              onChange={(value) => updateOrganisationField("existing_since", value)}
-              helperText="Optional"
-            />
-            <Field
-              label="Website"
-              value={organisation.website}
-              onChange={(value) => updateOrganisationField("website", value)}
-            />
-            <Field
-              label="Logo URL"
-              value={organisation.logo_url}
-              onChange={(value) => updateOrganisationField("logo_url", value)}
-              helperText="Upload support will be added later."
-            />
-          </div>
-
-          <TextAreaField
-            label="What we do"
-            value={organisation.what_we_do}
-            onChange={(value) => updateOrganisationField("what_we_do", value)}
-            error={errors.what_we_do}
-            required
-          />
-
-          <SocialLinksField
-            title="Social links"
-            links={organisationLinks}
-            onChange={(index, field, value) =>
-              updateSocialLinks(setOrganisationLinks, index, field, value)
-            }
-            onAdd={() => addSocialLink(setOrganisationLinks)}
-            onRemove={(index) => removeSocialLink(setOrganisationLinks, index)}
-          />
-
-          <SubmitRow
-            loading={loading}
-            message={message}
-            onResendConfirmation={handleResendConfirmation}
-            resendLoading={resendLoading}
-            resendMessage={resendMessage}
-            canResend={!!pendingConfirmationEmail}
-          />
-        </form>
-      )}
     </div>
   );
 }
@@ -793,20 +539,10 @@ function SocialLinksField({
 function SubmitRow({
   loading,
   message,
-  onResendConfirmation,
-  resendLoading,
-  resendMessage,
-  canResend,
 }: {
   loading: boolean;
   message: { text: string; tone: "error" | "success" | "info" } | null;
-  onResendConfirmation?: () => void;
-  resendLoading?: boolean;
-  resendMessage?: string | null;
-  canResend?: boolean;
 }) {
-  const showResendButton = message?.tone === "info" && canResend && onResendConfirmation;
-
   return (
     <div className="space-y-3">
       <button
@@ -828,21 +564,6 @@ function SubmitRow({
         >
           {message.text}
         </p>
-      )}
-      {showResendButton && (
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={onResendConfirmation}
-            disabled={resendLoading}
-            className="w-full rounded-xl border border-[#6B9FB8]/40 bg-white px-4 py-2 text-sm font-medium text-[#2E6B8A] transition hover:bg-[#EEF2F5] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {resendLoading ? "Sending..." : "Resend confirmation email"}
-          </button>
-          {resendMessage && (
-            <p className="text-sm font-medium text-[#2E6B8A]">{resendMessage}</p>
-          )}
-        </div>
       )}
     </div>
   );

@@ -94,6 +94,8 @@ export default async function OrganisationPage({
   const resolvedFollowerCount = followerCountError ? null : followerCount ?? 0;
   const isFollowing = Boolean(followEdge && !followEdgeError);
   const isVerified = organisation.verification_status === "verified";
+  const isPending = organisation.verification_status === "pending";
+  const isRejected = organisation.verification_status === "rejected";
 
   // Fetch organisation updates
   const { data: organisationUpdates } = await supabase
@@ -122,6 +124,38 @@ export default async function OrganisationPage({
           { label: organisation.name },
         ]}
       />
+
+      {isPending && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-100">
+              <span className="text-sm">⏳</span>
+            </div>
+            <div className="flex-1">
+              <strong className="block text-sm font-semibold text-amber-900">Pending verification</strong>
+              <p className="mt-1 text-sm text-amber-800">
+                This organisation is pending verification. Once verified, it will be able to create projects, funding, and posts.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRejected && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100">
+              <span className="text-sm">✕</span>
+            </div>
+            <div className="flex-1">
+              <strong className="block text-sm font-semibold text-red-900">Verification rejected</strong>
+              <p className="mt-1 text-sm text-red-800">
+                This organisation&apos;s verification was rejected. Please contact support for more information.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSavedMessage && (
         <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

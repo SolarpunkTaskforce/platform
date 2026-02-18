@@ -85,7 +85,7 @@ export default async function MyOrganisationsPage() {
             You are not a member of any organisations yet.
           </p>
           <Link
-            href="/onboarding/organisation"
+            href="/organisations/create"
             className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             Create organisation
