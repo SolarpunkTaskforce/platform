@@ -150,7 +150,7 @@ export default async function OrganisationPage({
             <div className="flex-1">
               <strong className="block text-sm font-semibold text-red-900">Verification rejected</strong>
               <p className="mt-1 text-sm text-red-800">
-                This organisation's verification was rejected. Please contact support for more information.
+                This organisation&apos;s verification was rejected. Please contact support for more information.
               </p>
             </div>
           </div>

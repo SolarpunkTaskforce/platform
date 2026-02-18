@@ -13,8 +13,6 @@ type OrganisationContext = {
 export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuper, setIsSuper] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [organisations, setOrganisations] = useState<OrganisationContext[]>([]);
   const [activeOrg, setActiveOrg] = useState<OrganisationContext | null>(null);
 
   useEffect(() => {
@@ -24,8 +22,6 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session || !mounted) return;
-
-      setUserId(session.user.id);
 
       const [a, s] = await Promise.all([
         rpcIsAdmin(supabase),
@@ -58,8 +54,6 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           return null;
         })
         .filter((org): org is OrganisationContext => org !== null);
-
-      setOrganisations(orgs);
 
       // Set first org with owner/admin role as active, or first org if any
       const ownerOrAdminOrg = orgs.find((org) => org.role === "owner" || org.role === "admin");
