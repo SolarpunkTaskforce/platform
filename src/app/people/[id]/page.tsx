@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -78,9 +79,11 @@ export default async function ProfilePage({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           {profile.avatar_url ? (
-            <img
+            <Image
               src={profile.avatar_url}
               alt={name || "Profile avatar"}
+              width={80}
+              height={80}
               className="h-20 w-20 rounded-full border border-slate-200 object-cover"
             />
           ) : (

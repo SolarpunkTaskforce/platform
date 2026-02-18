@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -101,9 +102,11 @@ export default async function MyOrganisationsPage() {
             >
               <div className="flex items-start gap-4">
                 {org.logo_url ? (
-                  <img
+                  <Image
                     src={org.logo_url}
                     alt={org.name}
+                    width={56}
+                    height={56}
                     className="h-14 w-14 rounded-lg border border-slate-200 object-cover"
                   />
                 ) : (

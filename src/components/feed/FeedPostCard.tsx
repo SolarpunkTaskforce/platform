@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 type FeedPostCardProps = {
@@ -61,7 +62,6 @@ function getEntityLink(
 }
 
 export function FeedPostCard({
-  id,
   authorName,
   authorAvatarUrl,
   content,
@@ -77,9 +77,11 @@ export function FeedPostCard({
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex gap-3">
         {authorAvatarUrl ? (
-          <img
+          <Image
             src={authorAvatarUrl}
             alt={authorName}
+            width={40}
+            height={40}
             className="h-10 w-10 rounded-full border border-slate-200 object-cover"
           />
         ) : (

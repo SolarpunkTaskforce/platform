@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getServerSupabase } from "@/lib/supabaseServer";
-import { MemberRow } from "./MemberRow";
 import { MemberRequestsTab } from "./MemberRequestsTab";
 
 type Member = {
@@ -179,49 +178,6 @@ async function removeMember(formData: FormData) {
   if (error) throw error;
 
   revalidatePath(`/organisations/${organisationId}/members`);
-}
-
-async function addMember(formData: FormData) {
-  "use server";
-
-  const organisationId = formData.get("organisation_id");
-  const email = formData.get("email");
-
-  if (typeof organisationId !== "string" || !organisationId) {
-    throw new Error("Missing organisation id.");
-  }
-
-  if (typeof email !== "string" || !email) {
-    throw new Error("Missing email.");
-  }
-
-  const supabase = await getServerSupabase();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  // Check if the current user is an admin/owner of this org
-  const { data: currentMember } = await supabase
-    .from("organisation_members")
-    .select("role")
-    .eq("organisation_id", organisationId)
-    .eq("user_id", auth.user.id)
-    .single();
-
-  if (!currentMember || (currentMember.role !== "admin" && currentMember.role !== "owner")) {
-    throw new Error("Unauthorized");
-  }
-
-  // Look up user by email in auth.users (admin only)
-  const { data: isAdmin } = await supabase.rpc("is_admin");
-  if (!isAdmin) {
-    throw new Error("Adding members by email requires admin privileges.");
-  }
-
-  // For now, we'll just return an error since we can't directly query auth.users
-  // In production, this would need to be implemented with an RPC function
-  throw new Error("Adding members is not yet implemented. Users must be added via invite links.");
 }
 
 async function approveMemberRequest(formData: FormData) {

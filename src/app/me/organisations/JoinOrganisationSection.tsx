@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { submitMembershipRequest, cancelMembershipRequest } from "./actions";
 
@@ -51,7 +52,7 @@ export function JoinOrganisationSection({ requests }: Props) {
       }
       const data = await response.json();
       setSearchResults(data.organisations || []);
-    } catch (err) {
+    } catch {
       setError("Failed to search organisations. Please try again.");
       setSearchResults([]);
     } finally {
@@ -155,9 +156,11 @@ export function JoinOrganisationSection({ requests }: Props) {
                       className="flex items-center gap-4 rounded-lg border border-slate-200 p-4"
                     >
                       {org.logo_url ? (
-                        <img
+                        <Image
                           src={org.logo_url}
                           alt={org.name}
+                          width={48}
+                          height={48}
                           className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
                         />
                       ) : (
@@ -266,9 +269,11 @@ export function JoinOrganisationSection({ requests }: Props) {
                 className="flex items-center gap-4 rounded-lg border border-amber-200 bg-white p-4"
               >
                 {request.organisation_logo ? (
-                  <img
+                  <Image
                     src={request.organisation_logo}
                     alt={request.organisation_name}
+                    width={40}
+                    height={40}
                     className="h-10 w-10 rounded-lg border border-slate-200 object-cover"
                   />
                 ) : (
@@ -311,9 +316,11 @@ export function JoinOrganisationSection({ requests }: Props) {
                 className="flex items-center gap-4 rounded-lg border border-slate-200 p-4"
               >
                 {request.organisation_logo ? (
-                  <img
+                  <Image
                     src={request.organisation_logo}
                     alt={request.organisation_name}
+                    width={40}
+                    height={40}
                     className="h-10 w-10 rounded-lg border border-slate-200 object-cover"
                   />
                 ) : (

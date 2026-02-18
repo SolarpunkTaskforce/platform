@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 type FeedItemCardProps = {
@@ -55,9 +56,11 @@ export function FeedItemCard({
           </div>
         </div>
         {actorAvatarUrl ? (
-          <img
+          <Image
             src={actorAvatarUrl}
             alt={actorName}
+            width={40}
+            height={40}
             className="h-10 w-10 rounded-full border border-slate-200 object-cover"
           />
         ) : eventType !== "funding" && eventType !== "watchdog" ? (
