@@ -154,17 +154,19 @@ export default async function MyOrganisationsPage() {
 
       <JoinOrganisationSection requests={requests} />
 
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-        <p className="mb-4 text-sm text-soltas-muted">
-          Want to start a new organisation?
-        </p>
-        <Link
-          href="/onboarding/organisation"
-          className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Create organisation
-        </Link>
-      </div>
+      {organisations.length > 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <p className="mb-4 text-sm text-soltas-muted">
+            Want to start a new organisation?
+          </p>
+          <Link
+            href="/onboarding/organisation"
+            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Create organisation
+          </Link>
+        </div>
+      )}
     </main>
   );
 }
