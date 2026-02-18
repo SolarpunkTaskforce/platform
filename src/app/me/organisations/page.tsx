@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getServerSupabase } from "@/lib/supabaseServer";
+import { JoinOrganisationSection } from "./JoinOrganisationSection";
 
 export default async function MyOrganisationsPage() {
   const supabase = await getServerSupabase();
@@ -19,6 +20,13 @@ export default async function MyOrganisationsPage() {
     .select("organisation_id, role, can_create_projects, can_create_funding, organisations(id, name, logo_url, verification_status, country_based)")
     .eq("user_id", user.id)
     .order("role", { ascending: true }); // owner, admin, member order
+
+  // Fetch user's pending/approved/rejected requests
+  const { data: memberRequests } = await supabase
+    .from("organisation_member_requests")
+    .select("id, organisation_id, status, message, created_at, organisations(id, name, logo_url, country_based)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
   const organisations = (orgMembers ?? [])
     .map((member) => {
@@ -41,21 +49,34 @@ export default async function MyOrganisationsPage() {
     })
     .filter((org): org is NonNullable<typeof org> => org !== null);
 
+  const requests = (memberRequests ?? [])
+    .map((req) => {
+      const org = Array.isArray(req.organisations)
+        ? req.organisations[0]
+        : req.organisations;
+      if (org?.id && org?.name) {
+        return {
+          id: req.id,
+          organisation_id: org.id,
+          organisation_name: org.name,
+          organisation_logo: org.logo_url,
+          organisation_country: org.country_based,
+          status: req.status,
+          message: req.message,
+          created_at: req.created_at,
+        };
+      }
+      return null;
+    })
+    .filter((req): req is NonNullable<typeof req> => req !== null);
+
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-soltas-bark">My organisations</h1>
-          <p className="text-sm text-soltas-muted">
-            Organisations you are a member of.
-          </p>
-        </div>
-        <Link
-          href="/organisations/create"
-          className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Create organisation
-        </Link>
+    <main className="mx-auto max-w-4xl space-y-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold text-soltas-bark">My organisations</h1>
+        <p className="text-sm text-soltas-muted">
+          Organisations you are a member of.
+        </p>
       </div>
 
       {organisations.length === 0 ? (
@@ -125,19 +146,22 @@ export default async function MyOrganisationsPage() {
               </div>
             </Link>
           ))}
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <p className="mb-4 text-sm text-soltas-muted">
-              Want to start a new organisation?
-            </p>
-            <Link
-              href="/organisations/create"
-              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Create organisation
-            </Link>
-          </div>
         </div>
       )}
+
+      <JoinOrganisationSection requests={requests} />
+
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+        <p className="mb-4 text-sm text-soltas-muted">
+          Want to start a new organisation?
+        </p>
+        <Link
+          href="/onboarding/organisation"
+          className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          Create organisation
+        </Link>
+      </div>
     </main>
   );
 }

@@ -171,9 +171,17 @@ export default async function AdminOrganisationsPage({
 
   return (
     <main className="space-y-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Organisation Verification</h1>
-        <p className="text-sm text-soltas-muted">{currentViewConfig.description}</p>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">Organisation Verification</h1>
+          <p className="text-sm text-soltas-muted">{currentViewConfig.description}</p>
+        </div>
+        <Link
+          href="/admin/organisations/submissions"
+          className="rounded bg-soltas-ocean px-4 py-2 text-sm font-medium text-white transition hover:bg-soltas-ocean/90"
+        >
+          View Submissions
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
