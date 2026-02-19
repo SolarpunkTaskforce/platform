@@ -133,7 +133,7 @@ as $$
       from public.projects
       where status = 'approved'
         and visibility in ('public', 'unlisted')
-        and (end_date is null or end_date >= pg_catalog.current_date)
+        and (end_date is null or end_date >= current_date)
     ) as projects_projects_ongoing,
     (
       select pg_catalog.count(*)
