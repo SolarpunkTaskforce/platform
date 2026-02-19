@@ -32,28 +32,45 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       setIsSuper(s);
 
       // Fetch user's organisations
-      const { data: orgMembers } = await supabase
+      const { data: orgMembers, error: memberError } = await supabase
         .from("organisation_members")
-        .select("organisation_id, role, organisations(id, name)")
+        .select("organisation_id, role")
         .eq("user_id", session.user.id);
 
       if (!mounted) return;
 
-      const orgs: OrganisationContext[] = (orgMembers ?? [])
-        .map((member) => {
-          const org = Array.isArray(member.organisations)
-            ? member.organisations[0]
-            : member.organisations;
-          if (org?.id && org?.name) {
-            return {
-              id: org.id,
-              name: org.name,
-              role: member.role ?? "member",
-            };
-          }
-          return null;
-        })
-        .filter((org): org is OrganisationContext => org !== null);
+      if (memberError) {
+        console.error("Failed to load organisation memberships", memberError);
+        setActiveOrg(null);
+        return;
+      }
+
+      const orgIds = Array.from(
+        new Set((orgMembers ?? []).map((member) => member.organisation_id).filter(Boolean))
+      );
+
+      const orgNameMap = new Map<string, string>();
+      if (orgIds.length > 0) {
+        const { data: orgRows, error: orgError } = await supabase
+          .from("organisations_directory_v1")
+          .select("id, name")
+          .in("id", orgIds);
+
+        if (!mounted) return;
+        if (orgError) {
+          console.error("Failed to load organisation names", orgError);
+        } else {
+          orgRows?.forEach((org) => {
+            if (org.id) orgNameMap.set(org.id, org.name ?? "Organisation");
+          });
+        }
+      }
+
+      const orgs: OrganisationContext[] = (orgMembers ?? []).map((member) => ({
+        id: member.organisation_id,
+        name: orgNameMap.get(member.organisation_id) ?? "Organisation",
+        role: member.role ?? "member",
+      }));
 
       // Set first org with owner/admin role as active, or first org if any
       const ownerOrAdminOrg = orgs.find((org) => org.role === "owner" || org.role === "admin");

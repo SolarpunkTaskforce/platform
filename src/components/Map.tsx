@@ -9,6 +9,7 @@ import "mapbox-gl/dist/mapbox-gl.css"
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length > 0
 mapboxgl.accessToken = MAPBOX_TOKEN || ""
+mapboxgl.setTelemetryEnabled(false)
 
 const truncate = (value: string, length = 160) =>
   value.length > length ? `${value.slice(0, length).trimEnd()}…` : value

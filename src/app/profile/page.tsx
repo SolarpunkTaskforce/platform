@@ -17,7 +17,7 @@ export default async function MyProfileRedirectPage() {
     .from("profiles")
     .select("id, kind, organisation_id")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   // If user has an organisation context and is an organisation profile, redirect to org
   if (profile?.kind === "organisation" && profile?.organisation_id) {
