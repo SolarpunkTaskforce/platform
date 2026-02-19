@@ -7,8 +7,6 @@ import { Bell, Menu, User, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import UserMenu from "@/components/UserMenu";
 import CreateMenuButton from "@/components/CreateMenuButton";
-import IdentitySwitcher from "@/components/IdentitySwitcher";
-
 type Profile = {
   id: string;
   kind: "individual" | "organisation";
@@ -282,9 +280,7 @@ export default function Header() {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {sessionUserId ? (
-            <>
-              <IdentitySwitcher />
-              {addButton}
+            <>              {addButton}
               {notificationsButton}
               {profileControls}
             </>

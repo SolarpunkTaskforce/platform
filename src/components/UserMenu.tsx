@@ -1,6 +1,8 @@
 "use client";
+
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isAdmin as rpcIsAdmin, isSuperadmin as rpcIsSuper } from "@/lib/admin";
 
@@ -13,25 +15,29 @@ type OrganisationContext = {
 export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuper, setIsSuper] = useState(false);
-  const [activeOrg, setActiveOrg] = useState<OrganisationContext | null>(null);
+
+  const [orgs, setOrgs] = useState<OrganisationContext[]>([]);
+  const [orgsOpen, setOrgsOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session || !mounted) return;
 
-      const [a, s] = await Promise.all([
-        rpcIsAdmin(supabase),
-        rpcIsSuper(supabase),
-      ]);
+      if (!mounted) return;
+      if (!session) {
+        setOrgs([]);
+        return;
+      }
+
+      const [a, s] = await Promise.all([rpcIsAdmin(supabase), rpcIsSuper(supabase)]);
       if (!mounted) return;
       setIsAdmin(a);
       setIsSuper(s);
 
-      // Fetch user's organisations
       const { data: orgMembers, error: memberError } = await supabase
         .from("organisation_members")
         .select("organisation_id, role")
@@ -41,15 +47,16 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
 
       if (memberError) {
         console.error("Failed to load organisation memberships", memberError);
-        setActiveOrg(null);
+        setOrgs([]);
         return;
       }
 
       const orgIds = Array.from(
-        new Set((orgMembers ?? []).map((member) => member.organisation_id).filter(Boolean))
-      );
+        new Set((orgMembers ?? []).map((m) => m.organisation_id).filter(Boolean))
+      ) as string[];
 
       const orgNameMap = new Map<string, string>();
+
       if (orgIds.length > 0) {
         const { data: orgRows, error: orgError } = await supabase
           .from("organisations_directory_v1")
@@ -57,6 +64,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           .in("id", orgIds);
 
         if (!mounted) return;
+
         if (orgError) {
           console.error("Failed to load organisation names", orgError);
         } else {
@@ -66,22 +74,35 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         }
       }
 
-      const orgs: OrganisationContext[] = (orgMembers ?? []).map((member) => ({
-        id: member.organisation_id,
-        name: orgNameMap.get(member.organisation_id) ?? "Organisation",
-        role: member.role ?? "member",
-      }));
+      const nextOrgs: OrganisationContext[] = (orgMembers ?? [])
+        .filter((m) => !!m.organisation_id)
+        .map((m) => ({
+          id: m.organisation_id as string,
+          name: orgNameMap.get(m.organisation_id as string) ?? "Organisation",
+          role: m.role ?? "member",
+        }))
+        // De-dupe by org id (just in case)
+        .reduce<OrganisationContext[]>((acc, curr) => {
+          if (acc.some((o) => o.id === curr.id)) return acc;
+          acc.push(curr);
+          return acc;
+        }, []);
 
-      // Set first org with owner/admin role as active, or first org if any
-      const ownerOrAdminOrg = orgs.find((org) => org.role === "owner" || org.role === "admin");
-      setActiveOrg(ownerOrAdminOrg ?? orgs[0] ?? null);
+      // Sort by name for a clean menu
+      nextOrgs.sort((a2, b2) => a2.name.localeCompare(b2.name));
+
+      setOrgs(nextOrgs);
     })();
+
     return () => {
       mounted = false;
     };
   }, []);
 
-  const canManageOrg = activeOrg && (activeOrg.role === "owner" || activeOrg.role === "admin");
+  const orgSectionLabel = useMemo(() => {
+    // Always show the label as requested
+    return "My Organisation(s)";
+  }, []);
 
   return (
     <>
@@ -92,46 +113,44 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         My profile
       </Link>
-      <Link
-        href="/me/organisations"
-        className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-        onClick={onNavigate}
-      >
-        My organisations
-      </Link>
 
-      {activeOrg && (
-        <>
-          <div className="my-2 border-t border-slate-200" />
-          <Link
-            href={`/organisations/${activeOrg.id}`}
-            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-            onClick={onNavigate}
-          >
-            Organisation profile
-          </Link>
-          {canManageOrg && (
-            <>
-              <Link
-                href={`/organisations/${activeOrg.id}/edit`}
-                className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-                onClick={onNavigate}
-              >
-                Edit organisation
-              </Link>
-              <Link
-                href={`/organisations/${activeOrg.id}/members`}
-                className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-                onClick={onNavigate}
-              >
-                Members
-              </Link>
-            </>
-          )}
-        </>
-      )}
+      <div className="mt-1">
+        <button
+          type="button"
+          onClick={() => setOrgsOpen((o) => !o)}
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+        >
+          <span>{orgSectionLabel}</span>
+          {orgsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
+
+        {orgsOpen && (
+          <div className="mt-1 space-y-1 pl-2">
+            {orgs.length > 0 &&
+              orgs.map((org) => (
+                <Link
+                  key={org.id}
+                  href={`/organisations/${org.id}`}
+                  className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+                  onClick={onNavigate}
+                >
+                  {org.name}
+                </Link>
+              ))}
+
+            <Link
+              href="/organisations/create"
+              className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+              onClick={onNavigate}
+            >
+              Create New Organisation
+            </Link>
+          </div>
+        )}
+      </div>
 
       <div className="my-2 border-t border-slate-200" />
+
       <Link
         href="/settings"
         className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
@@ -139,6 +158,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         Settings
       </Link>
+
       {isAdmin && (
         <>
           <Link
@@ -157,6 +177,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
         </>
       )}
+
       {isSuper && (
         <Link
           href="/admin/manage"
@@ -166,6 +187,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           Manage Admins
         </Link>
       )}
+
       <button
         onClick={() => {
           supabase.auth.signOut();
