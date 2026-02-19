@@ -141,7 +141,7 @@ as $$
       where verification_status = 'verified'
     ) as projects_organisations_registered,
     (
-      select pg_catalog.coalesce(pg_catalog.sum(donations_received), 0)
+      select pg_catalog.coalesce(pg_catalog.sum(donations_received), 0::numeric)
       from public.projects
       where status = 'approved'
         and visibility in ('public', 'unlisted')
