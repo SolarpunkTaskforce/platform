@@ -1,11 +1,24 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-// CORS headers for preflight requests
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "OPTIONS, POST",
-};
+const ALLOWED_ORIGINS = new Set([
+  "https://www.solarpunktaskforce.org",
+  "https://solarpunktaskforce.org",
+  "http://localhost:3000",
+  "http://localhost:5173",
+]);
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://www.solarpunktaskforce.org";
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "OPTIONS, POST",
+    "Access-Control-Max-Age": "86400",
+  };
+}
 
 interface OrganisationData {
   name: string;
@@ -18,102 +31,75 @@ interface OrganisationData {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  const headers = corsHeaders(req);
+
+  // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers });
   }
 
   try {
-    // Validate request method
     if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method not allowed. Use POST." }),
-        {
-          status: 405,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Method not allowed. Use POST." }), {
+        status: 405,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Validate Authorization header exists
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        status: 401,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseAnonKey) {
-      console.error("Missing environment variables");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+      console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
     // Use anon client + JWT to get user id
-    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+    const anonClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
     });
 
     const { data: { user }, error: userError } = await anonClient.auth.getUser();
-
     if (userError || !user) {
       console.error("Auth error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Parse request body
     let orgData: OrganisationData;
     try {
       orgData = await req.json();
-    } catch (e) {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Validate required fields
     if (!orgData.name || !orgData.country_based || !orgData.what_we_do) {
       return new Response(
-        JSON.stringify({
-          error: "Missing required fields: name, country_based, what_we_do"
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
+        JSON.stringify({ error: "Missing required fields: name, country_based, what_we_do" }),
+        { status: 400, headers: { ...headers, "Content-Type": "application/json" } }
       );
     }
 
-    // Use service role client for DB writes
-    const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if user already owns an org (idempotency)
+    // Idempotency: if user already admin of an org, return it
     const { data: existingMembership, error: membershipCheckError } =
       await serviceClient
         .from("organisation_members")
@@ -124,27 +110,19 @@ Deno.serve(async (req) => {
 
     if (membershipCheckError) {
       console.error("Error checking existing membership:", membershipCheckError);
-      return new Response(
-        JSON.stringify({ error: "Failed to check existing organisation" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to check existing organisation" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // If user already owns an org, return it (idempotent)
     if (existingMembership) {
-      return new Response(
-        JSON.stringify({ organisation_id: existingMembership.organisation_id }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ organisation_id: existingMembership.organisation_id }), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Create organisation - Force created_by = user.id and verification_status='pending'
     const { data: newOrg, error: orgError } = await serviceClient
       .from("organisations")
       .insert({
@@ -155,24 +133,20 @@ Deno.serve(async (req) => {
         website: orgData.website || null,
         logo_url: orgData.logo_url || null,
         social_links: orgData.social_links || [],
-        created_by: user.id, // Force user.id
-        verification_status: "pending", // Force pending
+        created_by: user.id,
+        verification_status: "pending",
       })
       .select("id, name")
       .single();
 
     if (orgError || !newOrg) {
       console.error("Error creating organisation:", orgError);
-      return new Response(
-        JSON.stringify({ error: "Failed to create organisation" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to create organisation" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Insert membership with role='admin' and all permissions true
     const { error: memberError } = await serviceClient
       .from("organisation_members")
       .insert({
@@ -188,19 +162,14 @@ Deno.serve(async (req) => {
 
     if (memberError) {
       console.error("Error creating membership:", memberError);
-      // Rollback: delete the organisation
       await serviceClient.from("organisations").delete().eq("id", newOrg.id);
-      return new Response(
-        JSON.stringify({ error: "Failed to create organisation membership" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to create organisation membership" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
-    // Update profile: kind='organisation', organisation_id, organisation_name, role='admin'
-    const { error: profileError } = await serviceClient
+    await serviceClient
       .from("profiles")
       .update({
         kind: "organisation",
@@ -210,48 +179,24 @@ Deno.serve(async (req) => {
       })
       .eq("id", user.id);
 
-    if (profileError) {
-      console.error("Error updating profile:", profileError);
-      // Note: We don't rollback here as the org and membership were created successfully
-      // The profile update is a "nice to have" that can be fixed manually
-    }
-
-    // Clear user_metadata.pending_org using Auth Admin API
+    // Clear pending_org metadata (best-effort)
     try {
       const currentMetadata = user.user_metadata || {};
       const { pending_org, ...restMetadata } = currentMetadata;
-
-      const { error: metadataError } = await serviceClient.auth.admin.updateUserById(
-        user.id,
-        { user_metadata: restMetadata }
-      );
-
-      if (metadataError) {
-        console.error("Error clearing pending_org metadata:", metadataError);
-        // Non-critical error, don't fail the request
-      }
-    } catch (metaErr) {
-      console.error("Error processing metadata:", metaErr);
-      // Non-critical error, don't fail the request
+      await serviceClient.auth.admin.updateUserById(user.id, { user_metadata: restMetadata });
+    } catch (e) {
+      console.error("Metadata cleanup error (non-fatal):", e);
     }
 
-    // Return success with organisation_id
-    return new Response(
-      JSON.stringify({ organisation_id: newOrg.id }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-
+    return new Response(JSON.stringify({ organisation_id: newOrg.id }), {
+      status: 200,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
   }
 });
