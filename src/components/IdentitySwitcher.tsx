@@ -70,38 +70,55 @@ export default function IdentitySwitcher() {
 
     (async () => {
       // Fetch user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("full_name, surname")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (!mounted) return;
-      setUserProfile(profile);
+      setUserProfile(profileError ? null : profile);
 
       // Fetch user's organisations
-      const { data: orgMembers } = await supabase
+      const { data: orgMembers, error: memberError } = await supabase
         .from("organisation_members")
-        .select("organisation_id, role, organisations(id, name)")
+        .select("organisation_id, role")
         .eq("user_id", userId);
 
       if (!mounted) return;
 
-      const orgs = (orgMembers ?? [])
-        .map((member) => {
-          const org = Array.isArray(member.organisations)
-            ? member.organisations[0]
-            : member.organisations;
-          if (org?.id && org?.name) {
-            return {
-              id: org.id,
-              name: org.name,
-              role: member.role ?? "member",
-            };
-          }
-          return null;
-        })
-        .filter((org): org is { id: string; name: string; role: string } => org !== null);
+      if (memberError) {
+        console.error("Failed to load organisation memberships", memberError);
+        setOrganisations([]);
+        return;
+      }
+
+      const orgIds = Array.from(
+        new Set((orgMembers ?? []).map((member) => member.organisation_id).filter(Boolean))
+      );
+
+      const orgNameMap = new Map<string, string>();
+      if (orgIds.length > 0) {
+        const { data: orgRows, error: orgError } = await supabase
+          .from("organisations_directory_v1")
+          .select("id, name")
+          .in("id", orgIds);
+
+        if (!mounted) return;
+        if (orgError) {
+          console.error("Failed to load organisation names", orgError);
+        } else {
+          orgRows?.forEach((org) => {
+            if (org.id) orgNameMap.set(org.id, org.name ?? "Organisation");
+          });
+        }
+      }
+
+      const orgs = (orgMembers ?? []).map((member) => ({
+        id: member.organisation_id,
+        name: orgNameMap.get(member.organisation_id) ?? "Organisation",
+        role: member.role ?? "member",
+      }));
 
       setOrganisations(orgs);
 

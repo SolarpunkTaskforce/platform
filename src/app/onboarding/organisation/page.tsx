@@ -89,27 +89,16 @@ export default function OrganisationOnboardingPage() {
           throw new Error("Session expired. Please log in again.");
         }
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-organisation`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${currentSession.access_token}`,
-            },
-            body: JSON.stringify(pendingData),
-          }
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "create-organisation",
+          { body: pendingData }
         );
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to create organisation");
+        if (fnError || !data?.organisation_id) {
+          throw new Error(fnError?.message || "Failed to create organisation");
         }
 
-        const { organisation_id } = await response.json();
-        if (!organisation_id) {
-          throw new Error("Failed to create organisation");
-        }
+        const { organisation_id } = data as { organisation_id?: string };
 
         // Clear old localStorage key if it exists
         if (localStorage.getItem(PENDING_ORG_KEY)) {

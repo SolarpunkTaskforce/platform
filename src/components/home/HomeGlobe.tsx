@@ -10,6 +10,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const HAS_MAPBOX_TOKEN = typeof MAPBOX_TOKEN === "string" && MAPBOX_TOKEN.length > 0;
 mapboxgl.accessToken = MAPBOX_TOKEN || "";
+;(mapboxgl as typeof mapboxgl & { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled?.(false);
 
 const ROTATION_SPEED_DEG_PER_SEC = 1.25;
 const ROTATION_RESUME_DELAY_MS = 1500;

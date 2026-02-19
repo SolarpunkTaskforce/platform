@@ -110,27 +110,16 @@ export default function CreateOrganisationPage() {
       };
 
       // Call Edge Function to create organisation
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-organisation`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(orgData),
-        }
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "create-organisation",
+        { body: orgData }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create organisation");
+      if (fnError || !data?.organisation_id) {
+        throw new Error(fnError?.message || "Failed to create organisation");
       }
 
-      const { organisation_id } = await response.json();
-      if (!organisation_id) {
-        throw new Error("Failed to create organisation");
-      }
+      const { organisation_id } = data as { organisation_id?: string };
 
       router.replace(`/organisations/${organisation_id}`);
       router.refresh();

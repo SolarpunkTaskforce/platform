@@ -86,8 +86,14 @@ export default function Header() {
       .from("profiles")
       .select("id, kind, full_name, surname, organisation_name")
       .eq("id", sessionUserId)
-      .single()
-      .then(({ data }) => setProfile((data ?? null) as Profile | null));
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          setProfile(null);
+          return;
+        }
+        setProfile((data ?? null) as Profile | null);
+      });
   }, [sessionUserId]);
 
   useEffect(() => {
