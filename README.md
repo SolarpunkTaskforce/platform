@@ -5,6 +5,15 @@ how setup works, how Supabase integrates, and what to do for syncing, deployment
 
 ---
 
+## Latest Updates (Humans + Agent AIs)
+
+- UI palette rebrand is complete — see `docs/REBRAND_COMPLETE.md` for the blue/brown theme coverage across components.
+- Supabase migration/RLS guardrails for agents are in `AGENT_RULES.md`; review before touching database code or policies.
+- Implementation notes and test playbooks now live under `docs/` (e.g., `docs/IMPLEMENTATION.md`, `docs/manual-tests/`); add any new Markdown docs under `docs/` — only `README.md` stays at the repo root.
+- Security hardening guidance is captured in `SECURITY_HARDENING_QUICKSTART.md` and `SECURITY_HARDENING_SUMMARY.md`; follow alongside the Supabase rules above.
+
+---
+
 ## 1. Overview
 
 This project is a **Next.js 15 + Supabase** full-stack platform.  
