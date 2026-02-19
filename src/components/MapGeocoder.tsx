@@ -40,7 +40,7 @@ export default function MapGeocoder({ onSelect }: MapGeocoderProps) {
     }
 
     mapboxgl.accessToken = token;
-    mapboxgl.setTelemetryEnabled(false);
+    ;(mapboxgl as typeof mapboxgl & { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled?.(false);
 
     let map: mapboxgl.Map | null = null;
     let geocoder: InstanceType<typeof MapboxGeocoder> | null = null;
