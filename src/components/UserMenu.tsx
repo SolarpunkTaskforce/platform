@@ -18,6 +18,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
 
   const [orgs, setOrgs] = useState<OrganisationContext[]>([]);
   const [orgsOpen, setOrgsOpen] = useState(false);
+  const [registrationsOpen, setRegistrationsOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -160,22 +161,49 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       </Link>
 
       {isAdmin && (
-        <>
-          <Link
-            href="/admin/registrations"
-            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-            onClick={onNavigate}
+        <div className="mt-1">
+          <button
+            type="button"
+            onClick={() => setRegistrationsOpen((o) => !o)}
+            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
           >
-            Project Registrations
-          </Link>
-          <Link
-            href="/admin/issue-registrations"
-            className="rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
-            onClick={onNavigate}
-          >
-            Issue Registrations
-          </Link>
-        </>
+            <span>Registrations</span>
+            {registrationsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+
+          {registrationsOpen && (
+            <div className="mt-1 space-y-1 pl-2">
+              <Link
+                href="/admin/registrations"
+                className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+                onClick={onNavigate}
+              >
+                Project registrations
+              </Link>
+              <Link
+                href="/admin/funding-registrations"
+                className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+                onClick={onNavigate}
+              >
+                Funding registrations
+              </Link>
+              <Link
+                href="/admin/issue-registrations"
+                className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+                onClick={onNavigate}
+              >
+                Issue registrations
+              </Link>
+              <Link
+                href="/admin/organisation-registrations"
+                className="block rounded-lg px-3 py-2 text-[#1A2B38] hover:bg-[#EEF2F5] transition-colors duration-150"
+                onClick={onNavigate}
+              >
+                Organisation registrations
+              </Link>
+            </div>
+          )}
+        </div>
       )}
 
       {isSuper && (
