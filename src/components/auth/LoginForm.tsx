@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
@@ -37,6 +37,7 @@ type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
 
 function LoginFormContent({ client }: { client: SupabaseClient }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,8 +68,10 @@ function LoginFormContent({ client }: { client: SupabaseClient }) {
       if (error) throw error;
 
       setMessage({ text: "Signed in! Redirecting...", tone: "success" });
+      const returnTo = searchParams.get("returnTo");
+      const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/projects";
       setTimeout(() => {
-        router.replace("/projects");
+        router.replace(safeReturnTo);
         router.refresh();
       }, 400);
     } catch (err: unknown) {

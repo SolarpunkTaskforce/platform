@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { MissingSupabaseEnvError } from "@/lib/supabaseConfig";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -75,6 +75,7 @@ type SupabaseClient = NonNullable<ReturnType<typeof supabaseClient>>;
 
 function SignupTabsContent({ client }: { client: SupabaseClient }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [individual, setIndividual] = useState(initialIndividual);
   const [individualLinks, setIndividualLinks] = useState<SocialLink[]>([emptySocialLink]);
   const [verifiedOrgs, setVerifiedOrgs] = useState<VerifiedOrganisation[]>([]);
@@ -238,8 +239,10 @@ function SignupTabsContent({ client }: { client: SupabaseClient }) {
       if (profileError) throw profileError;
 
       setMessage({ text: "Signup successful! Redirecting...", tone: "success" });
+      const returnTo = searchParams.get("returnTo");
+      const safeReturnTo = returnTo?.startsWith("/") ? returnTo : "/projects";
       setTimeout(() => {
-        router.replace("/projects");
+        router.replace(safeReturnTo);
         router.refresh();
       }, 400);
     } catch (err: unknown) {
