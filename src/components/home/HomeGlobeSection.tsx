@@ -532,8 +532,13 @@ function PinnedStatsPanel({
       const signedDx = panelKey === "left" ? dx : -dx;
       const signedDy = -dy; // up = positive
 
-      const newWidth = clamp(w + signedDx, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
-      const newHeight = clamp(h + signedDy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+      // Calculate diagonal delta (use the smaller absolute movement to maintain aspect ratio)
+      const diagonalDelta = Math.min(Math.abs(signedDx), Math.abs(signedDy));
+      const finalDx = signedDx >= 0 ? diagonalDelta : -diagonalDelta;
+      const finalDy = signedDy >= 0 ? diagonalDelta : -diagonalDelta;
+
+      const newWidth = clamp(w + finalDx, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
+      const newHeight = clamp(h + finalDy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
 
       onResizeRef.current({ width: newWidth, height: newHeight });
     },
@@ -567,14 +572,14 @@ function PinnedStatsPanel({
       {/* Content */}
       <div
         className={cn(
-          "flex h-full w-full flex-col",
+          "flex h-full w-full flex-col transition-none",
           align === "right" ? "items-end text-right" : "items-start text-left",
         )}
         style={{ gap: `${contentGap}px`, padding: `${contentPadding}px` }}
       >
         {/* Header */}
         <div
-          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-soltas-glacial"
+          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-soltas-glacial transition-none"
           style={{ fontSize: `${0.7 * scale}rem` }}
         >
           <span>{title}</span>
@@ -582,17 +587,17 @@ function PinnedStatsPanel({
         </div>
 
         {/* Stats */}
-        <div className="flex flex-col" style={{ gap: `${statsGap}px` }}>
+        <div className="flex flex-col transition-none" style={{ gap: `${statsGap}px` }}>
           {items.map((item) => (
             <div
               key={item.label}
-              className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}
+              className={cn("flex flex-col gap-0.5 transition-none", align === "right" ? "items-end" : "items-start")}
             >
-              <div className="font-medium text-white/75" style={{ fontSize: `${0.8 * scale}rem` }}>
+              <div className="font-medium text-white/75 transition-none" style={{ fontSize: `${0.8 * scale}rem` }}>
                 {item.label}
               </div>
               <div
-                className="font-semibold leading-none text-white"
+                className="font-semibold leading-none text-white transition-none"
                 style={{ fontSize: `${1.9 * scale}rem` }}
               >
                 {formatStatValue(item)}
@@ -603,7 +608,7 @@ function PinnedStatsPanel({
 
         {/* Footnote */}
         {footnote ? (
-          <p className="mt-auto text-white/50" style={{ fontSize: `${0.68 * scale}rem` }}>
+          <p className="mt-auto text-white/50 transition-none" style={{ fontSize: `${0.68 * scale}rem` }}>
             {footnote}
           </p>
         ) : null}
