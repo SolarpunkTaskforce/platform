@@ -13,24 +13,25 @@ import { cn } from "@/lib/utils";
 import type { WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
 
 const DEFAULT_MODE: HomeGlobeMode = "projects";
-const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v4";
+const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v5";
 
 type PanelKey = "left" | "right";
 type PanelSize = { width: number; height: number };
 
 const PANEL_MIN_WIDTH = 300;
 const PANEL_MAX_WIDTH = 560;
-const PANEL_MIN_HEIGHT = 200;
-const PANEL_MAX_HEIGHT = 420;
 
+// We keep a fixed aspect ratio to ensure it always remains a horizontal rectangle
 const PANEL_DEFAULT_WIDTH = 340;
 const PANEL_DEFAULT_HEIGHT = 220;
+const PANEL_ASPECT = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
+
+// Derived height constraints from width constraints to maintain aspect ratio
+const PANEL_MIN_HEIGHT = Math.round(PANEL_MIN_WIDTH / PANEL_ASPECT);
+const PANEL_MAX_HEIGHT = Math.round(PANEL_MAX_WIDTH / PANEL_ASPECT);
 
 const PANEL_PADDING_X = 32;
 const PANEL_PADDING_BOTTOM = 32;
-
-// Keep the rectangle a rectangle during resize (constant aspect ratio).
-const PANEL_ASPECT = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
 
 const MODE_CONFIG: Record<HomeGlobeMode, { label: string; href: string; ctaLabel: string; mobileLabel: string }> = {
   projects: {
@@ -89,20 +90,16 @@ const defaultSize = (): PanelSize => ({
   height: PANEL_DEFAULT_HEIGHT,
 });
 
-const clampSize = (s: PanelSize): PanelSize => ({
-  width: clamp(s.width, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH),
-  height: clamp(s.height, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT),
-});
-
-/**
- * Clamp scale based on width/height min/max simultaneously while keeping aspect ratio.
- * We treat scale relative to start width/height, then clamp to what both dimensions allow.
- */
-const clampScale = (scale: number, start: { w: number; h: number }) => {
-  const minScale = Math.max(PANEL_MIN_WIDTH / start.w, PANEL_MIN_HEIGHT / start.h);
-  const maxScale = Math.min(PANEL_MAX_WIDTH / start.w, PANEL_MAX_HEIGHT / start.h);
-  return clamp(scale, minScale, maxScale);
+const clampWidthToSize = (w: number): PanelSize => {
+  const width = clamp(Math.round(w), PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
+  const height = clamp(Math.round(width / PANEL_ASPECT), PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+  // Keep aspect exactly:
+  const finalWidth = Math.round(height * PANEL_ASPECT);
+  return { width: clamp(finalWidth, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH), height };
 };
+
+// Scale factor for typography/layout, derived from width only (stable + predictable)
+const scaleFromWidth = (width: number) => clamp(width / PANEL_DEFAULT_WIDTH, 0.88, 1.28);
 
 type Props = {
   projectMarkers?: ProjectMarker[];
@@ -110,8 +107,6 @@ type Props = {
   issueMarkers?: WatchdogIssueMarker[];
   homeStats?: HomeStats | null;
 };
-
-// ─── Main section ────────────────────────────────────────────────────────────
 
 export default function HomeGlobeSection({
   projectMarkers = [],
@@ -123,7 +118,10 @@ export default function HomeGlobeSection({
   const [grantMarkersState, setGrantMarkersState] = useState<GrantMarker[]>(grantMarkers);
   const [issueMarkersState, setIssueMarkersState] = useState<WatchdogIssueMarker[]>(issueMarkers);
   const [homeStatsState, setHomeStatsState] = useState<HomeStats | null>(homeStats);
-  const [isLoading, setIsLoading] = useState(projectMarkers.length === 0 && grantMarkers.length === 0 && issueMarkers.length === 0);
+
+  const [isLoading, setIsLoading] = useState(
+    projectMarkers.length === 0 && grantMarkers.length === 0 && issueMarkers.length === 0,
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -153,7 +151,7 @@ export default function HomeGlobeSection({
           setHomeStatsState(stats);
         }
       } catch {
-        // keep initial values as fallback
+        // fallback to initial
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -284,15 +282,12 @@ export default function HomeGlobeSection({
 
   return (
     <section className="relative h-[calc(100dvh-4rem)] w-full overflow-hidden">
-      {/* Globe background */}
       <div id="home-globe" className="absolute inset-0 z-0">
         <HomeGlobe mode={mode} pointsByMode={pointsByMode} />
         <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-slate-950/30 via-slate-950/10 to-slate-950/40" />
       </div>
 
-      {/* Overlay UI */}
       <div className="pointer-events-none relative z-10 flex h-full w-full flex-col">
-        {/* Top content */}
         <div className="px-6 pt-8 sm:px-8 lg:px-12">
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">Solarpunk Taskforce</p>
@@ -303,7 +298,6 @@ export default function HomeGlobeSection({
             {isLoading ? <p className="text-sm text-white/70">Loading live globe data…</p> : null}
           </div>
 
-          {/* Mode buttons */}
           <div className="pointer-events-auto mt-6">
             <div
               ref={buttonRowRef}
@@ -334,7 +328,6 @@ export default function HomeGlobeSection({
               })}
             </div>
 
-            {/* Mobile tab bar */}
             <div className="mt-4 flex flex-col gap-3 md:hidden">
               <div
                 className="grid grid-cols-3 rounded-2xl border border-white/25 bg-white/10 p-1 backdrop-blur-md"
@@ -373,10 +366,9 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Desktop stat panels */}
+        {/* Desktop stat panels — the part we’re improving */}
         <PinnedStatsPanels activeStats={activeStats} />
 
-        {/* Mobile snapshot */}
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden">
           <div className="grid gap-4 md:grid-cols-2">
             <HomeStatsPanel key={`${mode}-snapshot-left`} title="Snapshot" items={activeStats.left} />
@@ -384,7 +376,6 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Scroll chevron */}
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center">
           <button
             type="button"
@@ -416,7 +407,7 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<PanelSize>;
         if (typeof parsed.width === "number" && typeof parsed.height === "number") {
-          return clampSize({ width: parsed.width, height: parsed.height });
+          return clampWidthToSize(parsed.width);
         }
       }
     } catch {
@@ -425,6 +416,17 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
     return defaultSize();
   });
 
+  // Panel DOM refs so we can resize live without React rerenders
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
+  const rightPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep a ref of the committed size
+  const committedRef = useRef(panelSize);
+  useEffect(() => {
+    committedRef.current = panelSize;
+  }, [panelSize]);
+
+  // Persist after commit
   useEffect(() => {
     try {
       localStorage.setItem(STATS_SIZE_STORAGE_KEY, JSON.stringify(panelSize));
@@ -433,101 +435,49 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
     }
   }, [panelSize]);
 
-  return (
-    <>
-      <div className="pointer-events-none absolute hidden lg:block" style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
-        <PinnedStatsPanel
-          panelKey="left"
-          title={activeStats.leftTitle}
-          items={activeStats.left}
-          footnote={activeStats.footnote}
-          align="left"
-          size={panelSize}
-          onResize={setPanelSize}
-        />
-      </div>
-
-      <div className="pointer-events-none absolute hidden lg:block" style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
-        <PinnedStatsPanel
-          panelKey="right"
-          title={activeStats.rightTitle}
-          items={activeStats.right}
-          footnote={activeStats.footnote}
-          align="right"
-          size={panelSize}
-          onResize={setPanelSize}
-        />
-      </div>
-    </>
-  );
-}
-
-/**
- * PinnedStatsPanel
- * - Proportional diagonal scaling (always keeps the same aspect ratio)
- * - rAF-throttled setState for smoothness
- * - Text scales during drag via transform (cheap)
- * - A more intuitive resize handle + hint
- */
-function PinnedStatsPanel({
-  panelKey,
-  title,
-  items,
-  footnote,
-  align,
-  size,
-  onResize,
-}: {
-  panelKey: PanelKey;
-  title: string;
-  items: StatItem[];
-  footnote?: string;
-  align: "left" | "right";
-  size: PanelSize;
-  onResize: (s: PanelSize) => void;
-}) {
-  const onResizeRef = useRef(onResize);
-  useEffect(() => {
-    onResizeRef.current = onResize;
-  }, [onResize]);
-
-  const sizeRef = useRef(size);
-  useEffect(() => {
-    sizeRef.current = size;
-  }, [size]);
-
-  // Snapshot on drag start.
-  const dragStartRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
-
-  // rAF throttle: at most 1 setState per frame.
   const rafRef = useRef<number | null>(null);
-  const pendingRef = useRef<PanelSize | null>(null);
+  const liveWidthRef = useRef<number>(panelSize.width);
 
-  const flushResize = useCallback(() => {
-    rafRef.current = null;
-    const next = pendingRef.current;
-    if (!next) return;
-    onResizeRef.current(next);
-    pendingRef.current = null;
+  const applyLiveWidth = useCallback((width: number) => {
+    const sized = clampWidthToSize(width);
+    liveWidthRef.current = sized.width;
+
+    const s = scaleFromWidth(sized.width);
+    const styles: Partial<CSSStyleDeclaration> = {
+      width: `${sized.width}px`,
+      height: `${sized.height}px`,
+    };
+
+    const apply = (el: HTMLDivElement | null) => {
+      if (!el) return;
+      el.style.width = styles.width ?? "";
+      el.style.height = styles.height ?? "";
+      el.style.setProperty("--panel-scale", String(s));
+    };
+
+    apply(leftPanelRef.current);
+    apply(rightPanelRef.current);
   }, []);
 
-  const scheduleResize = useCallback(
-    (next: PanelSize) => {
-      pendingRef.current = next;
-      if (rafRef.current == null) {
-        rafRef.current = window.requestAnimationFrame(flushResize);
-      }
+  const scheduleApply = useCallback(
+    (width: number) => {
+      if (rafRef.current != null) return;
+      rafRef.current = window.requestAnimationFrame(() => {
+        rafRef.current = null;
+        applyLiveWidth(width);
+      });
     },
-    [flushResize],
+    [applyLiveWidth],
   );
 
   useEffect(() => {
+    // Ensure refs get correct initial inline styles
+    applyLiveWidth(panelSize.width);
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
-      pendingRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setDraggingCursor = (isDragging: boolean) => {
     const root = document.documentElement;
@@ -540,186 +490,287 @@ function PinnedStatsPanel({
     }
   };
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLButtonElement>) => {
+  const dragRef = useRef<{
+    panelKey: PanelKey;
+    startX: number;
+    startY: number;
+    startW: number;
+  } | null>(null);
+
+  const onStartResize = useCallback(
+    (panelKey: PanelKey, e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const current = sizeRef.current;
-      dragStartRef.current = { px: e.clientX, py: e.clientY, w: current.width, h: current.height };
+      const start = committedRef.current;
+
+      dragRef.current = {
+        panelKey,
+        startX: e.clientX,
+        startY: e.clientY,
+        startW: start.width,
+      };
 
       setDraggingCursor(true);
 
-      const handlePointerMove = (ev: PointerEvent) => {
-        const start = dragStartRef.current;
-        if (!start) return;
+      const onMove = (ev: PointerEvent) => {
+        const d = dragRef.current;
+        if (!d) return;
 
-        const dx = ev.clientX - start.px;
-        const dy = ev.clientY - start.py;
+        const dx = ev.clientX - d.startX;
+        const dy = ev.clientY - d.startY;
 
-        // Growth direction:
-        // Left panel grows when moving right/up. Right grows when moving left/up.
-        const signedDx = panelKey === "left" ? dx : -dx;
-        const signedDy = -dy; // up = positive
+        // Growth intent:
+        // left panel grows when moving right/up; right panel grows when moving left/up
+        const signedDx = d.panelKey === "left" ? dx : -dx;
+        const signedDy = -dy;
 
-        // Dominant intent by movement magnitude avoids "sticky" shrink.
+        // Choose dominant axis by absolute movement to avoid “sticky” shrink/expand
         const useX = Math.abs(signedDx) >= Math.abs(signedDy);
 
-        // Scale factor from dominant axis
-        let nextScale = useX ? 1 + signedDx / start.w : 1 + signedDy / start.h;
-        if (!Number.isFinite(nextScale)) nextScale = 1;
+        // Convert movement to width delta (single source of truth)
+        const deltaW = useX ? signedDx : (signedDy * PANEL_ASPECT);
 
-        nextScale = clampScale(nextScale, start);
+        const nextW = d.startW + deltaW;
 
-        // Maintain aspect ratio exactly.
-        const nextWidth = Math.round(start.w * nextScale);
-        const nextHeight = Math.round(nextWidth / PANEL_ASPECT);
-
-        // Ensure height bounds are respected too (rare edge when width clamp hits first).
-        const clamped = clampSize({ width: nextWidth, height: nextHeight });
-
-        // Re-derive width from height if height got clamped.
-        const finalWidth = Math.round(clamped.height * PANEL_ASPECT);
-        scheduleResize(clampSize({ width: finalWidth, height: clamped.height }));
+        // Apply live (no React state, no re-render lag)
+        scheduleApply(nextW);
       };
 
-      const endDrag = () => {
-        dragStartRef.current = null;
+      const onEnd = () => {
         setDraggingCursor(false);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", endDrag);
-        window.removeEventListener("pointercancel", endDrag);
+        dragRef.current = null;
+
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onEnd);
+        window.removeEventListener("pointercancel", onEnd);
+
+        // Commit once (React state + localStorage)
+        const committed = clampWidthToSize(liveWidthRef.current);
+        setPanelSize(committed);
       };
 
-      window.addEventListener("pointermove", handlePointerMove, { passive: true });
-      window.addEventListener("pointerup", endDrag, { passive: true });
-      window.addEventListener("pointercancel", endDrag, { passive: true });
+      window.addEventListener("pointermove", onMove, { passive: true });
+      window.addEventListener("pointerup", onEnd, { passive: true });
+      window.addEventListener("pointercancel", onEnd, { passive: true });
     },
-    [panelKey, scheduleResize],
+    [scheduleApply],
   );
 
-  // Content scale (live during drag). Clamp to avoid too tiny / too huge.
-  const dimensionScale = Math.min(size.width / PANEL_DEFAULT_WIDTH, size.height / PANEL_DEFAULT_HEIGHT);
-  const contentScale = clamp(dimensionScale, 0.82, 1.28);
+  return (
+    <>
+      <div className="pointer-events-none absolute hidden lg:block" style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
+        <PinnedStatsPanelShell
+          ref={leftPanelRef}
+          panelKey="left"
+          title={activeStats.leftTitle}
+          items={activeStats.left}
+          footnote={activeStats.footnote}
+          align="left"
+          onStartResize={onStartResize}
+        />
+      </div>
+
+      <div className="pointer-events-none absolute hidden lg:block" style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
+        <PinnedStatsPanelShell
+          ref={rightPanelRef}
+          panelKey="right"
+          title={activeStats.rightTitle}
+          items={activeStats.right}
+          footnote={activeStats.footnote}
+          align="right"
+          onStartResize={onStartResize}
+        />
+      </div>
+    </>
+  );
+}
+
+type PanelShellProps = {
+  panelKey: PanelKey;
+  title: string;
+  items: StatItem[];
+  footnote?: string;
+  align: "left" | "right";
+  onStartResize: (panelKey: PanelKey, e: React.PointerEvent<HTMLButtonElement>) => void;
+};
+
+// ForwardRef so parent can imperatively update width/height/--panel-scale
+const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
+  { panelKey, title, items, footnote, align, onStartResize }: PanelShellProps,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
+  if (!items.length) return null;
 
   const cornerClass = panelKey === "left" ? "-top-2 -right-2" : "-top-2 -left-2";
-  const transformOrigin = align === "right" ? "top right" : "top left";
-
-  if (!items.length) return null;
+  const hintAlign = panelKey === "left" ? "right-1" : "left-1";
 
   return (
     <div
+      ref={ref}
       className={cn(
-        "pointer-events-auto group relative overflow-hidden rounded-3xl border border-white/25 bg-white/10",
+        "pointer-events-auto group relative rounded-3xl border border-white/25 bg-white/10",
         "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
-        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
+        // IMPORTANT: do NOT overflow-hidden; it can clip while font sizes reflow.
+        // We keep rounded corners visually via a ring + background.
+        "overflow-visible",
       )}
-      style={{ width: size.width, height: size.height }}
+      // These are set imperatively by parent, but we provide safe defaults for SSR
+      style={
+        {
+          width: `${PANEL_DEFAULT_WIDTH}px`,
+          height: `${PANEL_DEFAULT_HEIGHT}px`,
+          // CSS variable used by all inner sizing (fonts/padding/gap)
+          ["--panel-scale" as any]: String(scaleFromWidth(PANEL_DEFAULT_WIDTH)),
+        } as React.CSSProperties
+      }
     >
-      {/* Subtle glow on hover for "premium" feel */}
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
-        <div className="absolute -inset-10 bg-radial from-white/10 via-transparent to-transparent" />
-      </div>
+      {/* Inner surface with clipping (only for background), not for content */}
+      <div className="absolute inset-0 rounded-3xl bg-white/0 ring-1 ring-transparent transition group-hover:ring-white/20" />
 
-      {/* Content (scaled live) */}
+      {/* Content: everything sizes off --panel-scale (no transforms, no desync) */}
       <div
-        className={cn("h-full w-full will-change-transform", align === "right" ? "text-right" : "text-left")}
-        style={{ transform: `scale(${contentScale})`, transformOrigin }}
+        className={cn("relative h-full w-full", align === "right" ? "text-right" : "text-left")}
+        style={{
+          padding: "calc(16px * var(--panel-scale))",
+          gap: "calc(14px * var(--panel-scale))",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: align === "right" ? "flex-end" : "flex-start",
+        }}
       >
-        <div className={cn("flex h-full w-full flex-col", align === "right" ? "items-end" : "items-start", "p-4")}
-          style={{ gap: 14 }}
+        {/* Header */}
+        <div
+          className="flex w-full items-center justify-between"
+          style={{
+            columnGap: "calc(10px * var(--panel-scale))",
+            fontSize: "calc(11px * var(--panel-scale))",
+            letterSpacing: "0.2em",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            color: "rgb(180 226 235 / 1)", // text-soltas-glacial-ish without forcing tailwind token
+          }}
         >
-          {/* Header */}
-          <div className="flex w-full items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">
-            <span>{title}</span>
-            <span className="text-white/50">Live aggregates</span>
-          </div>
-
-          {/* Stats */}
-          <div className="flex flex-col gap-3">
-            {items.map((item) => (
-              <div key={item.label} className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}>
-                <div className="text-xs font-medium text-white/75">{item.label}</div>
-                <div className="text-3xl font-semibold leading-none text-white">{formatStatValue(item)}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footnote */}
-          {footnote ? <p className="mt-auto text-xs text-white/50">{footnote}</p> : null}
+          <span>{title}</span>
+          <span style={{ color: "rgba(255,255,255,0.55)", fontWeight: 600, letterSpacing: "0.16em" }}>
+            Live aggregates
+          </span>
         </div>
+
+        {/* Stats */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            rowGap: "calc(10px * var(--panel-scale))",
+            width: "100%",
+            alignItems: align === "right" ? "flex-end" : "flex-start",
+          }}
+        >
+          {items.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                rowGap: "calc(4px * var(--panel-scale))",
+                alignItems: align === "right" ? "flex-end" : "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "calc(12px * var(--panel-scale))",
+                  fontWeight: 600,
+                  color: "rgba(255,255,255,0.78)",
+                }}
+              >
+                {item.label}
+              </div>
+              <div
+                style={{
+                  fontSize: "calc(30px * var(--panel-scale))",
+                  lineHeight: 1,
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.98)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {formatStatValue(item)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footnote */}
+        {footnote ? (
+          <p
+            style={{
+              marginTop: "auto",
+              fontSize: "calc(12px * var(--panel-scale))",
+              lineHeight: 1.25,
+              color: "rgba(255,255,255,0.55)",
+              maxWidth: "100%",
+            }}
+          >
+            {footnote}
+          </p>
+        ) : null}
       </div>
 
-      {/* Improved corner resize handle */}
+      {/* Redesigned drag handle: obvious corner grip + big hit target */}
       <button
         type="button"
         aria-label="Resize panel"
-        onPointerDown={onPointerDown}
+        onPointerDown={(e) => onStartResize(panelKey, e)}
         className={cn(
           "absolute z-20",
           cornerClass,
-          // Big invisible hit target (easy to grab)
-          "h-11 w-11 rounded-2xl",
-          // Visible handle “capsule” sits inside
-          "flex items-center justify-center",
-          "cursor-nwse-resize",
+          "h-12 w-12 cursor-nwse-resize rounded-2xl",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
+          "pointer-events-auto",
         )}
       >
-        {/* Visible handle */}
+        {/* Visible grip */}
         <span
           className={cn(
-            "relative flex h-9 w-9 items-center justify-center rounded-2xl",
-            "border border-white/15 bg-white/10 backdrop-blur-md",
-            "shadow-[0_18px_50px_-26px_rgba(15,23,42,0.9)]",
+            "absolute inset-1 rounded-2xl",
+            "border border-white/20 bg-white/10 backdrop-blur-md",
+            "shadow-[0_18px_50px_-26px_rgba(15,23,42,0.95)]",
             "transition duration-200",
-            "group-hover:scale-[1.06] group-hover:border-white/30 group-hover:bg-white/14",
+            "group-hover:border-white/35 group-hover:bg-white/14",
             "active:scale-[0.98]",
           )}
         >
-          {/* Corner cue: a little “L” corner + grip dots */}
-          <span className="pointer-events-none absolute inset-0 rounded-2xl">
-            <span className={cn(
-              "absolute bottom-2 right-2 h-4 w-4 rounded-sm",
-              "border-b border-r border-white/55",
-              "opacity-70 group-hover:opacity-95 transition",
-            )} />
+          {/* Corner highlight */}
+          <span className="absolute bottom-2 right-2 h-5 w-5 border-b-2 border-r-2 border-white/70" />
+          {/* Grip dots */}
+          <span className="absolute left-2.5 top-2.5 grid grid-cols-2 gap-1 opacity-70 transition group-hover:opacity-100">
+            <span className="h-1 w-1 rounded-full bg-white/80" />
+            <span className="h-1 w-1 rounded-full bg-white/55" />
+            <span className="h-1 w-1 rounded-full bg-white/55" />
+            <span className="h-1 w-1 rounded-full bg-white/35" />
           </span>
-
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            className="text-white/70 transition group-hover:text-white"
-            aria-hidden="true"
-          >
-            {/* diagonal arrows */}
-            <path d="M6 10 L10 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M10 6 H7.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M10 6 V8.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M10 6 L12.2 3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
         </span>
 
-        {/* Hover hint */}
+        {/* Hint (desktop only) */}
         <span
           className={cn(
-            "pointer-events-none absolute -top-10 left-1/2 hidden -translate-x-1/2 rounded-full px-3 py-1 text-[11px] font-semibold",
-            "border border-white/20 bg-slate-950/55 text-white/85 backdrop-blur-md shadow-sm",
-            "opacity-0 translate-y-1 transition duration-200",
-            "lg:block group-hover:opacity-100 group-hover:translate-y-0",
+            "pointer-events-none absolute hidden whitespace-nowrap rounded-full border border-white/20 bg-slate-950/55 px-3 py-1 text-[11px] font-semibold text-white/85 backdrop-blur-md shadow-sm",
+            "opacity-0 transition duration-200 group-hover:opacity-100 lg:block",
+            hintAlign,
+            "-top-10",
           )}
         >
           Drag to resize
         </span>
       </button>
-
-      {/* Hover ring */}
-      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/20" />
     </div>
   );
-}
+} as unknown as (props: PanelShellProps & { ref?: React.Ref<HTMLDivElement> }) => JSX.Element) as React.ForwardRefExoticComponent<
+  PanelShellProps & React.RefAttributes<HTMLDivElement>
+>;
+
+PinnedStatsPanelShell.displayName = "PinnedStatsPanelShell";
 
 // ─── HomeStatsPanel (mobile only) ────────────────────────────────────────────
 
@@ -739,8 +790,7 @@ function HomeStatsPanel({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-4",
-        "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
+        "relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-4 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
         align === "right" ? "items-end text-right" : "items-start text-left",
       )}
     >
