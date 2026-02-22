@@ -502,65 +502,143 @@ function PinnedStatsPanel({
   size: PanelSize;
   onResize: (s: PanelSize) => void;
 }) {
-  // Keep a stable ref to onResize so the pointermove closure never stales.
   const onResizeRef = useRef(onResize);
-  useEffect(() => { onResizeRef.current = onResize; }, [onResize]);
+  useEffect(() => {
+    onResizeRef.current = onResize;
+  }, [onResize]);
 
-  // Capture start position and panel size at drag start.
-  const dragStartRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
+  // Store current size in a ref so pointermove can read without re-rendering.
+  const sizeRef = useRef(size);
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
+
+  // Drag start snapshot.
+  const dragStartRef = useRef<{
+    px: number;
+    py: number;
+    w: number;
+    h: number;
+    aspect: number;
+  } | null>(null);
+
+  // rAF throttling so we only set React state once per frame.
+  const rafRef = useRef<number | null>(null);
+  const pendingRef = useRef<PanelSize | null>(null);
+
+  const flushResize = useCallback(() => {
+    rafRef.current = null;
+    if (!pendingRef.current) return;
+    onResizeRef.current(pendingRef.current);
+    pendingRef.current = null;
+  }, []);
+
+  const scheduleResize = useCallback(
+    (next: PanelSize) => {
+      pendingRef.current = next;
+      if (rafRef.current == null) {
+        rafRef.current = window.requestAnimationFrame(flushResize);
+      }
+    },
+    [flushResize],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = null;
+      pendingRef.current = null;
+    };
+  }, []);
+
+  const setDraggingCursor = (isDragging: boolean) => {
+    const root = document.documentElement;
+    if (isDragging) {
+      root.style.cursor = "nwse-resize";
+      root.style.userSelect = "none";
+    } else {
+      root.style.cursor = "";
+      root.style.userSelect = "";
+    }
+  };
+
+  const clampScale = (scale: number, start: { w: number; h: number }) => {
+    const minScale = Math.max(PANEL_MIN_WIDTH / start.w, PANEL_MIN_HEIGHT / start.h);
+    const maxScale = Math.min(PANEL_MAX_WIDTH / start.w, PANEL_MAX_HEIGHT / start.h);
+    return clamp(scale, minScale, maxScale);
+  };
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      dragStartRef.current = { px: e.clientX, py: e.clientY, w: size.width, h: size.height };
+
+      const current = sizeRef.current;
+      dragStartRef.current = {
+        px: e.clientX,
+        py: e.clientY,
+        w: current.width,
+        h: current.height,
+        aspect: current.width / current.height,
+      };
+
+      // Capture pointer so we keep receiving move events even outside the handle.
       e.currentTarget.setPointerCapture(e.pointerId);
-      document.body.style.cursor = "nwse-resize";
-      document.body.style.userSelect = "none";
+      setDraggingCursor(true);
+
+      const handlePointerMove = (ev: PointerEvent) => {
+        const start = dragStartRef.current;
+        if (!start) return;
+
+        const dx = ev.clientX - start.px;
+        const dy = ev.clientY - start.py;
+
+        // Left panel grows when moving right/up. Right panel grows when moving left/up.
+        const signedDx = panelKey === "left" ? dx : -dx;
+        const signedDy = -dy; // up = positive
+
+        // Convert movement into a scale factor, so the rectangle scales smoothly even if the user drags mostly one axis.
+        const sx = 1 + signedDx / start.w;
+        const sy = 1 + signedDy / start.h;
+
+        // Use the dominant intent (whichever axis indicates more growth/shrink).
+        let nextScale = Math.max(sx, sy);
+
+        // Keep it stable if user wiggles slightly.
+        if (!Number.isFinite(nextScale)) nextScale = 1;
+
+        nextScale = clampScale(nextScale, start);
+
+        const nextWidth = Math.round(start.w * nextScale);
+        const nextHeight = Math.round(start.h * nextScale);
+
+        scheduleResize({ width: nextWidth, height: nextHeight });
+      };
+
+      const handlePointerUp = () => {
+        dragStartRef.current = null;
+        setDraggingCursor(false);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerUp);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove, { passive: true });
+      window.addEventListener("pointerup", handlePointerUp, { passive: true });
+      window.addEventListener("pointercancel", handlePointerUp, { passive: true });
     },
-    [size],
+    [panelKey, scheduleResize],
   );
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLButtonElement>) => {
-      if (!dragStartRef.current) return;
-      const { px, py, w, h } = dragStartRef.current;
-      const dx = e.clientX - px;
-      const dy = e.clientY - py;
-
-      // Left panel: drag right/up to grow. Right panel: drag left/up to grow.
-      const signedDx = panelKey === "left" ? dx : -dx;
-      const signedDy = -dy; // up = positive
-
-      // Calculate diagonal delta (use the smaller absolute movement to maintain aspect ratio)
-      const diagonalDelta = Math.min(Math.abs(signedDx), Math.abs(signedDy));
-      const finalDx = signedDx >= 0 ? diagonalDelta : -diagonalDelta;
-      const finalDy = signedDy >= 0 ? diagonalDelta : -diagonalDelta;
-
-      const newWidth = clamp(w + finalDx, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
-      const newHeight = clamp(h + finalDy, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
-
-      onResizeRef.current({ width: newWidth, height: newHeight });
-    },
-    [panelKey],
-  );
-
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    dragStartRef.current = null;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-  }, []);
-
-  // Scale text proportionally to the tighter dimension, clamped for legibility.
+  // Smooth text scaling: one transform instead of many per-element font calculations.
   const dimensionScale = Math.min(size.width / PANEL_DEFAULT_WIDTH, size.height / PANEL_DEFAULT_HEIGHT);
-  const scale = clamp(dimensionScale, 0.7, 1.35);
-  const contentPadding = 18 + 6 * scale;
-  const contentGap = 12 + 6 * scale;
-  const statsGap = 10 + 5 * scale;
+  const contentScale = clamp(dimensionScale, 0.8, 1.25);
 
-  // Corner handle sits at the globe-facing corner.
   const cornerClass = panelKey === "left" ? "-top-1.5 -right-1.5" : "-top-1.5 -left-1.5";
+  const transformOrigin =
+    align === "right" ? "top right" : "top left";
 
   if (!items.length) return null;
 
@@ -569,49 +647,48 @@ function PinnedStatsPanel({
       className="pointer-events-auto group relative overflow-hidden rounded-3xl border border-white/25 bg-white/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none"
       style={{ width: size.width, height: size.height }}
     >
-      {/* Content */}
+      {/* Content (scaled live, buttery) */}
       <div
         className={cn(
-          "flex h-full w-full flex-col transition-none",
-          align === "right" ? "items-end text-right" : "items-start text-left",
+          "h-full w-full",
+          align === "right" ? "text-right" : "text-left",
         )}
-        style={{ gap: `${contentGap}px`, padding: `${contentPadding}px` }}
+        style={{
+          transform: `scale(${contentScale})`,
+          transformOrigin,
+        }}
       >
-        {/* Header */}
         <div
-          className="flex w-full items-center justify-between gap-2 font-semibold uppercase tracking-[0.2em] text-soltas-glacial transition-none"
-          style={{ fontSize: `${0.7 * scale}rem` }}
+          className={cn(
+            "flex h-full w-full flex-col",
+            align === "right" ? "items-end" : "items-start",
+          )}
+          style={{ padding: 18, gap: 14 }}
         >
-          <span>{title}</span>
-          <span className="text-white/50">Live aggregates</span>
-        </div>
+          {/* Header */}
+          <div className="flex w-full items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">
+            <span>{title}</span>
+            <span className="text-white/50">Live aggregates</span>
+          </div>
 
-        {/* Stats */}
-        <div className="flex flex-col transition-none" style={{ gap: `${statsGap}px` }}>
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={cn("flex flex-col gap-0.5 transition-none", align === "right" ? "items-end" : "items-start")}
-            >
-              <div className="font-medium text-white/75 transition-none" style={{ fontSize: `${0.8 * scale}rem` }}>
-                {item.label}
-              </div>
+          {/* Stats */}
+          <div className="flex flex-col gap-3">
+            {items.map((item) => (
               <div
-                className="font-semibold leading-none text-white transition-none"
-                style={{ fontSize: `${1.9 * scale}rem` }}
+                key={item.label}
+                className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}
               >
-                {formatStatValue(item)}
+                <div className="text-xs font-medium text-white/75">{item.label}</div>
+                <div className="text-3xl font-semibold leading-none text-white">
+                  {formatStatValue(item)}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Footnote */}
-        {footnote ? (
-          <p className="mt-auto text-white/50 transition-none" style={{ fontSize: `${0.68 * scale}rem` }}>
-            {footnote}
-          </p>
-        ) : null}
+          {/* Footnote */}
+          {footnote ? <p className="mt-auto text-xs text-white/50">{footnote}</p> : null}
+        </div>
       </div>
 
       {/* Corner resize handle */}
@@ -619,9 +696,6 @@ function PinnedStatsPanel({
         type="button"
         aria-label="Resize panel"
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         className={cn(
           "group/handle absolute z-20 flex h-6 w-6 items-center justify-center rounded-xl",
           "border border-white/15 bg-white/12 backdrop-blur-sm shadow-[0_10px_40px_-20px_rgba(15,23,42,0.8)]",
