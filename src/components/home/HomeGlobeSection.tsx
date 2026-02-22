@@ -6,14 +6,14 @@ import type { FocusEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import HomeGlobe, { type HomeGlobeMode, type HomeGlobePoint } from "@/components/home/HomeGlobe";
-import type { HomeStats } from "@/lib/homeStats";
-import { cn } from "@/lib/utils";
 import type { GrantMarker } from "@/lib/grants/findGrantsQuery";
+import type { HomeStats } from "@/lib/homeStats";
 import type { ProjectMarker } from "@/lib/projects/findProjectsQuery";
+import { cn } from "@/lib/utils";
 import type { WatchdogIssueMarker } from "@/lib/watchdog/findWatchdogIssuesQuery";
 
 const DEFAULT_MODE: HomeGlobeMode = "projects";
-const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v3";
+const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v4";
 
 type PanelKey = "left" | "right";
 type PanelSize = { width: number; height: number };
@@ -22,15 +22,17 @@ const PANEL_MIN_WIDTH = 300;
 const PANEL_MAX_WIDTH = 560;
 const PANEL_MIN_HEIGHT = 200;
 const PANEL_MAX_HEIGHT = 420;
+
 const PANEL_DEFAULT_WIDTH = 340;
 const PANEL_DEFAULT_HEIGHT = 220;
+
 const PANEL_PADDING_X = 32;
 const PANEL_PADDING_BOTTOM = 32;
 
-const MODE_CONFIG: Record<
-  HomeGlobeMode,
-  { label: string; href: string; ctaLabel: string; mobileLabel: string }
-> = {
+// Keep the rectangle a rectangle during resize (constant aspect ratio).
+const PANEL_ASPECT = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
+
+const MODE_CONFIG: Record<HomeGlobeMode, { label: string; href: string; ctaLabel: string; mobileLabel: string }> = {
   projects: {
     label: "Find Projects",
     href: "/projects",
@@ -92,6 +94,16 @@ const clampSize = (s: PanelSize): PanelSize => ({
   height: clamp(s.height, PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT),
 });
 
+/**
+ * Clamp scale based on width/height min/max simultaneously while keeping aspect ratio.
+ * We treat scale relative to start width/height, then clamp to what both dimensions allow.
+ */
+const clampScale = (scale: number, start: { w: number; h: number }) => {
+  const minScale = Math.max(PANEL_MIN_WIDTH / start.w, PANEL_MIN_HEIGHT / start.h);
+  const maxScale = Math.min(PANEL_MAX_WIDTH / start.w, PANEL_MAX_HEIGHT / start.h);
+  return clamp(scale, minScale, maxScale);
+};
+
 type Props = {
   projectMarkers?: ProjectMarker[];
   grantMarkers?: GrantMarker[];
@@ -111,12 +123,7 @@ export default function HomeGlobeSection({
   const [grantMarkersState, setGrantMarkersState] = useState<GrantMarker[]>(grantMarkers);
   const [issueMarkersState, setIssueMarkersState] = useState<WatchdogIssueMarker[]>(issueMarkers);
   const [homeStatsState, setHomeStatsState] = useState<HomeStats | null>(homeStats);
-  const [isLoading, setIsLoading] = useState(
-    projectMarkers.length === 0 &&
-    grantMarkers.length === 0 &&
-    issueMarkers.length === 0
-  );
-
+  const [isLoading, setIsLoading] = useState(projectMarkers.length === 0 && grantMarkers.length === 0 && issueMarkers.length === 0);
 
   useEffect(() => {
     let isActive = true;
@@ -125,11 +132,7 @@ export default function HomeGlobeSection({
       setIsLoading(true);
 
       try {
-        const [markersRes, statsRes] = await Promise.all([
-          fetch("/api/home-markers"),
-          fetch("/api/home-stats"),
-        ]);
-
+        const [markersRes, statsRes] = await Promise.all([fetch("/api/home-markers"), fetch("/api/home-stats")]);
 
         if (!isActive) return;
 
@@ -152,9 +155,7 @@ export default function HomeGlobeSection({
       } catch {
         // keep initial values as fallback
       } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+        if (isActive) setIsLoading(false);
       }
     };
 
@@ -230,10 +231,7 @@ export default function HomeGlobeSection({
   );
 
   const statsByMode = useMemo<
-    Record<
-      HomeGlobeMode,
-      { leftTitle: string; rightTitle: string; left: StatItem[]; right: StatItem[]; footnote: string }
-    >
+    Record<HomeGlobeMode, { leftTitle: string; rightTitle: string; left: StatItem[]; right: StatItem[]; footnote: string }>
   >(
     () => ({
       projects: {
@@ -244,11 +242,7 @@ export default function HomeGlobeSection({
           { label: "Ongoing projects", value: homeStatsState?.projects.projects_ongoing, format: "number" },
         ],
         right: [
-          {
-            label: "Verified organisations",
-            value: homeStatsState?.projects.organisations_registered,
-            format: "number",
-          },
+          { label: "Verified organisations", value: homeStatsState?.projects.organisations_registered, format: "number" },
           { label: "Donations received", value: homeStatsState?.projects.donations_received_eur, format: "currency" },
         ],
         footnote: "Totals reflect approved public projects and verified organisations.",
@@ -260,9 +254,7 @@ export default function HomeGlobeSection({
           { label: "Funding opportunities", value: homeStatsState?.funding.opportunities_total, format: "number" },
           { label: "Open calls", value: homeStatsState?.funding.open_calls, format: "number" },
         ],
-        right: [
-          { label: "Funders represented", value: homeStatsState?.funding.funders_registered, format: "number" },
-        ],
+        right: [{ label: "Funders represented", value: homeStatsState?.funding.funders_registered, format: "number" }],
         footnote: "Counts include published funding calls that are open or rolling.",
       },
       issues: {
@@ -304,12 +296,9 @@ export default function HomeGlobeSection({
         <div className="px-6 pt-8 sm:px-8 lg:px-12">
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">Solarpunk Taskforce</p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-              Discover regenerative projects around the globe.
-            </h1>
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Discover regenerative projects around the globe.</h1>
             <p className="text-base text-white/80">
-              Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk
-              Taskforce ecosystem.
+              Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk Taskforce ecosystem.
             </p>
             {isLoading ? <p className="text-sm text-white/70">Loading live globe data…</p> : null}
           </div>
@@ -384,8 +373,7 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* ── Desktop stat panels — pinned to bottom corners ── */}
-
+        {/* Desktop stat panels */}
         <PinnedStatsPanels activeStats={activeStats} />
 
         {/* Mobile snapshot */}
@@ -447,10 +435,7 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
 
   return (
     <>
-      <div
-        className="pointer-events-none absolute hidden lg:block"
-        style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
-      >
+      <div className="pointer-events-none absolute hidden lg:block" style={{ left: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
         <PinnedStatsPanel
           panelKey="left"
           title={activeStats.leftTitle}
@@ -462,10 +447,7 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
         />
       </div>
 
-      <div
-        className="pointer-events-none absolute hidden lg:block"
-        style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}
-      >
+      <div className="pointer-events-none absolute hidden lg:block" style={{ right: PANEL_PADDING_X, bottom: PANEL_PADDING_BOTTOM }}>
         <PinnedStatsPanel
           panelKey="right"
           title={activeStats.rightTitle}
@@ -480,11 +462,13 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
   );
 }
 
-// ─── PinnedStatsPanel ─────────────────────────────────────────────────────────
-// Positioned with CSS (bottom + left/right), never moves.
-// Resize is handled by a raw pointermove listener on the corner handle so that
-// both panels mirror each other live — every frame while dragging.
-
+/**
+ * PinnedStatsPanel
+ * - Proportional diagonal scaling (always keeps the same aspect ratio)
+ * - rAF-throttled setState for smoothness
+ * - Text scales during drag via transform (cheap)
+ * - A more intuitive resize handle + hint
+ */
 function PinnedStatsPanel({
   panelKey,
   title,
@@ -507,29 +491,23 @@ function PinnedStatsPanel({
     onResizeRef.current = onResize;
   }, [onResize]);
 
-  // Store current size in a ref so pointermove can read without re-rendering.
   const sizeRef = useRef(size);
   useEffect(() => {
     sizeRef.current = size;
   }, [size]);
 
-  // Drag start snapshot.
-  const dragStartRef = useRef<{
-    px: number;
-    py: number;
-    w: number;
-    h: number;
-    aspect: number;
-  } | null>(null);
+  // Snapshot on drag start.
+  const dragStartRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
 
-  // rAF throttling so we only set React state once per frame.
+  // rAF throttle: at most 1 setState per frame.
   const rafRef = useRef<number | null>(null);
   const pendingRef = useRef<PanelSize | null>(null);
 
   const flushResize = useCallback(() => {
     rafRef.current = null;
-    if (!pendingRef.current) return;
-    onResizeRef.current(pendingRef.current);
+    const next = pendingRef.current;
+    if (!next) return;
+    onResizeRef.current(next);
     pendingRef.current = null;
   }, []);
 
@@ -545,9 +523,7 @@ function PinnedStatsPanel({
 
   useEffect(() => {
     return () => {
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
       pendingRef.current = null;
     };
@@ -564,28 +540,14 @@ function PinnedStatsPanel({
     }
   };
 
-  const clampScale = (scale: number, start: { w: number; h: number }) => {
-    const minScale = Math.max(PANEL_MIN_WIDTH / start.w, PANEL_MIN_HEIGHT / start.h);
-    const maxScale = Math.min(PANEL_MAX_WIDTH / start.w, PANEL_MAX_HEIGHT / start.h);
-    return clamp(scale, minScale, maxScale);
-  };
-
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
 
       const current = sizeRef.current;
-      dragStartRef.current = {
-        px: e.clientX,
-        py: e.clientY,
-        w: current.width,
-        h: current.height,
-        aspect: current.width / current.height,
-      };
+      dragStartRef.current = { px: e.clientX, py: e.clientY, w: current.width, h: current.height };
 
-      // Capture pointer so we keep receiving move events even outside the handle.
-      e.currentTarget.setPointerCapture(e.pointerId);
       setDraggingCursor(true);
 
       const handlePointerMove = (ev: PointerEvent) => {
@@ -595,75 +557,77 @@ function PinnedStatsPanel({
         const dx = ev.clientX - start.px;
         const dy = ev.clientY - start.py;
 
-        // Left panel grows when moving right/up. Right panel grows when moving left/up.
+        // Growth direction:
+        // Left panel grows when moving right/up. Right grows when moving left/up.
         const signedDx = panelKey === "left" ? dx : -dx;
         const signedDy = -dy; // up = positive
 
-        // Convert movement into a scale factor, so the rectangle scales smoothly even if the user drags mostly one axis.
-        const sx = 1 + signedDx / start.w;
-        const sy = 1 + signedDy / start.h;
+        // Dominant intent by movement magnitude avoids "sticky" shrink.
+        const useX = Math.abs(signedDx) >= Math.abs(signedDy);
 
-        // Use the dominant intent (whichever axis indicates more growth/shrink).
-        let nextScale = Math.max(sx, sy);
-
-        // Keep it stable if user wiggles slightly.
+        // Scale factor from dominant axis
+        let nextScale = useX ? 1 + signedDx / start.w : 1 + signedDy / start.h;
         if (!Number.isFinite(nextScale)) nextScale = 1;
 
         nextScale = clampScale(nextScale, start);
 
+        // Maintain aspect ratio exactly.
         const nextWidth = Math.round(start.w * nextScale);
-        const nextHeight = Math.round(start.h * nextScale);
+        const nextHeight = Math.round(nextWidth / PANEL_ASPECT);
 
-        scheduleResize({ width: nextWidth, height: nextHeight });
+        // Ensure height bounds are respected too (rare edge when width clamp hits first).
+        const clamped = clampSize({ width: nextWidth, height: nextHeight });
+
+        // Re-derive width from height if height got clamped.
+        const finalWidth = Math.round(clamped.height * PANEL_ASPECT);
+        scheduleResize(clampSize({ width: finalWidth, height: clamped.height }));
       };
 
-      const handlePointerUp = () => {
+      const endDrag = () => {
         dragStartRef.current = null;
         setDraggingCursor(false);
         window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        window.removeEventListener("pointercancel", handlePointerUp);
+        window.removeEventListener("pointerup", endDrag);
+        window.removeEventListener("pointercancel", endDrag);
       };
 
       window.addEventListener("pointermove", handlePointerMove, { passive: true });
-      window.addEventListener("pointerup", handlePointerUp, { passive: true });
-      window.addEventListener("pointercancel", handlePointerUp, { passive: true });
+      window.addEventListener("pointerup", endDrag, { passive: true });
+      window.addEventListener("pointercancel", endDrag, { passive: true });
     },
     [panelKey, scheduleResize],
   );
 
-  // Smooth text scaling: one transform instead of many per-element font calculations.
+  // Content scale (live during drag). Clamp to avoid too tiny / too huge.
   const dimensionScale = Math.min(size.width / PANEL_DEFAULT_WIDTH, size.height / PANEL_DEFAULT_HEIGHT);
-  const contentScale = clamp(dimensionScale, 0.8, 1.25);
+  const contentScale = clamp(dimensionScale, 0.82, 1.28);
 
-  const cornerClass = panelKey === "left" ? "-top-1.5 -right-1.5" : "-top-1.5 -left-1.5";
-  const transformOrigin =
-    align === "right" ? "top right" : "top left";
+  const cornerClass = panelKey === "left" ? "-top-2 -right-2" : "-top-2 -left-2";
+  const transformOrigin = align === "right" ? "top right" : "top left";
 
   if (!items.length) return null;
 
   return (
     <div
-      className="pointer-events-auto group relative overflow-hidden rounded-3xl border border-white/25 bg-white/10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none"
+      className={cn(
+        "pointer-events-auto group relative overflow-hidden rounded-3xl border border-white/25 bg-white/10",
+        "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-500 motion-reduce:animate-none",
+      )}
       style={{ width: size.width, height: size.height }}
     >
-      {/* Content (scaled live, buttery) */}
+      {/* Subtle glow on hover for "premium" feel */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
+        <div className="absolute -inset-10 bg-radial from-white/10 via-transparent to-transparent" />
+      </div>
+
+      {/* Content (scaled live) */}
       <div
-        className={cn(
-          "h-full w-full",
-          align === "right" ? "text-right" : "text-left",
-        )}
-        style={{
-          transform: `scale(${contentScale})`,
-          transformOrigin,
-        }}
+        className={cn("h-full w-full will-change-transform", align === "right" ? "text-right" : "text-left")}
+        style={{ transform: `scale(${contentScale})`, transformOrigin }}
       >
-        <div
-          className={cn(
-            "flex h-full w-full flex-col",
-            align === "right" ? "items-end" : "items-start",
-          )}
-          style={{ padding: 18, gap: 14 }}
+        <div className={cn("flex h-full w-full flex-col", align === "right" ? "items-end" : "items-start", "p-4")}
+          style={{ gap: 14 }}
         >
           {/* Header */}
           <div className="flex w-full items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">
@@ -674,14 +638,9 @@ function PinnedStatsPanel({
           {/* Stats */}
           <div className="flex flex-col gap-3">
             {items.map((item) => (
-              <div
-                key={item.label}
-                className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}
-              >
+              <div key={item.label} className={cn("flex flex-col gap-0.5", align === "right" ? "items-end" : "items-start")}>
                 <div className="text-xs font-medium text-white/75">{item.label}</div>
-                <div className="text-3xl font-semibold leading-none text-white">
-                  {formatStatValue(item)}
-                </div>
+                <div className="text-3xl font-semibold leading-none text-white">{formatStatValue(item)}</div>
               </div>
             ))}
           </div>
@@ -691,31 +650,69 @@ function PinnedStatsPanel({
         </div>
       </div>
 
-      {/* Corner resize handle */}
+      {/* Improved corner resize handle */}
       <button
         type="button"
         aria-label="Resize panel"
         onPointerDown={onPointerDown}
         className={cn(
-          "group/handle absolute z-20 flex h-6 w-6 items-center justify-center rounded-xl",
-          "border border-white/15 bg-white/12 backdrop-blur-sm shadow-[0_10px_40px_-20px_rgba(15,23,42,0.8)]",
-          "transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/18",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
-          "cursor-nwse-resize",
+          "absolute z-20",
           cornerClass,
+          // Big invisible hit target (easy to grab)
+          "h-11 w-11 rounded-2xl",
+          // Visible handle “capsule” sits inside
+          "flex items-center justify-center",
+          "cursor-nwse-resize",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
         )}
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          className="text-white/60 transition group-hover/handle:text-white"
-          aria-hidden="true"
+        {/* Visible handle */}
+        <span
+          className={cn(
+            "relative flex h-9 w-9 items-center justify-center rounded-2xl",
+            "border border-white/15 bg-white/10 backdrop-blur-md",
+            "shadow-[0_18px_50px_-26px_rgba(15,23,42,0.9)]",
+            "transition duration-200",
+            "group-hover:scale-[1.06] group-hover:border-white/30 group-hover:bg-white/14",
+            "active:scale-[0.98]",
+          )}
         >
-          <path d="M3 9.5 9.5 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-          <path d="M6.2 9.5 9.5 6.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-        </svg>
+          {/* Corner cue: a little “L” corner + grip dots */}
+          <span className="pointer-events-none absolute inset-0 rounded-2xl">
+            <span className={cn(
+              "absolute bottom-2 right-2 h-4 w-4 rounded-sm",
+              "border-b border-r border-white/55",
+              "opacity-70 group-hover:opacity-95 transition",
+            )} />
+          </span>
+
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            className="text-white/70 transition group-hover:text-white"
+            aria-hidden="true"
+          >
+            {/* diagonal arrows */}
+            <path d="M6 10 L10 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M10 6 H7.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M10 6 V8.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M10 6 L12.2 3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </span>
+
+        {/* Hover hint */}
+        <span
+          className={cn(
+            "pointer-events-none absolute -top-10 left-1/2 hidden -translate-x-1/2 rounded-full px-3 py-1 text-[11px] font-semibold",
+            "border border-white/20 bg-slate-950/55 text-white/85 backdrop-blur-md shadow-sm",
+            "opacity-0 translate-y-1 transition duration-200",
+            "lg:block group-hover:opacity-100 group-hover:translate-y-0",
+          )}
+        >
+          Drag to resize
+        </span>
       </button>
 
       {/* Hover ring */}
@@ -742,7 +739,8 @@ function HomeStatsPanel({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-4 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
+        "relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-white/25 bg-white/10 p-4",
+        "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
         align === "right" ? "items-end text-right" : "items-start text-left",
       )}
     >
