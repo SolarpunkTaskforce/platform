@@ -2,8 +2,8 @@
 
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
-import type { FocusEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, FocusEvent } from "react";
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import HomeGlobe, { type HomeGlobeMode, type HomeGlobePoint } from "@/components/home/HomeGlobe";
 import type { GrantMarker } from "@/lib/grants/findGrantsQuery";
@@ -18,15 +18,16 @@ const STATS_SIZE_STORAGE_KEY = "home-globe-panel-size-v5";
 type PanelKey = "left" | "right";
 type PanelSize = { width: number; height: number };
 
+// Panel sizing
 const PANEL_MIN_WIDTH = 300;
 const PANEL_MAX_WIDTH = 560;
 
-// We keep a fixed aspect ratio to ensure it always remains a horizontal rectangle
+// Keep a fixed aspect ratio (always a horizontal rectangle)
 const PANEL_DEFAULT_WIDTH = 340;
 const PANEL_DEFAULT_HEIGHT = 220;
 const PANEL_ASPECT = PANEL_DEFAULT_WIDTH / PANEL_DEFAULT_HEIGHT;
 
-// Derived height constraints from width constraints to maintain aspect ratio
+// Derived height constraints (because width is the single source of truth)
 const PANEL_MIN_HEIGHT = Math.round(PANEL_MIN_WIDTH / PANEL_ASPECT);
 const PANEL_MAX_HEIGHT = Math.round(PANEL_MAX_WIDTH / PANEL_ASPECT);
 
@@ -93,13 +94,17 @@ const defaultSize = (): PanelSize => ({
 const clampWidthToSize = (w: number): PanelSize => {
   const width = clamp(Math.round(w), PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
   const height = clamp(Math.round(width / PANEL_ASPECT), PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
-  // Keep aspect exactly:
-  const finalWidth = Math.round(height * PANEL_ASPECT);
-  return { width: clamp(finalWidth, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH), height };
+  // Keep aspect exactly by deriving width from clamped height:
+  const finalWidth = clamp(Math.round(height * PANEL_ASPECT), PANEL_MIN_WIDTH, PANEL_MAX_WIDTH);
+  const finalHeight = clamp(Math.round(finalWidth / PANEL_ASPECT), PANEL_MIN_HEIGHT, PANEL_MAX_HEIGHT);
+  return { width: finalWidth, height: finalHeight };
 };
 
-// Scale factor for typography/layout, derived from width only (stable + predictable)
+// Typography/layout scaling factor derived from width (no transforms)
 const scaleFromWidth = (width: number) => clamp(width / PANEL_DEFAULT_WIDTH, 0.88, 1.28);
+
+// ESLint-safe CSS var typing (NO `any`)
+type CSSVars = CSSProperties & { ["--panel-scale"]?: string };
 
 type Props = {
   projectMarkers?: ProjectMarker[];
@@ -151,7 +156,7 @@ export default function HomeGlobeSection({
           setHomeStatsState(stats);
         }
       } catch {
-        // fallback to initial
+        // keep initial values as fallback
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -291,9 +296,12 @@ export default function HomeGlobeSection({
         <div className="px-6 pt-8 sm:px-8 lg:px-12">
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-soltas-glacial">Solarpunk Taskforce</p>
-            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Discover regenerative projects around the globe.</h1>
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+              Discover regenerative projects around the globe.
+            </h1>
             <p className="text-base text-white/80">
-              Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk Taskforce ecosystem.
+              Explore approved community projects, funding opportunities, and watchdog issues from the Solarpunk Taskforce
+              ecosystem.
             </p>
             {isLoading ? <p className="text-sm text-white/70">Loading live globe data…</p> : null}
           </div>
@@ -366,7 +374,6 @@ export default function HomeGlobeSection({
           </div>
         </div>
 
-        {/* Desktop stat panels — the part we’re improving */}
         <PinnedStatsPanels activeStats={activeStats} />
 
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 px-6 pb-6 sm:px-8 lg:hidden">
@@ -406,7 +413,7 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
       const saved = localStorage.getItem(STATS_SIZE_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<PanelSize>;
-        if (typeof parsed.width === "number" && typeof parsed.height === "number") {
+        if (typeof parsed.width === "number") {
           return clampWidthToSize(parsed.width);
         }
       }
@@ -416,11 +423,9 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
     return defaultSize();
   });
 
-  // Panel DOM refs so we can resize live without React rerenders
   const leftPanelRef = useRef<HTMLDivElement | null>(null);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
 
-  // Keep a ref of the committed size
   const committedRef = useRef(panelSize);
   useEffect(() => {
     committedRef.current = panelSize;
@@ -443,15 +448,11 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
     liveWidthRef.current = sized.width;
 
     const s = scaleFromWidth(sized.width);
-    const styles: Partial<CSSStyleDeclaration> = {
-      width: `${sized.width}px`,
-      height: `${sized.height}px`,
-    };
 
     const apply = (el: HTMLDivElement | null) => {
       if (!el) return;
-      el.style.width = styles.width ?? "";
-      el.style.height = styles.height ?? "";
+      el.style.width = `${sized.width}px`;
+      el.style.height = `${sized.height}px`;
       el.style.setProperty("--panel-scale", String(s));
     };
 
@@ -471,13 +472,13 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
   );
 
   useEffect(() => {
-    // Ensure refs get correct initial inline styles
     applyLiveWidth(panelSize.width);
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setDraggingCursor = (isDragging: boolean) => {
     const root = document.documentElement;
@@ -503,7 +504,6 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
       e.stopPropagation();
 
       const start = committedRef.current;
-
       dragRef.current = {
         panelKey,
         startX: e.clientX,
@@ -520,21 +520,17 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
         const dx = ev.clientX - d.startX;
         const dy = ev.clientY - d.startY;
 
-        // Growth intent:
-        // left panel grows when moving right/up; right panel grows when moving left/up
+        // left grows right/up, right grows left/up
         const signedDx = d.panelKey === "left" ? dx : -dx;
         const signedDy = -dy;
 
-        // Choose dominant axis by absolute movement to avoid “sticky” shrink/expand
+        // Dominant axis by magnitude (prevents sticky shrink)
         const useX = Math.abs(signedDx) >= Math.abs(signedDy);
 
-        // Convert movement to width delta (single source of truth)
-        const deltaW = useX ? signedDx : (signedDy * PANEL_ASPECT);
+        // Convert movement into width delta (single source of truth)
+        const deltaW = useX ? signedDx : signedDy * PANEL_ASPECT;
 
-        const nextW = d.startW + deltaW;
-
-        // Apply live (no React state, no re-render lag)
-        scheduleApply(nextW);
+        scheduleApply(d.startW + deltaW);
       };
 
       const onEnd = () => {
@@ -545,9 +541,7 @@ function PinnedStatsPanels({ activeStats }: { activeStats: ActiveStats }) {
         window.removeEventListener("pointerup", onEnd);
         window.removeEventListener("pointercancel", onEnd);
 
-        // Commit once (React state + localStorage)
-        const committed = clampWidthToSize(liveWidthRef.current);
-        setPanelSize(committed);
+        setPanelSize(clampWidthToSize(liveWidthRef.current));
       };
 
       window.addEventListener("pointermove", onMove, { passive: true });
@@ -595,15 +589,20 @@ type PanelShellProps = {
   onStartResize: (panelKey: PanelKey, e: React.PointerEvent<HTMLButtonElement>) => void;
 };
 
-// ForwardRef so parent can imperatively update width/height/--panel-scale
-const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
-  { panelKey, title, items, footnote, align, onStartResize }: PanelShellProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+const PinnedStatsPanelShell = forwardRef<HTMLDivElement, PanelShellProps>(function PinnedStatsPanelShell(
+  { panelKey, title, items, footnote, align, onStartResize },
+  ref,
 ) {
   if (!items.length) return null;
 
   const cornerClass = panelKey === "left" ? "-top-2 -right-2" : "-top-2 -left-2";
   const hintAlign = panelKey === "left" ? "right-1" : "left-1";
+
+  const baseStyle: CSSVars = {
+    width: `${PANEL_DEFAULT_WIDTH}px`,
+    height: `${PANEL_DEFAULT_HEIGHT}px`,
+    "--panel-scale": String(scaleFromWidth(PANEL_DEFAULT_WIDTH)),
+  };
 
   return (
     <div
@@ -611,35 +610,24 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
       className={cn(
         "pointer-events-auto group relative rounded-3xl border border-white/25 bg-white/10",
         "shadow-[0_20px_60px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl",
-        // IMPORTANT: do NOT overflow-hidden; it can clip while font sizes reflow.
-        // We keep rounded corners visually via a ring + background.
+        // Do NOT overflow-hidden: avoids clipping while layout reflows
         "overflow-visible",
       )}
-      // These are set imperatively by parent, but we provide safe defaults for SSR
-      style={
-        {
-          width: `${PANEL_DEFAULT_WIDTH}px`,
-          height: `${PANEL_DEFAULT_HEIGHT}px`,
-          // CSS variable used by all inner sizing (fonts/padding/gap)
-          ["--panel-scale" as any]: String(scaleFromWidth(PANEL_DEFAULT_WIDTH)),
-        } as React.CSSProperties
-      }
+      style={baseStyle}
     >
-      {/* Inner surface with clipping (only for background), not for content */}
-      <div className="absolute inset-0 rounded-3xl bg-white/0 ring-1 ring-transparent transition group-hover:ring-white/20" />
+      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-transparent transition group-hover:ring-white/20" />
 
-      {/* Content: everything sizes off --panel-scale (no transforms, no desync) */}
+      {/* Content uses CSS var --panel-scale for ALL sizing (no transform desync) */}
       <div
         className={cn("relative h-full w-full", align === "right" ? "text-right" : "text-left")}
         style={{
           padding: "calc(16px * var(--panel-scale))",
-          gap: "calc(14px * var(--panel-scale))",
           display: "flex",
           flexDirection: "column",
+          gap: "calc(14px * var(--panel-scale))",
           alignItems: align === "right" ? "flex-end" : "flex-start",
         }}
       >
-        {/* Header */}
         <div
           className="flex w-full items-center justify-between"
           style={{
@@ -648,7 +636,7 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
             letterSpacing: "0.2em",
             fontWeight: 700,
             textTransform: "uppercase",
-            color: "rgb(180 226 235 / 1)", // text-soltas-glacial-ish without forcing tailwind token
+            color: "rgb(180 226 235 / 1)",
           }}
         >
           <span>{title}</span>
@@ -657,7 +645,6 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
           </span>
         </div>
 
-        {/* Stats */}
         <div
           style={{
             display: "flex",
@@ -701,7 +688,6 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
           ))}
         </div>
 
-        {/* Footnote */}
         {footnote ? (
           <p
             style={{
@@ -717,7 +703,7 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
         ) : null}
       </div>
 
-      {/* Redesigned drag handle: obvious corner grip + big hit target */}
+      {/* Resize handle */}
       <button
         type="button"
         aria-label="Resize panel"
@@ -730,7 +716,6 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
           "pointer-events-auto",
         )}
       >
-        {/* Visible grip */}
         <span
           className={cn(
             "absolute inset-1 rounded-2xl",
@@ -741,9 +726,7 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
             "active:scale-[0.98]",
           )}
         >
-          {/* Corner highlight */}
           <span className="absolute bottom-2 right-2 h-5 w-5 border-b-2 border-r-2 border-white/70" />
-          {/* Grip dots */}
           <span className="absolute left-2.5 top-2.5 grid grid-cols-2 gap-1 opacity-70 transition group-hover:opacity-100">
             <span className="h-1 w-1 rounded-full bg-white/80" />
             <span className="h-1 w-1 rounded-full bg-white/55" />
@@ -752,7 +735,6 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
           </span>
         </span>
 
-        {/* Hint (desktop only) */}
         <span
           className={cn(
             "pointer-events-none absolute hidden whitespace-nowrap rounded-full border border-white/20 bg-slate-950/55 px-3 py-1 text-[11px] font-semibold text-white/85 backdrop-blur-md shadow-sm",
@@ -766,9 +748,7 @@ const PinnedStatsPanelShell = (function PinnedStatsPanelShellInner(
       </button>
     </div>
   );
-} as unknown as (props: PanelShellProps & { ref?: React.Ref<HTMLDivElement> }) => JSX.Element) as React.ForwardRefExoticComponent<
-  PanelShellProps & React.RefAttributes<HTMLDivElement>
->;
+});
 
 PinnedStatsPanelShell.displayName = "PinnedStatsPanelShell";
 
