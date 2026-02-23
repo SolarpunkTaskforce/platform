@@ -596,7 +596,6 @@ const PinnedStatsPanelShell = forwardRef<HTMLDivElement, PanelShellProps>(functi
   if (!items.length) return null;
 
   const cornerClass = panelKey === "left" ? "-top-2 -right-2" : "-top-2 -left-2";
-  const hintAlign = panelKey === "left" ? "right-1" : "left-1";
 
   const baseStyle: CSSVars = {
     width: `${PANEL_DEFAULT_WIDTH}px`,
@@ -713,34 +712,37 @@ const PinnedStatsPanelShell = forwardRef<HTMLDivElement, PanelShellProps>(functi
           cornerClass,
           "h-12 w-12 cursor-nwse-resize rounded-2xl",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-soltas-ocean",
-          "pointer-events-auto",
+          "pointer-events-auto group",
         )}
       >
+        {/* Invisible large hit area */}
+        <span className="absolute inset-0 rounded-2xl" />
+
+        {/* Sharp architectural corner line */}
         <span
           className={cn(
-            "absolute inset-1 rounded-2xl",
-            "border border-white/20 bg-white/10 backdrop-blur-md",
-            "shadow-[0_18px_50px_-26px_rgba(15,23,42,0.95)]",
+            "absolute bottom-3 right-3 h-6 w-6",
             "transition duration-200",
-            "group-hover:border-white/35 group-hover:bg-white/14",
-            "active:scale-[0.98]",
           )}
         >
-          <span className="absolute bottom-2 right-2 h-5 w-5 border-b-2 border-r-2 border-white/70" />
-          <span className="absolute left-2.5 top-2.5 grid grid-cols-2 gap-1 opacity-70 transition group-hover:opacity-100">
-            <span className="h-1 w-1 rounded-full bg-white/80" />
-            <span className="h-1 w-1 rounded-full bg-white/55" />
-            <span className="h-1 w-1 rounded-full bg-white/55" />
-            <span className="h-1 w-1 rounded-full bg-white/35" />
-          </span>
+          <span
+            className={cn(
+              "absolute inset-0",
+              "border-b-2 border-r-2",
+              "border-white/60",
+              "transition duration-200",
+              "group-hover:border-white group-hover:scale-105",
+              "group-active:scale-95"
+            )}
+          />
         </span>
 
+        {/* Subtle hover hint (desktop only) */}
         <span
           className={cn(
             "pointer-events-none absolute hidden whitespace-nowrap rounded-full border border-white/20 bg-slate-950/55 px-3 py-1 text-[11px] font-semibold text-white/85 backdrop-blur-md shadow-sm",
             "opacity-0 transition duration-200 group-hover:opacity-100 lg:block",
-            hintAlign,
-            "-top-10",
+            panelKey === "left" ? "right-1 -top-10" : "left-1 -top-10",
           )}
         >
           Drag to resize
