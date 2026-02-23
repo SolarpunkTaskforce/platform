@@ -718,23 +718,31 @@ const PinnedStatsPanelShell = forwardRef<HTMLDivElement, PanelShellProps>(functi
         {/* Invisible large hit area */}
         <span className="absolute inset-0 rounded-2xl" />
 
-        {/* Sharp architectural corner line */}
-        <span
-          className={cn(
-            "absolute bottom-3 right-3 h-6 w-6",
-            "transition duration-200",
+        {/* Sharp architectural corner line (points inward toward globe) */}
+        <span className="absolute inset-0">
+          {panelKey === "left" ? (
+            // Left panel handle is top-right → corner should be ┐ (top + right)
+            <span
+              className={cn(
+                "absolute top-3 right-3 h-6 w-6",
+                "border-t-2 border-r-2 border-white/60",
+                "transition duration-200",
+                "group-hover:border-white group-hover:scale-105",
+                "group-active:scale-95",
+              )}
+            />
+          ) : (
+            // Right panel handle is top-left → corner should be ┌ (top + left)
+            <span
+              className={cn(
+                "absolute top-3 left-3 h-6 w-6",
+                "border-t-2 border-l-2 border-white/60",
+                "transition duration-200",
+                "group-hover:border-white group-hover:scale-105",
+                "group-active:scale-95",
+              )}
+            />
           )}
-        >
-          <span
-            className={cn(
-              "absolute inset-0",
-              "border-b-2 border-r-2",
-              "border-white/60",
-              "transition duration-200",
-              "group-hover:border-white group-hover:scale-105",
-              "group-active:scale-95"
-            )}
-          />
         </span>
 
         {/* Subtle hover hint (desktop only) */}
