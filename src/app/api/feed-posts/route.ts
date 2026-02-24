@@ -7,6 +7,7 @@ const createFeedPostSchema = z.object({
   author_organisation_id: z.string().uuid().nullable().optional(),
   entity_type: z.enum(["project", "funding", "issue"]).nullable().optional(),
   entity_id: z.string().uuid().nullable().optional(),
+  visibility: z.enum(["public", "followers"]).optional().default("public"),
 });
 
 export async function POST(request: NextRequest) {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { content, author_organisation_id, entity_type, entity_id } = parsed.data;
+    const { content, author_organisation_id, entity_type, entity_id, visibility } = parsed.data;
 
     // Insert the feed post
     const { data: post, error: insertError } = await supabase
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
         author_organisation_id: author_organisation_id ?? null,
         entity_type: entity_type ?? null,
         entity_id: entity_id ?? null,
-        visibility: "public",
+        visibility,
       })
       .select()
       .single();
