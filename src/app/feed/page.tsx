@@ -35,6 +35,16 @@ type OrganisationSummary = { id: string; name: string | null };
 
 type FeedPost = Database["public"]["Tables"]["feed_posts"]["Row"];
 
+type FeedPostAttachment = {
+  id: string;
+  file_path: string;
+  mime_type: string;
+};
+
+type FeedPostWithAttachments = FeedPost & {
+  feed_post_attachments?: FeedPostAttachment[];
+};
+
 type Organisation = {
   id: string;
   name: string | null;
@@ -420,7 +430,7 @@ export default async function FeedPage({
                 entitySlug={entitySlug}
                 entityName={entityName}
                 canEdit={canEdit}
-                attachments={post.feed_post_attachments ?? []}
+                attachments={(post as FeedPostWithAttachments).feed_post_attachments ?? []}
               />
             );
           })}

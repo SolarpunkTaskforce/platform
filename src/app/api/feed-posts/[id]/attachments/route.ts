@@ -163,8 +163,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
     }
 
+    // Type assertion for the joined data
+    const feedPost = attachment.feed_posts as unknown as { created_by: string };
+
     // Check if user owns the post
-    if (attachment.feed_posts.created_by !== auth.user.id) {
+    if (feedPost.created_by !== auth.user.id) {
       return NextResponse.json(
         { error: "You do not have permission to delete this attachment" },
         { status: 403 }
