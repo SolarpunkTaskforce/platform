@@ -140,14 +140,15 @@ create table public.feed_post_mentions (
 
 ## Verification Steps
 
-1. **Apply migration**:
-   ```bash
-   pnpm supabase db reset  # or migrate up
-   ```
+1. **Merge PR to main**:
+   - The CI workflow will automatically apply migrations to production
+   - Database types will be regenerated automatically via GitHub Actions
+   - See `.github/workflows/supabase-db-auto.yml`
 
-2. **Regenerate types**:
+2. **Or test locally** (if Supabase is running):
    ```bash
-   pnpm sb:types
+   pnpm supabase db reset  # Apply all migrations from scratch
+   pnpm sb:types           # Regenerate types (requires linked project)
    ```
 
 3. **Run manual tests**:
