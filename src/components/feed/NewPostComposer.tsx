@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ImagePlus, X } from "lucide-react";
+import Image from "next/image";
 
 type Organisation = {
   id: string;
@@ -24,6 +26,11 @@ type NewPostComposerProps = {
   organisations?: Organisation[];
 };
 
+type ImagePreview = {
+  file: File;
+  preview: string;
+};
+
 export function NewPostComposer({ userName, organisations = [] }: NewPostComposerProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -33,6 +40,45 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [images, setImages] = useState<ImagePreview[]>([]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImages: ImagePreview[] = [];
+    Array.from(files).forEach((file) => {
+      // Validate file type
+      if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+        setError("Only JPEG, PNG, GIF, and WebP images are allowed");
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Image size must be less than 10MB");
+        return;
+      }
+
+      newImages.push({
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    });
+
+    setImages((prev) => [...prev, ...newImages]);
+    setError(null);
+    e.target.value = ""; // Reset input
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].preview);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +92,7 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
     setError(null);
 
     try {
+      // Create the post first
       const response = await fetch("/api/feed-posts", {
         method: "POST",
         headers: {
@@ -63,10 +110,34 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
         throw new Error(errorData.error || "Failed to create post");
       }
 
+      const { post } = await response.json();
+
+      // Upload images if any
+      if (images.length > 0) {
+        const uploadPromises = images.map(async (image) => {
+          const formData = new FormData();
+          formData.append("file", image.file);
+
+          const uploadResponse = await fetch(`/api/feed-posts/${post.id}/attachments`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({ error: "Failed to upload image" }));
+            throw new Error(errorData.error || "Failed to upload image");
+          }
+        });
+
+        await Promise.all(uploadPromises);
+      }
+
       // Success - reset form
       setContent("");
       setPostAs("me");
       setVisibility("public");
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      setImages([]);
 
       // Show success toast
       toast({
@@ -144,7 +215,51 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
           </div>
         )}
 
-        <div className="flex justify-end">
+        {images.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {images.map((image, index) => (
+              <div key={index} className="relative aspect-video overflow-hidden rounded-lg border border-slate-200">
+                <Image
+                  src={image.preview}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  disabled={isSubmitting}
+                  className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white transition-colors hover:bg-black/70 disabled:opacity-50"
+                  aria-label="Remove image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <input
+              type="file"
+              id="image-upload"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              multiple
+              onChange={handleImageSelect}
+              disabled={isSubmitting}
+              className="sr-only"
+            />
+            <label
+              htmlFor="image-upload"
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-soltas-text transition-colors hover:bg-slate-50 ${
+                isSubmitting ? "cursor-not-allowed opacity-50" : ""
+              }`}
+            >
+              <ImagePlus className="h-4 w-4" />
+              Add images
+            </label>
+          </div>
           <Button type="submit" disabled={isSubmitting || !content.trim()}>
             {isSubmitting ? "Posting..." : "Post"}
           </Button>

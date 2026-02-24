@@ -35,6 +35,16 @@ type OrganisationSummary = { id: string; name: string | null };
 
 type FeedPost = Database["public"]["Tables"]["feed_posts"]["Row"];
 
+type FeedPostAttachment = {
+  id: string;
+  file_path: string;
+  mime_type: string;
+};
+
+type FeedPostWithAttachments = FeedPost & {
+  feed_post_attachments?: FeedPostAttachment[];
+};
+
 type Organisation = {
   id: string;
   name: string | null;
@@ -70,7 +80,7 @@ export default async function FeedPage({
   // On other tabs: show only public posts from everyone
   let feedPostsQuery = supabase
     .from("feed_posts")
-    .select("*")
+    .select("*, feed_post_attachments(id, file_path, mime_type)")
     .order("published_at", { ascending: false })
     .limit(50);
 
@@ -420,6 +430,7 @@ export default async function FeedPage({
                 entitySlug={entitySlug}
                 entityName={entityName}
                 canEdit={canEdit}
+                attachments={(post as FeedPostWithAttachments).feed_post_attachments ?? []}
               />
             );
           })}

@@ -5,6 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+function getStorageUrl(filePath: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    console.error("NEXT_PUBLIC_SUPABASE_URL is not set");
+    return "";
+  }
+  return `${supabaseUrl}/storage/v1/object/public/feed-posts/${filePath}`;
+}
+
+type Attachment = {
+  id: string;
+  file_path: string;
+  mime_type: string;
+};
+
 type FeedPostCardProps = {
   id: string;
   authorName: string;
@@ -16,6 +31,7 @@ type FeedPostCardProps = {
   entitySlug?: string | null;
   entityName?: string | null;
   canEdit?: boolean;
+  attachments?: Attachment[];
 };
 
 function formatTimestamp(timestamp: string | null) {
@@ -77,6 +93,7 @@ export function FeedPostCard({
   entitySlug,
   entityName,
   canEdit = false,
+  attachments = [],
 }: FeedPostCardProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -273,6 +290,21 @@ export function FeedPostCard({
             </div>
           ) : (
             <p className="whitespace-pre-wrap text-sm text-soltas-text">{content}</p>
+          )}
+
+          {!isEditing && attachments.length > 0 && (
+            <div className={`grid gap-2 ${attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+              {attachments.map((attachment) => (
+                <div key={attachment.id} className="relative aspect-video overflow-hidden rounded-lg border border-slate-200">
+                  <Image
+                    src={getStorageUrl(attachment.file_path)}
+                    alt="Post attachment"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           )}
 
           {error && (
