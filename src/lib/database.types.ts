@@ -1009,6 +1009,41 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_post_attachments: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_attachments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_post_comments: {
         Row: {
           author_organisation_id: string | null
