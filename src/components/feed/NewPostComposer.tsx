@@ -31,7 +31,7 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
   const [postAs, setPostAs] = useState<string>("me");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
