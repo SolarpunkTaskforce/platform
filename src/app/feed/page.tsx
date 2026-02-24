@@ -70,7 +70,7 @@ export default async function FeedPage({
   // On other tabs: show only public posts from everyone
   let feedPostsQuery = supabase
     .from("feed_posts")
-    .select("*")
+    .select("*, feed_post_attachments(id, file_path, mime_type)")
     .order("published_at", { ascending: false })
     .limit(50);
 
@@ -420,6 +420,7 @@ export default async function FeedPage({
                 entitySlug={entitySlug}
                 entityName={entityName}
                 canEdit={canEdit}
+                attachments={post.feed_post_attachments ?? []}
               />
             );
           })}
