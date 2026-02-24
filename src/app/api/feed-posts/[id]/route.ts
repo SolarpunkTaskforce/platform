@@ -43,32 +43,25 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .select()
       .single();
 
-    if (updateError) {
+    if (updateError || !post) {
       console.error("Update error:", updateError);
       // Handle RLS errors more gracefully
-      if (updateError.code === "42501" || updateError.message.includes("policy")) {
+      if (updateError?.code === "42501" || updateError?.message?.includes("policy")) {
         return NextResponse.json(
           { error: "You do not have permission to update this post" },
           { status: 403 }
         );
       }
       // Check for not found - when RLS blocks access, Supabase may return no rows
-      if (updateError.code === "PGRST116" || !post) {
+      if (updateError?.code === "PGRST116" || !post) {
         return NextResponse.json(
           { error: "Post not found or you do not have permission to update it" },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        { error: updateError.message || "Failed to update post" },
+        { error: updateError?.message || "Failed to update post" },
         { status: 500 }
-      );
-    }
-
-    if (!post) {
-      return NextResponse.json(
-        { error: "Post not found or you do not have permission to update it" },
-        { status: 404 }
       );
     }
 
@@ -102,32 +95,25 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       .select()
       .single();
 
-    if (deleteError) {
+    if (deleteError || !post) {
       console.error("Delete error:", deleteError);
       // Handle RLS errors more gracefully
-      if (deleteError.code === "42501" || deleteError.message.includes("policy")) {
+      if (deleteError?.code === "42501" || deleteError?.message?.includes("policy")) {
         return NextResponse.json(
           { error: "You do not have permission to delete this post" },
           { status: 403 }
         );
       }
       // Check for not found
-      if (deleteError.code === "PGRST116" || !post) {
+      if (deleteError?.code === "PGRST116" || !post) {
         return NextResponse.json(
           { error: "Post not found or you do not have permission to delete it" },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        { error: deleteError.message || "Failed to delete post" },
+        { error: deleteError?.message || "Failed to delete post" },
         { status: 500 }
-      );
-    }
-
-    if (!post) {
-      return NextResponse.json(
-        { error: "Post not found or you do not have permission to delete it" },
-        { status: 404 }
       );
     }
 
