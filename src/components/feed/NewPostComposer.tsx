@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 type Organisation = {
   id: string;
@@ -23,10 +25,13 @@ type NewPostComposerProps = {
 };
 
 export function NewPostComposer({ userName, organisations = [] }: NewPostComposerProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [content, setContent] = useState("");
   const [postAs, setPostAs] = useState<string>("me");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +65,17 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
       setContent("");
       setPostAs("me");
 
-      // Refresh the page to show the new post
-      window.location.reload();
+      // Show success toast
+      toast({
+        title: "Post created",
+        description: "Your post has been published successfully.",
+        duration: 3000,
+      });
+
+      // Refresh the feed data without full page reload
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred while creating the post");
     } finally {
@@ -95,10 +109,10 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="me">{userName}</SelectItem>
+                <SelectItem value="me">Me ({userName})</SelectItem>
                 {organisations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
-                    {org.name || "Unnamed organisation"}
+                    Organisation: {org.name || "Unnamed organisation"}
                   </SelectItem>
                 ))}
               </SelectContent>
