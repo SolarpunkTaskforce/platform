@@ -73,6 +73,10 @@ export default function NotificationsClient({
         return "Someone followed your organisation.";
       case "followed_your_project":
         return "Someone followed your project.";
+      case "feed_post_comment":
+        return "Someone commented on your post.";
+      case "feed_post_reaction":
+        return "Someone liked your post.";
       default:
         return null;
     }
