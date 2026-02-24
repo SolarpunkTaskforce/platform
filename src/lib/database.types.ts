@@ -1041,6 +1041,72 @@ export type Database = {
           },
         ]
       }
+      feed_post_comments: {
+        Row: {
+          author_organisation_id: string | null
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_organisation_id?: string | null
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_organisation_id?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_post_comments_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_post_comments_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations_directory_v1"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_post_comments_author_organisation_id_fkey"
+            columns: ["author_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "verified_organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_post_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_posts: {
         Row: {
           author_organisation_id: string | null
