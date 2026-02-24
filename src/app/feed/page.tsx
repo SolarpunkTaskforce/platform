@@ -69,6 +69,7 @@ export default async function FeedPage({
 
   // Fetch user's organisations if logged in
   let userOrganisations: Organisation[] = [];
+  let userOrgIds: Set<string> = new Set();
   let userProfile: ProfileSummary | null = null;
 
   if (user) {
@@ -99,6 +100,9 @@ export default async function FeedPage({
           return null;
         })
         .filter((org: Organisation | null): org is Organisation => org !== null);
+
+      // Store org IDs for permission checking
+      userOrgIds = new Set(userOrganisations.map(org => org.id));
     }
   }
 
@@ -354,6 +358,14 @@ export default async function FeedPage({
               entityName = grant?.title ?? null;
             }
 
+            // Determine if user can edit this post
+            const canEdit = user ? (
+              post.created_by === user.id && (
+                post.author_organisation_id === null ||
+                userOrgIds.has(post.author_organisation_id)
+              )
+            ) : false;
+
             return (
               <FeedPostCard
                 key={post.id}
@@ -366,10 +378,7 @@ export default async function FeedPage({
                 entityId={post.entity_id}
                 entitySlug={entitySlug}
                 entityName={entityName}
-                currentUserId={user?.id ?? null}
-                createdBy={post.created_by}
-                authorOrganisationId={post.author_organisation_id}
-                userOrganisationIds={userOrganisations.map((org) => org.id)}
+                canEdit={canEdit}
               />
             );
           })}

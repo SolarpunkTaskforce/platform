@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type FeedPostCardProps = {
   id: string;
@@ -15,12 +15,7 @@ type FeedPostCardProps = {
   entityId?: string | null;
   entitySlug?: string | null;
   entityName?: string | null;
-  currentUserId?: string | null;
-  createdBy?: string | null;
-  authorOrganisationId?: string | null;
-  userOrganisationIds?: string[];
-  onUpdate?: (id: string, content: string) => void;
-  onDelete?: (id: string) => void;
+  canEdit?: boolean;
 };
 
 function formatTimestamp(timestamp: string | null) {
@@ -81,49 +76,40 @@ export function FeedPostCard({
   entityId,
   entitySlug,
   entityName,
-  currentUserId,
-  createdBy,
-  authorOrganisationId,
-  userOrganisationIds = [],
-  onUpdate,
-  onDelete,
+  canEdit = false,
 }: FeedPostCardProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [editedContent, setEditedContent] = useState(content);
   const [showMenu, setShowMenu] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const entityLink = getEntityLink(entityType, entityId, entitySlug);
 
-  // Determine if user can edit/delete
-  const canEdit = currentUserId && (
-    // User created the post personally
-    (createdBy === currentUserId && !authorOrganisationId) ||
-    // User is admin/owner of the org that authored the post
-    (authorOrganisationId && userOrganisationIds.includes(authorOrganisationId))
-  );
-
   const handleEdit = () => {
     setIsEditing(true);
+    setEditedContent(content);
     setShowMenu(false);
     setError(null);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditContent(content);
+    setEditedContent(content);
     setError(null);
   };
 
   const handleSaveEdit = async () => {
-    if (!editContent.trim()) {
+    if (!editedContent.trim()) {
       setError("Content cannot be empty");
       return;
     }
-    if (editContent.length > 5000) {
-      setError("Content is too long (max 5000 characters)");
+
+    if (editedContent === content) {
+      setIsEditing(false);
       return;
     }
 
@@ -134,36 +120,32 @@ export function FeedPostCard({
       const response = await fetch(`/api/feed-posts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editContent }),
+        body: JSON.stringify({ content: editedContent }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error || "Failed to update post");
+        setIsSaving(false);
         return;
       }
 
       setIsEditing(false);
-      if (onUpdate) {
-        onUpdate(id, editContent);
-      } else {
-        // Refresh the page if no callback provided
-        window.location.reload();
-      }
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update post");
-    } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = () => {
-    setIsDeleting(true);
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
     setShowMenu(false);
   };
 
   const handleConfirmDelete = async () => {
+    setIsDeleting(true);
     setError(null);
 
     try {
@@ -176,23 +158,20 @@ export function FeedPostCard({
       if (!response.ok) {
         setError(data.error || "Failed to delete post");
         setIsDeleting(false);
+        setShowDeleteConfirm(false);
         return;
       }
 
-      if (onDelete) {
-        onDelete(id);
-      } else {
-        // Refresh the page if no callback provided
-        window.location.reload();
-      }
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete post");
       setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
   const handleCancelDelete = () => {
-    setIsDeleting(false);
+    setShowDeleteConfirm(false);
     setError(null);
   };
 
@@ -220,14 +199,18 @@ export function FeedPostCard({
               <time className="text-xs text-soltas-muted" dateTime={timestamp ?? undefined}>
                 {formatTimestamp(timestamp)}
               </time>
-              {canEdit && !isEditing && !isDeleting && (
+              {canEdit && !isEditing && (
                 <div className="relative">
                   <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="rounded p-1 text-soltas-muted hover:bg-slate-100 hover:text-soltas-text"
-                    aria-label="More options"
+                    className="rounded p-1 text-soltas-muted hover:bg-slate-100"
+                    aria-label="Post options"
                   >
-                    <MoreVertical size={16} />
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                      <circle cx="8" cy="2" r="1.5" />
+                      <circle cx="8" cy="8" r="1.5" />
+                      <circle cx="8" cy="14" r="1.5" />
+                    </svg>
                   </button>
                   {showMenu && (
                     <>
@@ -235,19 +218,17 @@ export function FeedPostCard({
                         className="fixed inset-0 z-10"
                         onClick={() => setShowMenu(false)}
                       />
-                      <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                      <div className="absolute right-0 top-8 z-20 w-32 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
                         <button
                           onClick={handleEdit}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-soltas-text hover:bg-slate-50"
+                          className="w-full px-4 py-2 text-left text-sm text-soltas-text hover:bg-slate-50"
                         >
-                          <Pencil size={14} />
                           Edit
                         </button>
                         <button
-                          onClick={handleDelete}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                          onClick={handleDeleteClick}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
                         >
-                          <Trash2 size={14} />
                           Delete
                         </button>
                       </div>
@@ -258,68 +239,49 @@ export function FeedPostCard({
             </div>
           </div>
 
-          {error && (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
           {isEditing ? (
             <div className="space-y-2">
               <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-soltas-text focus:border-soltas-ocean focus:outline-none focus:ring-1 focus:ring-soltas-ocean"
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-soltas-ocean focus:outline-none focus:ring-1 focus:ring-soltas-ocean"
                 rows={4}
                 maxLength={5000}
+                disabled={isSaving}
               />
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-soltas-muted">
-                  {editContent.length} / 5000
-                </span>
+                <div className="text-xs text-soltas-muted">
+                  {editedContent.length}/5000
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleCancelEdit}
                     disabled={isSaving}
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-soltas-text hover:bg-slate-50 disabled:opacity-50"
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-soltas-text hover:bg-slate-50 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
-                    disabled={isSaving}
-                    className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                    disabled={isSaving || !editedContent.trim()}
+                    className="rounded-lg bg-soltas-ocean px-3 py-1.5 text-sm text-white hover:bg-soltas-ocean/90 disabled:opacity-50"
                   >
                     {isSaving ? "Saving..." : "Save"}
                   </button>
                 </div>
               </div>
             </div>
-          ) : isDeleting ? (
-            <div className="space-y-2">
-              <p className="text-sm text-soltas-text">
-                Are you sure you want to delete this post? This action cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCancelDelete}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-soltas-text hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
           ) : (
             <p className="whitespace-pre-wrap text-sm text-soltas-text">{content}</p>
           )}
 
-          {entityLink && !isEditing && !isDeleting && (
+          {error && (
+            <div className="rounded-lg bg-red-50 p-2 text-xs text-red-600">
+              {error}
+            </div>
+          )}
+
+          {entityLink && !isEditing && (
             <div className="pt-1">
               <Link
                 href={entityLink.href}
@@ -332,6 +294,33 @@ export function FeedPostCard({
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-soltas-bark">Delete post?</h3>
+            <p className="mt-2 text-sm text-soltas-muted">
+              This action cannot be undone. Your post will be permanently deleted.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-soltas-text hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

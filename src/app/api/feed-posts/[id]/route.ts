@@ -6,12 +6,12 @@ const updateFeedPostSchema = z.object({
   content: z.string().min(1, "Content is required").max(5000, "Content is too long"),
 });
 
-type RouteContext = {
-  params: Promise<{ id: string }>;
-};
-
-export async function PATCH(request: NextRequest, context: RouteContext) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const supabase = await getServerSupabase();
 
     // Check authentication
@@ -19,8 +19,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (!auth?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await context.params;
 
     // Parse and validate request body
     const body = await request.json();
@@ -35,6 +33,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const { content } = parsed.data;
 
+    // Fetch the existing post to check if it exists
+    const { data: existingPost, error: fetchError } = await supabase
+      .from("feed_posts")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !existingPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
     // Update the feed post (RLS will enforce permissions)
     const { data: post, error: updateError } = await supabase
       .from("feed_posts")
@@ -43,24 +52,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .select()
       .single();
 
-    if (updateError || !post) {
+    if (updateError) {
       console.error("Update error:", updateError);
       // Handle RLS errors more gracefully
-      if (updateError?.code === "42501" || updateError?.message?.includes("policy")) {
+      if (updateError.code === "42501" || updateError.message.includes("policy")) {
         return NextResponse.json(
-          { error: "You do not have permission to update this post" },
+          { error: "You do not have permission to edit this post" },
           { status: 403 }
         );
       }
-      // Check for not found - when RLS blocks access, Supabase may return no rows
-      if (updateError?.code === "PGRST116" || !post) {
-        return NextResponse.json(
-          { error: "Post not found or you do not have permission to update it" },
-          { status: 404 }
-        );
-      }
       return NextResponse.json(
-        { error: updateError?.message || "Failed to update post" },
+        { error: updateError.message || "Failed to update post" },
         { status: 500 }
       );
     }
@@ -75,8 +77,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const supabase = await getServerSupabase();
 
     // Check authentication
@@ -85,34 +91,34 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await context.params;
-
-    // Delete the feed post (RLS will enforce permissions)
-    const { data: post, error: deleteError } = await supabase
+    // Fetch the existing post to check if it exists
+    const { data: existingPost, error: fetchError } = await supabase
       .from("feed_posts")
-      .delete()
+      .select("id")
       .eq("id", id)
-      .select()
       .single();
 
-    if (deleteError || !post) {
+    if (fetchError || !existingPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Delete the feed post (RLS will enforce permissions)
+    const { error: deleteError } = await supabase
+      .from("feed_posts")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
       console.error("Delete error:", deleteError);
       // Handle RLS errors more gracefully
-      if (deleteError?.code === "42501" || deleteError?.message?.includes("policy")) {
+      if (deleteError.code === "42501" || deleteError.message.includes("policy")) {
         return NextResponse.json(
           { error: "You do not have permission to delete this post" },
           { status: 403 }
         );
       }
-      // Check for not found
-      if (deleteError?.code === "PGRST116" || !post) {
-        return NextResponse.json(
-          { error: "Post not found or you do not have permission to delete it" },
-          { status: 404 }
-        );
-      }
       return NextResponse.json(
-        { error: deleteError?.message || "Failed to delete post" },
+        { error: deleteError.message || "Failed to delete post" },
         { status: 500 }
       );
     }
