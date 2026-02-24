@@ -366,6 +366,10 @@ export default async function FeedPage({
                 entityId={post.entity_id}
                 entitySlug={entitySlug}
                 entityName={entityName}
+                currentUserId={user?.id ?? null}
+                createdBy={post.created_by}
+                authorOrganisationId={post.author_organisation_id}
+                userOrganisationIds={userOrganisations.map((org) => org.id)}
               />
             );
           })}
