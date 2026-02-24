@@ -28,8 +28,10 @@ drop policy if exists "feed_posts_select_public" on public.feed_posts;
 -- 4) Create new SELECT policy that includes followers logic
 -- Policy: users can see posts if:
 --   a) visibility = 'public', OR
---   b) visibility = 'followers' AND authenticated user follows the author
---      (author is either created_by user OR author_organisation_id org)
+--   b) visibility = 'followers' AND (
+--      - user is the author, OR
+--      - authenticated user follows the author (user or org)
+--   )
 create policy "feed_posts_select_visibility"
   on public.feed_posts
   for select
@@ -39,6 +41,9 @@ create policy "feed_posts_select_visibility"
       visibility = 'followers'
       and auth.uid() is not null
       and (
+        -- Author can see their own posts
+        created_by = auth.uid()
+        or
         -- Following the user author
         (
           author_organisation_id is null
