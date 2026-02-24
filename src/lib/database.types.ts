@@ -1009,38 +1009,6 @@ export type Database = {
         }
         Relationships: []
       }
-      feed_post_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          reaction_type?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feed_post_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "feed_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       feed_post_comments: {
         Row: {
           author_organisation_id: string | null
@@ -1092,14 +1060,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "feed_post_comments_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "feed_post_comments_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "feed_posts"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      feed_post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "feed_post_comments_post_id_fkey"
+            foreignKeyName: "feed_post_reactions_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "feed_posts"
