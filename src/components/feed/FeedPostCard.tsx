@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type FeedPostCardProps = {
   id: string;
@@ -11,6 +15,7 @@ type FeedPostCardProps = {
   entityId?: string | null;
   entitySlug?: string | null;
   entityName?: string | null;
+  canEdit?: boolean;
 };
 
 function formatTimestamp(timestamp: string | null) {
@@ -62,6 +67,7 @@ function getEntityLink(
 }
 
 export function FeedPostCard({
+  id,
   authorName,
   authorAvatarUrl,
   content,
@@ -70,8 +76,104 @@ export function FeedPostCard({
   entityId,
   entitySlug,
   entityName,
+  canEdit = false,
 }: FeedPostCardProps) {
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(content);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const entityLink = getEntityLink(entityType, entityId, entitySlug);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedContent(content);
+    setShowMenu(false);
+    setError(null);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent(content);
+    setError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedContent.trim()) {
+      setError("Content cannot be empty");
+      return;
+    }
+
+    if (editedContent === content) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/feed-posts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editedContent }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to update post");
+        setIsSaving(false);
+        return;
+      }
+
+      setIsEditing(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update post");
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+    setShowMenu(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/feed-posts/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Failed to delete post");
+        setIsDeleting(false);
+        setShowDeleteConfirm(false);
+        return;
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete post");
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setError(null);
+  };
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -93,14 +195,93 @@ export function FeedPostCard({
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium text-soltas-bark">{authorName}</p>
-            <time className="text-xs text-soltas-muted" dateTime={timestamp ?? undefined}>
-              {formatTimestamp(timestamp)}
-            </time>
+            <div className="flex items-center gap-2">
+              <time className="text-xs text-soltas-muted" dateTime={timestamp ?? undefined}>
+                {formatTimestamp(timestamp)}
+              </time>
+              {canEdit && !isEditing && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="rounded p-1 text-soltas-muted hover:bg-slate-100"
+                    aria-label="Post options"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                      <circle cx="8" cy="2" r="1.5" />
+                      <circle cx="8" cy="8" r="1.5" />
+                      <circle cx="8" cy="14" r="1.5" />
+                    </svg>
+                  </button>
+                  {showMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowMenu(false)}
+                      />
+                      <div className="absolute right-0 top-8 z-20 w-32 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                        <button
+                          onClick={handleEdit}
+                          className="w-full px-4 py-2 text-left text-sm text-soltas-text hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={handleDeleteClick}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <p className="whitespace-pre-wrap text-sm text-soltas-text">{content}</p>
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-soltas-ocean focus:outline-none focus:ring-1 focus:ring-soltas-ocean"
+                rows={4}
+                maxLength={5000}
+                disabled={isSaving}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs text-soltas-muted">
+                  {editedContent.length}/5000
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-soltas-text hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isSaving || !editedContent.trim()}
+                    className="rounded-lg bg-soltas-ocean px-3 py-1.5 text-sm text-white hover:bg-soltas-ocean/90 disabled:opacity-50"
+                  >
+                    {isSaving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="whitespace-pre-wrap text-sm text-soltas-text">{content}</p>
+          )}
 
-          {entityLink && (
+          {error && (
+            <div className="rounded-lg bg-red-50 p-2 text-xs text-red-600">
+              {error}
+            </div>
+          )}
+
+          {entityLink && !isEditing && (
             <div className="pt-1">
               <Link
                 href={entityLink.href}
@@ -113,6 +294,33 @@ export function FeedPostCard({
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-soltas-bark">Delete post?</h3>
+            <p className="mt-2 text-sm text-soltas-muted">
+              This action cannot be undone. Your post will be permanently deleted.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-soltas-text hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
