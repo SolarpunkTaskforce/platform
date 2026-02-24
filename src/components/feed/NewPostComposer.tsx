@@ -29,6 +29,7 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
   const { toast } = useToast();
   const [content, setContent] = useState("");
   const [postAs, setPostAs] = useState<string>("me");
+  const [visibility, setVisibility] = useState<"public" | "followers">("public");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -53,6 +54,7 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
         body: JSON.stringify({
           content: content.trim(),
           author_organisation_id: postAs === "me" ? null : postAs,
+          visibility,
         }),
       });
 
@@ -64,6 +66,7 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
       // Success - reset form
       setContent("");
       setPostAs("me");
+      setVisibility("public");
 
       // Show success toast
       toast({
@@ -119,6 +122,21 @@ export function NewPostComposer({ userName, organisations = [] }: NewPostCompose
             </Select>
           </div>
         )}
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="visibility" className="text-sm font-medium text-soltas-text">
+            Visible to:
+          </label>
+          <Select value={visibility} onValueChange={(v) => setVisibility(v as "public" | "followers")} disabled={isSubmitting}>
+            <SelectTrigger id="visibility" className="w-auto min-w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="public">Everyone</SelectItem>
+              <SelectItem value="followers">Followers only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {error && (
           <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">

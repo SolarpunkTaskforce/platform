@@ -59,13 +59,60 @@ export default async function FeedPage({
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user ?? null;
 
+  // Determine active tab early - default to popular if logged out, following if logged in
+  type TabValue = "popular" | "following" | "watchdog" | "funding";
+  const validTabs: TabValue[] = ["popular", "following", "watchdog", "funding"];
+  const tabValue = validTabs.includes(tabParam as TabValue) ? (tabParam as TabValue) : null;
+  const activeTab: TabValue = tabValue ?? (user ? "following" : "popular");
+
   // Fetch feed posts ordered by published_at desc
-  const { data: feedPosts } = await supabase
+  // On "Following" tab: show posts from followed users/orgs (public + followers-only via RLS)
+  // On other tabs: show only public posts from everyone
+  let feedPostsQuery = supabase
     .from("feed_posts")
     .select("*")
-    .eq("visibility", "public")
     .order("published_at", { ascending: false })
     .limit(50);
+
+  if (activeTab === "following" && user) {
+    // For following tab: fetch posts from followed users/orgs
+    // RLS will automatically filter based on visibility and follows
+    // We need to get the list of followed user IDs and org IDs
+    const { data: followedEdges } = await supabase
+      .from("follow_edges")
+      .select("target_type,target_person_id,target_org_id")
+      .eq("follower_user_id", user.id)
+      .in("target_type", ["person", "org"]);
+
+    const followedUserIds = (followedEdges ?? [])
+      .filter((e) => e.target_type === "person" && e.target_person_id)
+      .map((e) => e.target_person_id!);
+
+    const followedOrgIds = (followedEdges ?? [])
+      .filter((e) => e.target_type === "org" && e.target_org_id)
+      .map((e) => e.target_org_id!);
+
+    // Only show posts from followed users/orgs
+    // We use an OR condition: either created_by is in followedUserIds OR author_organisation_id is in followedOrgIds
+    if (followedUserIds.length > 0 || followedOrgIds.length > 0) {
+      feedPostsQuery = feedPostsQuery.or(
+        [
+          followedUserIds.length > 0 ? `and(created_by.in.(${followedUserIds.join(",")}),author_organisation_id.is.null)` : null,
+          followedOrgIds.length > 0 ? `author_organisation_id.in.(${followedOrgIds.join(",")})` : null,
+        ]
+          .filter(Boolean)
+          .join(",")
+      );
+    } else {
+      // No follows, return empty
+      feedPostsQuery = feedPostsQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // impossible condition
+    }
+  } else {
+    // For other tabs: only show public posts
+    feedPostsQuery = feedPostsQuery.eq("visibility", "public");
+  }
+
+  const { data: feedPosts } = await feedPostsQuery;
 
   // Fetch user's organisations if logged in
   let userOrganisations: Organisation[] = [];
@@ -105,12 +152,6 @@ export default async function FeedPage({
       userOrgIds = new Set(userOrganisations.map(org => org.id));
     }
   }
-
-  // Determine active tab - default to popular if logged out, following if logged in
-  type TabValue = "popular" | "following" | "watchdog" | "funding";
-  const validTabs: TabValue[] = ["popular", "following", "watchdog", "funding"];
-  const tabValue = validTabs.includes(tabParam as TabValue) ? (tabParam as TabValue) : null;
-  const activeTab: TabValue = tabValue ?? (user ? "following" : "popular");
 
   // Map tabs to RPC scopes
   let scope: "global" | "for_you" | "watchdog" | "funding";
